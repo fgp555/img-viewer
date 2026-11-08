@@ -36,6 +36,35 @@ IMG Viewer es un visor de imágenes para Windows hecho con WPF y .NET 10. Permit
 
 ## Cambios posteriores
 
+### 2026-11-08 · Iconos para cambiar de vista
+
+- Desde Imagen, el botón muestra una cuadrícula. Desde Cuadrícula, muestra una foto para volver al visor.
+- El selector de diseño muestra columnas desiguales en vista cuadrada y cuatro cuadros en Masonry, según el diseño que abrirá.
+
+### 2026-11-08 · Metadatos de selección en la cuadrícula
+
+- Con una foto seleccionada, el pie muestra el nombre, las dimensiones, el tamaño en disco y los datos EXIF disponibles.
+- Con varias fotos seleccionadas, el pie muestra la cantidad y el tamaño total de los archivos.
+- Los botones de copiar, redimensionar y enviar a la Papelera aparecen en el encabezado al seleccionar fotos.
+
+### 2026-11-08 · Cuadrado, Masonry y desplazamiento táctil
+
+- En la cuadrícula, el nuevo ícono alterna entre miniaturas cuadradas y **Masonry**, que conserva las proporciones y coloca cada foto en la columna más corta.
+- La barra de desplazamiento se oculta. Puedes seguir usando la rueda, deslizar con el dedo o arrastrar con el botón izquierdo en el área de miniaturas.
+- Un clic selecciona y un doble clic abre la foto. El arrastre del encabezado mueve la ventana.
+
+### 2026-11-07 · Acciones en la cuadrícula
+
+- Un clic selecciona una imagen. **Ctrl + clic** añade o quita imágenes de la selección y **Shift + clic** selecciona un rango. El doble clic abre la imagen.
+- Al seleccionar imágenes aparecen botones para copiarlas como archivos, redimensionarlas o enviarlas a la Papelera. **Ctrl + C** permite pegarlas en el Explorador y **Supr** las envía a la Papelera.
+- El redimensionado aplica el mismo criterio a cada imagen manteniendo su proporción. Guarda las copias en la misma carpeta con las dimensiones en el nombre y evita sobrescribir archivos existentes.
+- El envío de varias imágenes a la Papelera pide confirmación. **Shift + Supr** recupera la última imagen enviada durante la sesión.
+
+### 2026-11-07 · Redimensionar la imagen
+
+- El botón **Redimensionar imagen** abre un panel con **×0,5**, **×2**, **Máx. 1000 px** y campos de ancho y alto vinculados. El máximo reduce el lado más largo solo si supera 1000 px.
+- El panel muestra las dimensiones resultantes antes de aplicar. La edición queda pendiente y se puede guardar en el original, guardar como copia o descartar con **Esc**.
+
 ### 2026-11-07 · Renombrar imágenes
 
 - **F2** permite renombrar el archivo de la imagen abierta sin cambiar su extensión ni descartar las ediciones pendientes. Si el nombre está ocupado, el visor pide otro.
@@ -51,7 +80,7 @@ IMG Viewer es un visor de imágenes para Windows hecho con WPF y .NET 10. Permit
 ### 2026-11-07 · Controles al hacer clic
 
 - Un clic izquierdo sobre la foto o el fondo del visor muestra u oculta el pie de metadatos y la barra superior. El arrastre sigue moviendo la ventana y el doble clic alterna la pantalla completa.
-- En la cuadrícula, los botones superiores quedan accesibles y un clic en una miniatura abre la foto.
+- En la cuadrícula, los botones superiores quedan accesibles y un doble clic en una miniatura abre la foto.
 
 ### 2026-11-07 · Gestos del mouse
 
@@ -62,7 +91,7 @@ IMG Viewer es un visor de imágenes para Windows hecho con WPF y .NET 10. Permit
 
 - **G** o el ícono de cuatro cuadros alterna entre el visor y una cuadrícula con miniaturas cuadradas. Las miniaturas llenan su celda y las fotos originales conservan su encuadre.
 - La cuadrícula abre la carpeta de la foto actual. Si la foto todavía no tiene archivo o el visor está vacío, muestra la carpeta configurada para las capturas.
-- Las fotos se ordenan por nombre, la rueda desplaza la cuadrícula y un clic abre la foto seleccionada. La foto actual se resalta.
+- Las fotos se ordenan por nombre, la rueda desplaza la cuadrícula y un doble clic abre la foto seleccionada. La foto actual se resalta.
 - La ruta de la carpeta se muestra en un pie compacto. Si se trunca, puedes verla completa al pasar el mouse.
 - El espacio libre del encabezado permite mover la ventana con arrastre izquierdo.
 - En **Configuración → Cuadrícula**, elige entre una y ocho imágenes por fila. El valor inicial es tres y la preferencia se guarda.

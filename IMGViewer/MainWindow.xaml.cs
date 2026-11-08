@@ -403,7 +403,12 @@ public partial class MainWindow : Window
 
     private void UpdateViewerToolbar()
     {
-        FloatingControls.Visibility = viewerControlsVisible || IsFolderGridOpen
+        bool inGrid = IsFolderGridOpen;
+        ViewModeIcon.Data = (Geometry)FindResource(inGrid ? "PhotoViewIcon" : "SquareLayoutIcon");
+        string label = inGrid ? "Volver a imagen" : "Abrir cuadrícula";
+        ViewModeButton.ToolTip = $"{label} · G";
+        System.Windows.Automation.AutomationProperties.SetName(ViewModeButton, label);
+        FloatingControls.Visibility = viewerControlsVisible || inGrid
             ? Visibility.Visible
             : Visibility.Collapsed;
     }
@@ -505,16 +510,7 @@ public partial class MainWindow : Window
 
         if (IsFolderGridOpen)
         {
-            if (e.Key == Key.Escape)
-            {
-                if (!e.IsRepeat)
-                {
-                    CloseFolderGrid();
-                }
-
-                e.Handled = true;
-            }
-
+            HandleGridKey(e);
             return;
         }
 
@@ -678,9 +674,27 @@ public partial class MainWindow : Window
             return;
         }
 
-        int removedIndex = currentIndex;
-        folderImages = folderImages.Where((_, index) => index != removedIndex).ToArray();
-        if (!NavigateFrom(removedIndex, 1) && !NavigateFrom(removedIndex - 1, -1))
+        RefreshViewerAfterRecycling(new HashSet<string>(StringComparer.OrdinalIgnoreCase) { path });
+        StatusText.Text = string.Empty;
+        ShowRecycleNotice();
+    }
+
+    private void RefreshViewerAfterRecycling(HashSet<string> removed)
+    {
+        if (currentIndex < 0)
+        {
+            return;
+        }
+
+        string previousPath = folderImages[currentIndex];
+        int index = folderImages.Take(currentIndex).Count(file => !removed.Contains(file));
+        folderImages = folderImages.Where(file => !removed.Contains(file)).ToArray();
+        if (!removed.Contains(previousPath))
+        {
+            currentIndex = index;
+            UpdateMetadataFooter();
+        }
+        else if (!NavigateFrom(index, 1) && !NavigateFrom(index - 1, -1))
         {
             currentIndex = -1;
             lastSavedPhoto = null;
@@ -696,9 +710,12 @@ public partial class MainWindow : Window
             Title = "IMG Viewer";
         }
 
+        if (IsFolderGridOpen)
+        {
+            CropButton.Visibility = Visibility.Collapsed;
+        }
+
         UpdateSlideShowAvailability();
-        StatusText.Text = string.Empty;
-        ShowRecycleNotice();
     }
 
     private void ShowRecycleNotice()
@@ -783,6 +800,51 @@ public partial class MainWindow : Window
             return;
         }
 
+        ApplyPixelEdit(result);
+    }
+
+    private void ResizeImageButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (Photo.Source is not BitmapSource bitmap)
+        {
+            return;
+        }
+
+        SetSlideShowPlaying(false);
+        var editor = new ResizeImageWindow(bitmap.PixelWidth, bitmap.PixelHeight) { Owner = this };
+        if (editor.ShowDialog() != true || editor.TargetSize == (bitmap.PixelWidth, bitmap.PixelHeight))
+        {
+            return;
+        }
+
+        try
+        {
+            var (width, height) = editor.TargetSize;
+            ApplyPixelEdit(ResizeBitmap(FlattenMarkers(bitmap), width, height));
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or ArgumentException or ExternalException or OutOfMemoryException)
+        {
+            StatusText.Text = "No se pudo redimensionar la imagen.";
+        }
+    }
+
+    private static BitmapSource ResizeBitmap(BitmapSource bitmap, int width, int height)
+    {
+        var visual = new DrawingVisual();
+        RenderOptions.SetBitmapScalingMode(visual, BitmapScalingMode.HighQuality);
+        using (DrawingContext drawing = visual.RenderOpen())
+        {
+            drawing.DrawImage(bitmap, new Rect(0, 0, width * 96.0 / bitmap.DpiX, height * 96.0 / bitmap.DpiY));
+        }
+
+        var result = new RenderTargetBitmap(width, height, bitmap.DpiX, bitmap.DpiY, PixelFormats.Pbgra32);
+        result.Render(visual);
+        result.Freeze();
+        return result;
+    }
+
+    private void ApplyPixelEdit(BitmapSource result)
+    {
         ClearMarkers();
         rotationBasePhoto = result;
         Photo.Source = result;
@@ -1072,17 +1134,24 @@ public partial class MainWindow : Window
         }
     }
 
+    private static BitmapSource ReadPhotoBitmap(string path, int decodeWidth = 0)
+    {
+        using var stream = File.OpenRead(path);
+        var bitmap = new BitmapImage();
+        bitmap.BeginInit();
+        bitmap.CacheOption = BitmapCacheOption.OnLoad;
+        bitmap.DecodePixelWidth = decodeWidth;
+        bitmap.StreamSource = stream;
+        bitmap.EndInit();
+        bitmap.Freeze();
+        return bitmap;
+    }
+
     private bool TryLoadPhoto(string path)
     {
         try
         {
-            using var stream = File.OpenRead(path);
-            var bitmap = new BitmapImage();
-            bitmap.BeginInit();
-            bitmap.CacheOption = BitmapCacheOption.OnLoad;
-            bitmap.StreamSource = stream;
-            bitmap.EndInit();
-            bitmap.Freeze();
+            BitmapSource bitmap = ReadPhotoBitmap(path);
 
             ResetPhotoView();
             ClearMarkers();
@@ -1128,42 +1197,54 @@ public partial class MainWindow : Window
             return;
         }
 
-        string path = folderImages[currentIndex];
-        var fields = new List<string>
+        ImageInfo.Text = DescribePhotoFile(folderImages[currentIndex],
+            $"{currentIndex + 1} / {folderImages.Length}", bitmap);
+    }
+
+    private static string FormatFileSize(long bytes) => bytes switch
+    {
+        >= 1073741824 => $"{bytes / 1073741824.0:0.##} GiB",
+        >= 1048576 => $"{bytes / 1048576.0:0.##} MiB",
+        >= 1024 => $"{bytes / 1024.0:0.##} KiB",
+        _ => $"{bytes} B"
+    };
+
+    private static string DescribePhotoFile(string path, string? position = null, BitmapSource? displayed = null)
+    {
+        var fields = new List<string> { Path.GetFileName(path) };
+        if (position is not null)
         {
-            Path.GetFileName(path),
-            $"{currentIndex + 1} / {folderImages.Length}",
-            $"{bitmap.PixelWidth} × {bitmap.PixelHeight} px"
-        };
+            fields.Add(position);
+        }
+
+        if (displayed is not null)
+        {
+            fields.Add($"{displayed.PixelWidth} × {displayed.PixelHeight} px");
+        }
 
         try
         {
             using var stream = File.OpenRead(path);
-            long bytes = stream.Length;
-            fields.Add(bytes switch
+            fields.Add(FormatFileSize(stream.Length));
+            BitmapFrame frame = BitmapDecoder.Create(stream, BitmapCreateOptions.DelayCreation, BitmapCacheOption.None).Frames[0];
+            if (displayed is null)
             {
-                >= 1048576 => $"{bytes / 1048576.0:0.##} MiB",
-                >= 1024 => $"{bytes / 1024.0:0.##} KiB",
-                _ => $"{bytes} B"
-            });
+                fields.Add($"{frame.PixelWidth} × {frame.PixelHeight} px");
+            }
 
-            BitmapDecoder decoder = BitmapDecoder.Create(stream, BitmapCreateOptions.DelayCreation, BitmapCacheOption.None);
-            if (decoder.Frames[0].Metadata is BitmapMetadata metadata)
+            if (frame.Metadata is BitmapMetadata metadata)
             {
-                string? date = metadata.DateTaken;
-                string? camera = metadata.CameraModel;
+                if (!string.IsNullOrWhiteSpace(metadata.DateTaken))
+                {
+                    fields.Add($"Captura: {metadata.DateTaken}");
+                }
+
+                if (!string.IsNullOrWhiteSpace(metadata.CameraModel))
+                {
+                    fields.Add($"Cámara: {metadata.CameraModel}");
+                }
+
                 object? iso = metadata.GetQuery("/app1/ifd/exif/{ushort=34855}");
-
-                if (!string.IsNullOrWhiteSpace(date))
-                {
-                    fields.Add($"Captura: {date}");
-                }
-
-                if (!string.IsNullOrWhiteSpace(camera))
-                {
-                    fields.Add($"Cámara: {camera}");
-                }
-
                 if (iso is ushort or uint)
                 {
                     fields.Add($"ISO {iso}");
@@ -1173,9 +1254,9 @@ public partial class MainWindow : Window
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or
                                    NotSupportedException or FormatException or COMException or ArgumentException)
         {
-            // A missing or unreadable metadata block should not prevent viewing the image.
+            // Keep the available fields when a file or metadata block cannot be read.
         }
 
-        ImageInfo.Text = string.Join("  ·  ", fields);
+        return string.Join("  ·  ", fields);
     }
 }

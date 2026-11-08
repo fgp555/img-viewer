@@ -84,6 +84,53 @@
                 </Trigger>
             </Style.Triggers>
         </Style>
+        <Geometry x:Key="SquareLayoutIcon">M 1,1 H 7 V 7 H 1 Z M 11,1 H 17 V 7 H 11 Z M 1,11 H 7 V 17 H 1 Z M 11,11 H 17 V 17 H 11 Z</Geometry>
+        <Geometry x:Key="MasonryLayoutIcon">M 1,1 H 7 V 10 H 1 Z M 11,1 H 17 V 6 H 11 Z M 1,13 H 7 V 17 H 1 Z M 11,9 H 17 V 17 H 11 Z</Geometry>
+        <Geometry x:Key="PhotoViewIcon">M 2,3 H 16 V 15 H 2 Z M 2,13 L 6,9 L 9,12 L 12,8 L 16,12 M 7,6 A 1,1 0 1 1 5,6 A 1,1 0 1 1 7,6 Z</Geometry>
+        <DataTemplate x:Key="GridTile">
+            <Button ToolTip="{Binding Name}" AutomationProperties.Name="{Binding Name}"
+                    Click="GridPhoto_Click" MouseDoubleClick="GridPhoto_MouseDoubleClick" Cursor="Hand">
+                <Button.Template>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Tile" Margin="2" BorderThickness="2"
+                                BorderBrush="Transparent" Background="#262C36">
+                            <Grid ClipToBounds="True">
+                                <Image x:Name="Thumbnail" Source="{Binding Thumbnail}" Stretch="UniformToFill" />
+                                <TextBlock Text="{Binding Name}" Foreground="#D3D9E3" Margin="6"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                                           TextTrimming="CharacterEllipsis">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Source, ElementName=Thumbnail}" Value="{x:Null}">
+                                                    <Setter Property="Visibility" Value="Visible" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <DataTrigger Binding="{Binding IsCurrent}" Value="True">
+                                <Setter TargetName="Tile" Property="BorderBrush" Value="#77ADFF" />
+                            </DataTrigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Tile" Property="BorderBrush" Value="White" />
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="Tile" Property="BorderBrush" Value="White" />
+                            </Trigger>
+                            <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                <Setter TargetName="Tile" Property="BorderBrush" Value="#42A5FF" />
+                                <Setter TargetName="Tile" Property="BorderThickness" Value="3" />
+                            </DataTrigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Button.Template>
+            </Button>
+        </DataTemplate>
     </Window.Resources>
 
     <Grid x:Name="PhotoViewport" Background="{StaticResource ViewerBackground}" ClipToBounds="True" SizeChanged="PhotoViewport_SizeChanged">
@@ -108,93 +155,86 @@
 
         <Grid x:Name="FolderGrid" Visibility="Collapsed" Background="#141820">
             <Grid.RowDefinitions>
-                <RowDefinition Height="54" />
+                <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
-            <Border x:Name="GridDragHeader" Background="Transparent" />
-            <ListBox x:Name="GridRows" Grid.Row="1" Margin="10,0" Background="Transparent"
-                     BorderThickness="0" Padding="0" HorizontalContentAlignment="Stretch"
-                     ScrollViewer.CanContentScroll="True" ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                     ScrollViewer.VerticalScrollBarVisibility="Visible" VirtualizingPanel.IsVirtualizing="True"
-                     VirtualizingPanel.VirtualizationMode="Recycling" VirtualizingPanel.ScrollUnit="Pixel"
-                     AutomationProperties.Name="Imágenes de la carpeta" SizeChanged="GridRows_SizeChanged" ScrollViewer.ScrollChanged="GridRows_ScrollChanged">
-                <ListBox.ItemContainerStyle>
-                    <Style TargetType="ListBoxItem">
-                        <Setter Property="Padding" Value="0" />
-                        <Setter Property="Template">
-                            <Setter.Value>
-                                <ControlTemplate TargetType="ListBoxItem">
-                                    <ContentPresenter />
-                                </ControlTemplate>
-                            </Setter.Value>
-                        </Setter>
-                        <Setter Property="Focusable" Value="False" />
-                    </Style>
-                </ListBox.ItemContainerStyle>
-                <ListBox.ItemTemplate>
-                    <DataTemplate>
-                        <ItemsControl ItemsSource="{Binding}">
-                            <ItemsControl.ItemsPanel>
-                                <ItemsPanelTemplate>
-                                    <StackPanel Orientation="Horizontal" />
-                                </ItemsPanelTemplate>
-                            </ItemsControl.ItemsPanel>
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <Button Width="{Binding Tag, RelativeSource={RelativeSource AncestorType=ListBox}}"
-                                            Height="{Binding Tag, RelativeSource={RelativeSource AncestorType=ListBox}}"
-                                            ToolTip="{Binding Name}" AutomationProperties.Name="{Binding Name}"
-                                            Click="GridPhoto_Click" Cursor="Hand">
-                                        <Button.Template>
-                                            <ControlTemplate TargetType="Button">
-                                                <Border x:Name="Tile" Margin="2" BorderThickness="2"
-                                                        BorderBrush="Transparent" Background="#262C36">
-                                                    <Grid ClipToBounds="True">
-                                                        <Image x:Name="Thumbnail" Source="{Binding Thumbnail}" Stretch="UniformToFill" />
-                                                        <TextBlock Text="{Binding Name}" Foreground="#D3D9E3" Margin="6"
-                                                                   HorizontalAlignment="Center" VerticalAlignment="Center"
-                                                                   TextTrimming="CharacterEllipsis">
-                                                            <TextBlock.Style>
-                                                                <Style TargetType="TextBlock">
-                                                                    <Setter Property="Visibility" Value="Collapsed" />
-                                                                    <Style.Triggers>
-                                                                        <DataTrigger Binding="{Binding Source, ElementName=Thumbnail}" Value="{x:Null}">
-                                                                            <Setter Property="Visibility" Value="Visible" />
-                                                                        </DataTrigger>
-                                                                    </Style.Triggers>
-                                                                </Style>
-                                                            </TextBlock.Style>
-                                                        </TextBlock>
-                                                    </Grid>
-                                                </Border>
-                                                <ControlTemplate.Triggers>
-                                                    <DataTrigger Binding="{Binding IsCurrent}" Value="True">
-                                                        <Setter TargetName="Tile" Property="BorderBrush" Value="#77ADFF" />
-                                                    </DataTrigger>
-                                                    <Trigger Property="IsMouseOver" Value="True">
-                                                        <Setter TargetName="Tile" Property="BorderBrush" Value="White" />
-                                                    </Trigger>
-                                                    <Trigger Property="IsKeyboardFocused" Value="True">
-                                                        <Setter TargetName="Tile" Property="BorderBrush" Value="White" />
-                                                    </Trigger>
-                                                </ControlTemplate.Triggers>
-                                            </ControlTemplate>
-                                        </Button.Template>
-                                    </Button>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </DataTemplate>
-                </ListBox.ItemTemplate>
-            </ListBox>
+            <Border x:Name="GridDragHeader" Background="Transparent" MinHeight="54" Padding="0,12,0,6">
+                <Border Height="{Binding ActualHeight, ElementName=FloatingControls}" IsHitTestVisible="False" />
+            </Border>
+            <Grid x:Name="GridScrollArea" Grid.Row="1" Margin="10,0" Background="Transparent"
+                  PreviewMouseLeftButtonDown="GridScrollArea_MouseDown" PreviewMouseMove="GridScrollArea_MouseMove"
+                  PreviewMouseLeftButtonUp="GridScrollArea_MouseUp" LostMouseCapture="GridScrollArea_LostMouseCapture">
+                <ListBox x:Name="GridRows" Background="Transparent"
+                         BorderThickness="0" Padding="0" HorizontalContentAlignment="Stretch"
+                         ScrollViewer.CanContentScroll="True" ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                         ScrollViewer.VerticalScrollBarVisibility="Hidden" VirtualizingPanel.IsVirtualizing="True"
+                         VirtualizingPanel.VirtualizationMode="Recycling" VirtualizingPanel.ScrollUnit="Pixel"
+                         AutomationProperties.Name="Imágenes de la carpeta" SizeChanged="GridRows_SizeChanged" ScrollViewer.ScrollChanged="GridRows_ScrollChanged">
+                    <ListBox.Template>
+                        <ControlTemplate TargetType="ListBox">
+                            <ScrollViewer x:Name="SquareScroll" CanContentScroll="True" Focusable="False"
+                                          HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Hidden"
+                                          PanningMode="VerticalOnly">
+                                <ItemsPresenter />
+                            </ScrollViewer>
+                        </ControlTemplate>
+                    </ListBox.Template>
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="ListBoxItem">
+                            <Setter Property="Padding" Value="0" />
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="ListBoxItem">
+                                        <ContentPresenter />
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                            <Setter Property="Focusable" Value="False" />
+                        </Style>
+                    </ListBox.ItemContainerStyle>
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <ItemsControl ItemsSource="{Binding}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <StackPanel Orientation="Horizontal" />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <ContentControl Width="{Binding Tag, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                                                        Height="{Binding Tag, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                                                        HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"
+                                                        Focusable="False" Content="{Binding}" ContentTemplate="{StaticResource GridTile}" />
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+                <ScrollViewer x:Name="MasonryScroll" Visibility="Collapsed" Focusable="False"
+                              HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Hidden"
+                              PanningMode="VerticalOnly" SizeChanged="MasonryScroll_SizeChanged"
+                              ScrollChanged="MasonryScroll_ScrollChanged">
+                    <Canvas x:Name="MasonryCanvas" Height="0" Background="Transparent" />
+                </ScrollViewer>
+            </Grid>
             <TextBlock x:Name="GridMessage" Grid.Row="1" Foreground="White" TextWrapping="Wrap"
                        HorizontalAlignment="Center" VerticalAlignment="Center" Margin="12"
                        IsHitTestVisible="False" AutomationProperties.LiveSetting="Polite" />
             <Border Grid.Row="2" Padding="12,5" Background="#202632"
                     BorderBrush="#454C58" BorderThickness="0,1,0,0">
-                <TextBlock x:Name="GridFolderPath" Foreground="#D3D9E3"
-                           TextTrimming="CharacterEllipsis" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}" />
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock x:Name="GridFolderPath" Foreground="#D3D9E3"
+                               TextTrimming="CharacterEllipsis" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}" />
+                    <TextBlock x:Name="GridSelectionInfo" Foreground="White" TextWrapping="Wrap"
+                               TextTrimming="CharacterEllipsis" MaxHeight="64"
+                               Visibility="{Binding Visibility, ElementName=GridActions}"
+                               AutomationProperties.LiveSetting="Polite" />
+                    <TextBlock x:Name="GridOperationStatus" Foreground="White" TextWrapping="Wrap"
+                               Visibility="Collapsed" AutomationProperties.LiveSetting="Polite" />
+                </StackPanel>
             </Border>
         </Grid>
         <DockPanel x:Name="ImageFooter" VerticalAlignment="Bottom">
@@ -246,13 +286,37 @@
         </DockPanel>
 
         <Grid HorizontalAlignment="Right" VerticalAlignment="Top">
-            <StackPanel x:Name="FloatingControls" Orientation="Horizontal"
+            <WrapPanel x:Name="FloatingControls" Orientation="Horizontal"
                         HorizontalAlignment="Right" Margin="12,12,12,0" Visibility="Collapsed">
-                <Button Style="{StaticResource FloatingButton}" Margin="0,0,8,0"
-                        ToolTip="Cambiar vista · G" AutomationProperties.Name="Cambiar entre imagen y cuadrícula"
+                <StackPanel x:Name="GridActions" Orientation="Horizontal"
+                            Margin="0,0,8,0" Visibility="Collapsed">
+                    <Button Style="{StaticResource FloatingButton}" Margin="0,0,6,0"
+                            ToolTip="Copiar archivos · Ctrl + C" AutomationProperties.Name="Copiar archivos"
+                            Click="GridCopy_Click">
+                        <Path Style="{StaticResource FloatingIcon}"
+                              Data="M 6,6 H 16 V 16 H 6 Z M 2,12 V 2 H 12" />
+                    </Button>
+                    <Button Style="{StaticResource FloatingButton}" Margin="0,0,6,0"
+                            ToolTip="Redimensionar y guardar copias"
+                            AutomationProperties.Name="Redimensionar y guardar copias" Click="GridResize_Click">
+                        <Path Style="{StaticResource FloatingIcon}"
+                              Data="M 7,2 H 2 V 7 M 2,2 L 7,7 M 11,16 H 16 V 11 M 16,16 L 11,11 M 10,2 H 16 V 8 M 2,10 V 16 H 8" />
+                    </Button>
+                    <Button Style="{StaticResource CloseButton}" ToolTip="Enviar a la Papelera · Supr"
+                            AutomationProperties.Name="Enviar a la Papelera" Click="GridDelete_Click">
+                        <Path Style="{StaticResource FloatingIcon}"
+                              Data="M 2,5 H 16 M 6,5 V 2 H 12 V 5 M 4,5 L 5,16 H 13 L 14,5 M 7,8 V 13 M 11,8 V 13" />
+                    </Button>
+                </StackPanel>
+                <Button x:Name="ViewModeButton" Style="{StaticResource FloatingButton}" Margin="0,0,8,0"
+                        ToolTip="Abrir cuadrícula · G" AutomationProperties.Name="Abrir cuadrícula"
                         Click="FolderGridButton_Click">
-                    <Path Style="{StaticResource FloatingIcon}"
-                          Data="M 1,1 H 7 V 7 H 1 Z M 11,1 H 17 V 7 H 11 Z M 1,11 H 7 V 17 H 1 Z M 11,11 H 17 V 17 H 11 Z" />
+                    <Path x:Name="ViewModeIcon" Style="{StaticResource FloatingIcon}" Data="{StaticResource SquareLayoutIcon}" />
+                </Button>
+                <Button x:Name="GridLayoutButton" Style="{StaticResource FloatingButton}" Margin="0,0,8,0"
+                        Visibility="{Binding Visibility, ElementName=FolderGrid}" ToolTip="Cambiar a Masonry"
+                        AutomationProperties.Name="Cambiar a Masonry" Click="GridLayoutButton_Click">
+                    <Path x:Name="GridLayoutIcon" Style="{StaticResource FloatingIcon}" Data="{StaticResource MasonryLayoutIcon}" />
                 </Button>
                 <Button x:Name="SlideShowButton" Style="{StaticResource FloatingButton}" Margin="0,0,8,0"
                         Visibility="Collapsed" ToolTip="Reproducir presentación"
@@ -272,6 +336,13 @@
                     <Path Style="{StaticResource FloatingIcon}"
                           Data="M 5,1 V 13 H 17 M 1,5 H 13 V 17" />
                 </Button>
+                <Button Style="{StaticResource FloatingButton}" Margin="0,0,8,0"
+                        Visibility="{Binding Visibility, ElementName=CropButton}"
+                        ToolTip="Redimensionar imagen" AutomationProperties.Name="Redimensionar imagen"
+                        Click="ResizeImageButton_Click">
+                    <Path Style="{StaticResource FloatingIcon}"
+                          Data="M 7,2 H 2 V 7 M 2,2 L 7,7 M 11,16 H 16 V 11 M 16,16 L 11,11 M 10,2 H 16 V 8 M 2,10 V 16 H 8" />
+                </Button>
                 <Button x:Name="InfoButton" Style="{StaticResource FloatingButton}" Margin="0,0,8,0"
                         AutomationProperties.Name="Información de la imagen"
                         ToolTip="Mostrar u ocultar metadatos" Click="InfoButton_Click">
@@ -289,7 +360,7 @@
                     <Path Style="{StaticResource FloatingIcon}" Width="13" Height="13"
                           Data="M 1,1 L 12,12 M 12,1 L 1,12" />
                 </Button>
-            </StackPanel>
+            </WrapPanel>
         </Grid>
         <Border BorderBrush="#686868" BorderThickness="1"
                 IsHitTestVisible="False" SnapsToDevicePixels="True">

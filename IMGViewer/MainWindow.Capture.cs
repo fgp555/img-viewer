@@ -158,11 +158,16 @@ public partial class MainWindow
     private static string SaveCaptureFile(BitmapSource bitmap, string folder, DateTime timestamp)
     {
         Directory.CreateDirectory(folder);
-        string name = CapturePreferences.FileName(timestamp);
+        return WriteUniquePhoto(bitmap, folder, CapturePreferences.FileName(timestamp));
+    }
+
+    private static string WriteUniquePhoto(BitmapSource bitmap, string folder, string name)
+    {
+        string extension = Path.GetExtension(name);
         string stem = Path.GetFileNameWithoutExtension(name);
         for (int suffix = 0; ; suffix++)
         {
-            string path = Path.Combine(folder, suffix == 0 ? name : $"{stem}-{suffix}.jpg");
+            string path = Path.Combine(folder, suffix == 0 ? name : $"{stem}-{suffix}{extension}");
             if (Path.Exists(path))
             {
                 continue;

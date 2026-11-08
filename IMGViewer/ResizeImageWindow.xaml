@@ -1,0 +1,33 @@
+<Window x:Class="IMGViewer.ResizeImageWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Redimensionar imagen" Width="420" SizeToContent="Height" ResizeMode="NoResize"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="False"
+        Background="#141820" Foreground="White">
+    <StackPanel Margin="18">
+        <TextBlock Text="Tamaños rápidos" FontWeight="SemiBold" Margin="0,0,0,8" />
+        <WrapPanel Margin="0,0,0,14">
+            <Button Content="×0,5" Padding="12,5" Margin="0,0,8,0" Click="HalfSize_Click" />
+            <Button Content="×2" Padding="12,5" Margin="0,0,8,0" Click="DoubleSize_Click" />
+            <Button Content="Máx. 1000 px" Padding="12,5" Click="FitSize_Click" />
+        </WrapPanel>
+
+        <UniformGrid Columns="2">
+            <StackPanel Margin="0,0,6,0">
+                <Label Content="Ancho (px)" Target="{Binding ElementName=WidthField}" Foreground="White" Padding="0,0,0,5" />
+                <TextBox x:Name="WidthField" Padding="8" />
+            </StackPanel>
+            <StackPanel Margin="6,0,0,0">
+                <Label Content="Alto (px)" Target="{Binding ElementName=HeightField}" Foreground="White" Padding="0,0,0,5" />
+                <TextBox x:Name="HeightField" Padding="8" />
+            </StackPanel>
+        </UniformGrid>
+
+        <TextBlock x:Name="SizePreview" Foreground="#D3D9E3" Margin="0,12,0,0"
+                   TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,14,0,0">
+            <Button Content="Cancelar" IsCancel="True" Padding="12,5" Margin="0,0,8,0" />
+            <Button x:Name="ApplyButton" Content="Aplicar" IsDefault="True" Padding="12,5" Click="Apply_Click" />
+        </StackPanel>
+    </StackPanel>
+</Window>
