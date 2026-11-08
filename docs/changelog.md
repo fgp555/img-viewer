@@ -36,9 +36,13 @@ IMG Viewer es un visor de imágenes para Windows hecho con WPF y .NET 10. Permit
 
 ## Cambios posteriores
 
+### 2026-11-08 · Siempre visible
+
+- **Ctrl + F12** fija o desfija la ventana activa por encima de las ventanas normales. El atajo funciona también con IMG Viewer oculto en la bandeja.
+
 ### 2026-11-08 · Ajuste de imagen con C
 
-- En modo Imagen, **C** alterna entre **Contain**, que muestra toda la foto, y **Cover**, que llena la ventana desde el centro. El ajuste es visual y **Ctrl + C** sigue copiando la imagen.
+- En modo Imagen, **C** alterna entre **Contain**, que muestra toda la foto, y **Cover**, que llena la ventana con zoom. **Ctrl + arrastre izquierdo** desplaza la foto en Cover para ver las zonas fuera de la vista. El ajuste es visual y **Ctrl + C** sigue copiando la imagen.
 
 ### 2026-11-08 · Barra superior al pasar el mouse
 

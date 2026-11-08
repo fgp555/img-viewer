@@ -29,6 +29,8 @@ public partial class MainWindow : Window
     private int rotationDegrees;
     private bool hasPixelEdit;
     private bool showTransparencyGrid;
+    private bool coverPhoto;
+    private double photoZoomMultiplier = 1;
 
     private readonly DispatcherTimer viewerClickTimer = new()
     {
@@ -538,7 +540,8 @@ public partial class MainWindow : Window
         {
             if (!e.IsRepeat)
             {
-                Photo.Stretch = Photo.Stretch == Stretch.Uniform ? Stretch.UniformToFill : Stretch.Uniform;
+                coverPhoto = !coverPhoto;
+                UpdatePhotoZoom();
                 SetPhotoPan(0, 0);
             }
 
@@ -1042,15 +1045,31 @@ public partial class MainWindow : Window
 
     private void ResetPhotoView()
     {
-        PhotoZoom.ScaleX = 1;
-        PhotoZoom.ScaleY = 1;
+        photoZoomMultiplier = 1;
+        UpdatePhotoZoom();
         SetPhotoPan(0, 0);
     }
 
-    private void PhotoViewport_SizeChanged(object sender, SizeChangedEventArgs e)
+    private void UpdatePhotoZoom()
     {
+        double fitScale = 1;
+        if (coverPhoto && Photo.Source is { Width: > 0, Height: > 0 } image &&
+            PhotoViewport.ActualWidth > 0 && PhotoViewport.ActualHeight > 0)
+        {
+            double widthRatio = PhotoViewport.ActualWidth / image.Width;
+            double heightRatio = PhotoViewport.ActualHeight / image.Height;
+            fitScale = Math.Max(widthRatio, heightRatio) / Math.Min(widthRatio, heightRatio);
+        }
+
+        double scale = fitScale * photoZoomMultiplier;
+        PhotoZoom.ScaleX = scale;
+        PhotoZoom.ScaleY = scale;
         SetPhotoPan(PhotoPan.X, PhotoPan.Y);
     }
+
+    private void PhotoViewport_SizeChanged(object sender, SizeChangedEventArgs e) => UpdatePhotoZoom();
+
+    private void Photo_SizeChanged(object sender, SizeChangedEventArgs e) => UpdatePhotoZoom();
 
     private void SetPhotoPan(double x, double y)
     {
@@ -1072,10 +1091,8 @@ public partial class MainWindow : Window
         if ((Keyboard.Modifiers & ModifierKeys.Control) != 0)
         {
             double factor = Math.Pow(1.2, e.Delta / 120.0);
-            double scale = Math.Clamp(PhotoZoom.ScaleX * factor, 1, 8);
-            PhotoZoom.ScaleX = scale;
-            PhotoZoom.ScaleY = scale;
-            SetPhotoPan(PhotoPan.X, PhotoPan.Y);
+            photoZoomMultiplier = Math.Clamp(photoZoomMultiplier * factor, 1, 8);
+            UpdatePhotoZoom();
             return;
         }
 
@@ -1155,7 +1172,6 @@ public partial class MainWindow : Window
         {
             BitmapSource bitmap = ReadPhotoBitmap(path);
 
-            ResetPhotoView();
             ClearMarkers();
             lastSavedPhoto = bitmap;
             rotationBasePhoto = bitmap;
@@ -1163,6 +1179,7 @@ public partial class MainWindow : Window
             SetRotationDegrees(0);
             CropButton.Visibility = Visibility.Visible;
             Photo.Source = bitmap;
+            ResetPhotoView();
             EmptyState.Visibility = Visibility.Collapsed;
             Title = $"IMG Viewer — {Path.GetFileName(path)}";
             return true;

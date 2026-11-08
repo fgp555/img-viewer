@@ -13,6 +13,7 @@ public partial class MainWindow
     private const int HotkeyMessage = 0x0312;
     private HwndSource? windowSource;
     private bool captureHotkeyRegistered;
+    private bool topmostHotkeyRegistered;
     private bool captureInProgress;
 
     protected override void OnSourceInitialized(EventArgs e)
@@ -24,9 +25,17 @@ public partial class MainWindow
         windowSource = HwndSource.FromHwnd(handle);
         windowSource.AddHook(WindowMessageHook);
         captureHotkeyRegistered = RegisterHotKey(handle, ScreenCaptureHotkey, noRepeat, printScreen);
+        const uint control = 0x0002;
+        const uint f12 = 0x7B;
+        topmostHotkeyRegistered = RegisterHotKey(handle, AlwaysOnTopHotkey, noRepeat | control, f12);
+        if (!topmostHotkeyRegistered)
+        {
+            StatusText.Text = "Ctrl + F12 no está disponible como atajo global.";
+        }
         if (!captureHotkeyRegistered)
         {
-            StatusText.Text = "Impr Pant no está disponible como atajo global.";
+            string message = "Impr Pant no está disponible como atajo global.";
+            StatusText.Text = topmostHotkeyRegistered ? message : $"{StatusText.Text} {message}";
         }
     }
 
@@ -58,6 +67,12 @@ public partial class MainWindow
                 captureHotkeyRegistered = false;
             }
 
+            if (topmostHotkeyRegistered)
+            {
+                UnregisterHotKey(windowSource.Handle, AlwaysOnTopHotkey);
+                topmostHotkeyRegistered = false;
+            }
+
             windowSource.RemoveHook(WindowMessageHook);
             windowSource = null;
         }
@@ -75,6 +90,11 @@ public partial class MainWindow
         {
             handled = true;
             Dispatcher.InvokeAsync(CaptureScreen);
+        }
+        else if (message == HotkeyMessage && id == AlwaysOnTopHotkey)
+        {
+            handled = true;
+            ToggleForegroundTopmost(window);
         }
 
         return 0;
