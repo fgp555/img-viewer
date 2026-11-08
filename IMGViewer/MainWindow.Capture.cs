@@ -33,10 +33,19 @@ public partial class MainWindow
     protected override void OnClosing(CancelEventArgs e)
     {
         base.OnClosing(e);
-        if (!e.Cancel)
+        if (e.Cancel)
         {
-            ReleaseCaptureHotkey();
+            return;
         }
+
+        if (Application.Current is App app && app.TryHideViewer(this))
+        {
+            e.Cancel = true;
+            SetSlideShowPlaying(false);
+            return;
+        }
+
+        ReleaseCaptureHotkey();
     }
 
     private void ReleaseCaptureHotkey()
@@ -60,10 +69,10 @@ public partial class MainWindow
         return 0;
     }
 
-    private void CaptureScreen()
+    internal void CaptureScreen()
     {
         nint handle = new WindowInteropHelper(this).Handle;
-        if (captureInProgress || !IsVisible || !IsWindowEnabled(handle) || IsMouseCaptured)
+        if (captureInProgress || handle == 0 || !IsWindowEnabled(handle) || IsMouseCaptured)
         {
             return;
         }
@@ -78,12 +87,10 @@ public partial class MainWindow
             if (selector.ShowDialog() == true && selector.Result is { } bitmap)
             {
                 SaveAndOpenCapture(bitmap, timestamp);
-                if (WindowState == WindowState.Minimized)
+                if (Application.Current is App app)
                 {
-                    WindowState = WindowState.Normal;
+                    app.ShowViewer();
                 }
-
-                Activate();
             }
         }
         catch (Exception ex) when (ex is Win32Exception or ExternalException or InvalidOperationException or ArgumentException)

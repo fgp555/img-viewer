@@ -36,6 +36,13 @@ IMG Viewer es un visor de imágenes para Windows hecho con WPF y .NET 10. Permit
 
 ## Cambios posteriores
 
+### 2026-11-07 · Bandeja e instancia única
+
+- **Ocultar en la bandeja al cerrar** viene activado. Al pulsar ×, el visor se oculta y **Impr Pant** sigue disponible. Si desactivas la opción, × cierra la app.
+- El menú del ícono junto al reloj permite abrir el visor, capturar la pantalla o salir de la app.
+- **Iniciar con Windows en la bandeja** es opcional y viene desactivado. Al activarlo, el visor arranca oculto al iniciar sesión.
+- Abrir otra imagen desde el Explorador reutiliza la instancia activa, incluso si está oculta en la bandeja.
+
 ### 2026-11-07 · Guardado automático de capturas
 
 - Al confirmar una captura, IMG Viewer la guarda como JPG en Descargas y la abre en el visor. Usa el formato `screen-261107-223518.jpg` y añade un sufijo numérico si el nombre ya existe.
