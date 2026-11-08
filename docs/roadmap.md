@@ -2,6 +2,8 @@
 
 Visor de imágenes de escritorio para Windows, desarrollado con WPF y .NET 10. El objetivo es ofrecer funciones sencillas y útiles para ver imágenes y preparar capturas de pantalla.
 
+Las cinco etapas iniciales están completadas. Los cambios posteriores se registran en el [registro de cambios](changelog.md).
+
 ## Etapa 1 · Abrir y recorrer imágenes
 
 - [x] Abrir imágenes JPG, PNG o BMP arrastrándolas a la ventana.
@@ -34,5 +36,5 @@ Visor de imágenes de escritorio para Windows, desarrollado con WPF y .NET 10. E
 
 ## Etapa 5 · Captura de pantalla
 
-- [ ] Seleccionar un área de la pantalla y capturarla.
-- [ ] Abrir la captura directamente en IMG Viewer para marcarla con las herramientas de la etapa 4.
+- [x] Iniciar con Impr Pant una captura global y seleccionar una ventana visible, un área libre o un monitor completo.
+- [x] Abrir la captura directamente en IMG Viewer para marcarla, copiarla o guardarla.

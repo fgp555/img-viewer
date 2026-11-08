@@ -475,7 +475,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (currentIndex >= 0 && e.Key == Key.R && modifiers is ModifierKeys.None or ModifierKeys.Shift)
+        if (Photo.Source is BitmapSource && e.Key == Key.R && modifiers is ModifierKeys.None or ModifierKeys.Shift)
         {
             if (!e.IsRepeat)
             {
@@ -486,7 +486,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (currentIndex >= 0 && e.Key == Key.S &&
+        if (Photo.Source is BitmapSource && e.Key == Key.S &&
             (modifiers == ModifierKeys.Control || modifiers == (ModifierKeys.Control | ModifierKeys.Shift)))
         {
             if (!e.IsRepeat)
@@ -701,7 +701,7 @@ public partial class MainWindow : Window
 
     private void UpdatePendingSaveIndicator()
     {
-        SavePendingButton.Visibility = HasPendingChanges
+        SavePendingButton.Visibility = HasPendingChanges || HasUnsavedCapture
             ? Visibility.Visible
             : Visibility.Collapsed;
     }
@@ -718,16 +718,19 @@ public partial class MainWindow : Window
             return;
         }
 
-        string originalPath = folderImages[currentIndex];
-        string destination = originalPath;
-        if (saveCopy)
+        string? originalPath = currentIndex >= 0 ? folderImages[currentIndex] : null;
+        string destination;
+        bool chooseDestination = saveCopy || originalPath is null;
+        if (chooseDestination)
         {
             var dialog = new SaveFileDialog
             {
-                Title = "Guardar copia",
-                InitialDirectory = Path.GetDirectoryName(originalPath),
-                FileName = Path.GetFileNameWithoutExtension(originalPath) + " - copia",
-                DefaultExt = Path.GetExtension(originalPath),
+                Title = saveCopy ? "Guardar copia" : "Guardar captura",
+                InitialDirectory = originalPath is null ? string.Empty : Path.GetDirectoryName(originalPath),
+                FileName = originalPath is null
+                    ? $"Captura {DateTime.Now:yyyy-MM-dd HH-mm-ss}.png"
+                    : Path.GetFileNameWithoutExtension(originalPath) + " - copia",
+                DefaultExt = originalPath is null ? ".png" : Path.GetExtension(originalPath),
                 Filter = "Imágenes JPG, PNG y BMP|*.jpg;*.jpeg;*.png;*.bmp",
                 AddExtension = true
             };
@@ -744,16 +747,21 @@ public partial class MainWindow : Window
                 return;
             }
         }
-        else if (!HasPendingChanges)
+        else
         {
-            StatusText.Text = "No hay cambios que guardar.";
-            return;
+            if (!HasPendingChanges)
+            {
+                StatusText.Text = "No hay cambios que guardar.";
+                return;
+            }
+
+            destination = originalPath!;
         }
 
         try
         {
             bitmap = FlattenMarkers(bitmap);
-            WritePhoto(bitmap, destination, saveCopy);
+            WritePhoto(bitmap, destination, chooseDestination);
             if (!saveCopy)
             {
                 ClearMarkers();
@@ -761,6 +769,15 @@ public partial class MainWindow : Window
                 lastSavedPhoto = bitmap;
                 rotationBasePhoto = bitmap;
                 hasPixelEdit = false;
+                if (originalPath is null)
+                {
+                    folderImages = GetFolderImages(destination);
+                    currentIndex = Array.FindIndex(folderImages, file =>
+                        StringComparer.OrdinalIgnoreCase.Equals(file, destination));
+                    Title = $"IMG Viewer — {Path.GetFileName(destination)}";
+                    UpdateSlideShowAvailability();
+                }
+
                 SetRotationDegrees(0);
                 UpdateMetadataFooter();
             }
@@ -773,7 +790,7 @@ public partial class MainWindow : Window
         }
     }
 
-    private static void WritePhoto(BitmapSource bitmap, string destination, bool saveCopy)
+    private static void WritePhoto(BitmapSource bitmap, string destination, bool writeNewDestination)
     {
         BitmapEncoder encoder = Path.GetExtension(destination).ToLowerInvariant() switch
         {
@@ -793,7 +810,7 @@ public partial class MainWindow : Window
                 encoder.Save(stream);
             }
 
-            if (saveCopy)
+            if (writeNewDestination)
             {
                 File.Move(temporaryPath, destination, overwrite: true);
             }
@@ -831,7 +848,7 @@ public partial class MainWindow : Window
 
     private void Window_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
     {
-        if (markerDrag.HasValue || windowDragOffset.HasValue || photoDragPosition.HasValue || e.Delta == 0 || currentIndex < 0)
+        if (markerDrag.HasValue || windowDragOffset.HasValue || photoDragPosition.HasValue || e.Delta == 0 || Photo.Source is null)
         {
             return;
         }
@@ -847,7 +864,10 @@ public partial class MainWindow : Window
             return;
         }
 
-        Navigate(-Math.Sign(e.Delta));
+        if (currentIndex >= 0)
+        {
+            Navigate(-Math.Sign(e.Delta));
+        }
     }
 
     private void Navigate(int direction)
@@ -945,9 +965,15 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (currentIndex < 0 || Photo.Source is not BitmapSource bitmap)
+        if (Photo.Source is not BitmapSource bitmap)
         {
             ImageInfo.Text = "No hay una imagen abierta.";
+            return;
+        }
+
+        if (HasUnsavedCapture)
+        {
+            ImageInfo.Text = $"Captura de pantalla · {bitmap.PixelWidth} × {bitmap.PixelHeight} px · Sin archivo";
             return;
         }
 

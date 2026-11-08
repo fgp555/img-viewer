@@ -1,0 +1,39 @@
+# Registro de cambios de IMG Viewer
+
+## Funciones incorporadas en las etapas 1 a 5
+
+IMG Viewer es un visor de imágenes para Windows hecho con WPF y .NET 10. Permite recorrer una carpeta, hacer ajustes rápidos y preparar capturas para compartir.
+
+### Visor y controles
+
+- Apertura de JPG, JPEG, PNG y BMP al arrastrarlos a la ventana o desde **Abrir con** en el Explorador.
+- Navegación por nombre con las flechas o la rueda. Presentación en bucle en pantalla completa, con reproducción y pausa y un intervalo de tres segundos.
+- Doble clic en la foto para alternar la pantalla completa. **Ctrl + rueda** amplía o reduce la imagen y **Ctrl + arrastre izquierdo** la desplaza cuando está ampliada.
+- Ventana sin barra de título, con borde gris fino, sombra nativa y botones flotantes. Mantener presionada la rueda y arrastrar mueve la ventana.
+- **T** alterna el fondo oscuro y el damero para revisar transparencias. El fondo del visor no forma parte de la imagen.
+- El botón de información abre un pie con nombre, posición, dimensiones, tamaño de archivo y datos EXIF disponibles, como fecha de captura, cámara e ISO.
+
+### Edición y guardado
+
+- **R** gira 90° en sentido horario y **Shift + R** en sentido antihorario.
+- Recorte libre y enderezado de −15° a +15° en una misma vista previa, con tiradores y cuadrícula de tercios.
+- **Alt + arrastre izquierdo** dibuja una flecha. **Shift + arrastre izquierdo** dibuja un rectángulo. **Ctrl + Z** deshace la última marca pendiente.
+- **Esc** descarta las ediciones pendientes. Si hay un trazo en curso, cancela primero ese trazo.
+- El disquete ámbar indica que hay algo por guardar. **Ctrl + S** guarda en el archivo actual y **Ctrl + Shift + S** guarda una copia. **Ctrl + C** copia la imagen con las ediciones visibles.
+- Al guardar una imagen editada, el archivo se vuelve a codificar y puede perder metadatos EXIF.
+
+### Papelera
+
+- **Supr** envía la foto actual a la Papelera y muestra la siguiente disponible. Si era la última, muestra la anterior.
+- Durante cinco segundos aparece un botón rojo en la esquina inferior derecha. Parpadea suavemente cuando las animaciones de Windows están activas y cambia a una flecha de deshacer al pasar el mouse. Un clic restaura la foto.
+- **Shift + Supr** restaura la última foto enviada desde el visor durante la sesión, aunque el botón ya haya desaparecido.
+
+### Captura de pantalla
+
+- **Impr Pant** inicia la captura desde otra aplicación mientras IMG Viewer está abierto. Si Windows abre Recortes con esa tecla, desactiva esa asignación antes de usarla en el visor.
+- La selección se hace sobre una instantánea congelada. Al mover el cursor se resalta el marco visible de la ventana, al hacer clic se captura esa ventana y al arrastrar se selecciona una región manual.
+- **Pantalla completa** captura el monitor seleccionado y **Esc** cancela. La captura se abre en el visor para marcarla, copiarla o guardarla. El primer **Ctrl + S** pide un nombre y propone PNG.
+
+## Cambios posteriores
+
+Añadir cada cambio visible para el usuario con su fecha, el comportamiento y el atajo, si lo tiene. Registrar por separado las correcciones y las limitaciones relevantes. Para el futuro README y la landing page, conservar ejemplos de uso y capturas que muestren la función en acción.

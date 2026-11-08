@@ -1,0 +1,27 @@
+<Window x:Class="IMGViewer.ScreenCaptureWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        WindowStyle="None" ResizeMode="NoResize" ShowInTaskbar="False" Topmost="True"
+        WindowStartupLocation="Manual" Title="Capturar pantalla" Background="Black"
+        PreviewKeyDown="Window_PreviewKeyDown">
+    <Grid x:Name="Surface" ClipToBounds="True" SizeChanged="Surface_SizeChanged">
+        <Image x:Name="FrozenDesktop" Stretch="Fill" IsHitTestVisible="False" />
+        <Grid x:Name="SelectionSurface" Background="Transparent" Cursor="Cross"
+              MouseLeftButtonDown="Selection_MouseLeftButtonDown" MouseMove="Selection_MouseMove"
+              MouseLeftButtonUp="Selection_MouseLeftButtonUp" LostMouseCapture="Selection_LostMouseCapture">
+            <Path x:Name="Dimmer" Fill="#99000000" IsHitTestVisible="False" />
+            <Path x:Name="Outline" Stroke="White" StrokeThickness="2" IsHitTestVisible="False" />
+        </Grid>
+        <Canvas>
+            <Border x:Name="Toolbar" Background="#F2202632" CornerRadius="6" Padding="10"
+                    SizeChanged="Surface_SizeChanged">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="Clic: ventana · Arrastrar: área" Foreground="White"
+                               VerticalAlignment="Center" Margin="0,0,12,0" />
+                    <Button Content="Pantalla completa" Padding="10,5" Click="CaptureMonitor_Click" Margin="0,0,8,0" />
+                    <Button Content="Cancelar" Padding="10,5" IsCancel="True" />
+                </StackPanel>
+            </Border>
+        </Canvas>
+    </Grid>
+</Window>
