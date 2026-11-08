@@ -15,6 +15,12 @@ public partial class CaptureSettingsWindow : Window
         GridColumnPicker.ItemsSource = Enumerable.Range(1, ViewerPreferences.MaximumGridColumns);
         GridColumnPicker.SelectedItem = ViewerPreferences.GridColumns;
         GridColumnPicker.SelectionChanged += GridColumnPicker_SelectionChanged;
+        HideIdleCursor.IsChecked = ViewerPreferences.HideIdleCursor;
+        CursorDelayPicker.ItemsSource = Enumerable.Range(1, ViewerPreferences.MaximumCursorIdleSeconds);
+        CursorDelayPicker.SelectedItem = ViewerPreferences.CursorIdleSeconds;
+        CursorDelayPicker.SelectionChanged += CursorDelayPicker_SelectionChanged;
+        CursorScopePicker.SelectedIndex = ViewerPreferences.CursorAcrossWindows ? 1 : 0;
+        CursorScopePicker.SelectionChanged += CursorScopePicker_SelectionChanged;
         CopyCapturesToClipboard.IsChecked = ViewerPreferences.CopyCapturesToClipboard;
         CloseToTray.IsChecked = ViewerPreferences.CloseToTray;
         StartWithWindows.IsChecked = ViewerPreferences.StartWithWindows;
@@ -55,11 +61,66 @@ public partial class CaptureSettingsWindow : Window
         }
     }
 
+    private void CursorDelayPicker_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        if (CursorDelayPicker.SelectedItem is not int seconds)
+        {
+            return;
+        }
+
+        try
+        {
+            ViewerPreferences.CursorIdleSeconds = seconds;
+            ApplyCursorSettings();
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
+        {
+            CursorDelayPicker.SelectionChanged -= CursorDelayPicker_SelectionChanged;
+            CursorDelayPicker.SelectedItem = ViewerPreferences.CursorIdleSeconds;
+            CursorDelayPicker.SelectionChanged += CursorDelayPicker_SelectionChanged;
+            SettingsStatus.Text = "No se pudo guardar el tiempo de espera del cursor.";
+        }
+    }
+
+    private void CursorScopePicker_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        if (CursorScopePicker.SelectedIndex < 0)
+        {
+            return;
+        }
+
+        try
+        {
+            ViewerPreferences.CursorAcrossWindows = CursorScopePicker.SelectedIndex == 1;
+            ApplyCursorSettings();
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
+        {
+            CursorScopePicker.SelectionChanged -= CursorScopePicker_SelectionChanged;
+            CursorScopePicker.SelectedIndex = ViewerPreferences.CursorAcrossWindows ? 1 : 0;
+            CursorScopePicker.SelectionChanged += CursorScopePicker_SelectionChanged;
+            SettingsStatus.Text = "No se pudo guardar el alcance del cursor.";
+        }
+    }
+
+    private void ApplyCursorSettings()
+    {
+        SettingsStatus.Text = (Application.Current as App)?.RefreshCursorSettings() == false
+            ? "El cursor solo se puede ocultar dentro de IMG Viewer en este equipo."
+            : string.Empty;
+    }
+
     private void ToggleSetting_Click(object sender, RoutedEventArgs e)
     {
         try
         {
-            if (sender == CopyCapturesToClipboard)
+            if (sender == HideIdleCursor)
+            {
+                ViewerPreferences.HideIdleCursor = HideIdleCursor.IsChecked == true;
+                ApplyCursorSettings();
+                return;
+            }
+            else if (sender == CopyCapturesToClipboard)
             {
                 ViewerPreferences.CopyCapturesToClipboard = CopyCapturesToClipboard.IsChecked == true;
             }

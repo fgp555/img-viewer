@@ -36,6 +36,21 @@ IMG Viewer es un visor de imágenes para Windows hecho con WPF y .NET 10. Permit
 
 ## Cambios posteriores
 
+### 2026-11-08 · Ajuste de imagen con C
+
+- En modo Imagen, **C** alterna entre **Contain**, que muestra toda la foto, y **Cover**, que llena la ventana desde el centro. El ajuste es visual y **Ctrl + C** sigue copiando la imagen.
+
+### 2026-11-08 · Barra superior al pasar el mouse
+
+- En modo Imagen, el clic simple abre o cierra el pie de metadatos. La barra superior permanece visible mientras el pie esté abierto. Con el pie cerrado, la barra aparece al acercar el mouse a la esquina superior derecha y se oculta al salir.
+- En Cuadrícula, la barra superior se mantiene visible.
+
+### 2026-11-08 · Cursor por inactividad
+
+- En **Configuración → Cursor**, activa **Ocultar cursor por inactividad** y elige entre 1 y 30 segundos. El valor inicial es 3 segundos y la opción viene desactivada.
+- El cursor se oculta sobre la ventana activa de IMG Viewer, incluidos la cuadrícula, la pantalla completa y los diálogos. Vuelve con actividad del mouse o al salir de la aplicación.
+- En **Alcance**, elige **Solo IMG Viewer** o **Todo Windows**. El alcance global funciona también en la bandeja y restaura el cursor al recibir actividad del mouse, al desactivar la opción o al salir.
+
 ### 2026-11-08 · Acerca de IMG Viewer
 
 - Configuración muestra la versión del ejecutable, **2026.11.1**, y un enlace a la página de IMG Viewer.
@@ -83,7 +98,7 @@ IMG Viewer es un visor de imágenes para Windows hecho con WPF y .NET 10. Permit
 
 ### 2026-11-07 · Controles al hacer clic
 
-- Un clic izquierdo sobre la foto o el fondo del visor muestra u oculta el pie de metadatos y la barra superior. El arrastre sigue moviendo la ventana y el doble clic alterna la pantalla completa.
+- Un clic izquierdo sobre la foto o el fondo del visor muestra u oculta el pie de metadatos. El arrastre sigue moviendo la ventana y el doble clic alterna la pantalla completa.
 - En la cuadrícula, los botones superiores quedan accesibles y un doble clic en una miniatura abre la foto.
 
 ### 2026-11-07 · Gestos del mouse

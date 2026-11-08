@@ -30,6 +30,23 @@
             <ComboBox x:Name="GridColumnPicker" Width="65" AutomationProperties.Name="Imágenes por fila" />
         </DockPanel>
         <Separator Margin="0,18,0,12" />
+        <TextBlock Text="Cursor" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,10" />
+        <CheckBox x:Name="HideIdleCursor" Content="Ocultar cursor por inactividad"
+                  Foreground="White" Click="ToggleSetting_Click" />
+        <DockPanel LastChildFill="False" Margin="0,8,0,0"
+                   IsEnabled="{Binding IsChecked, ElementName=HideIdleCursor}">
+            <TextBlock Text="Segundos de espera" VerticalAlignment="Center" Margin="0,0,12,0" />
+            <ComboBox x:Name="CursorDelayPicker" Width="65" AutomationProperties.Name="Segundos de espera del cursor" />
+        </DockPanel>
+        <DockPanel LastChildFill="False" Margin="0,8,0,0"
+                   IsEnabled="{Binding IsChecked, ElementName=HideIdleCursor}">
+            <TextBlock Text="Alcance" VerticalAlignment="Center" Margin="0,0,12,0" />
+            <ComboBox x:Name="CursorScopePicker" Width="150" AutomationProperties.Name="Alcance del cursor">
+                <ComboBoxItem Content="Solo IMG Viewer" />
+                <ComboBoxItem Content="Todo Windows" />
+            </ComboBox>
+        </DockPanel>
+        <Separator Margin="0,18,0,12" />
         <TextBlock Text="Acerca de IMG Viewer" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,8" />
         <TextBlock x:Name="AppVersion" Margin="0,0,0,6" />
         <TextBlock>

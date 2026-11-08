@@ -10,6 +10,7 @@ public partial class App : Application
 {
     internal const string BackgroundArgument = "--tray";
     private ViewerInstance? instance;
+    private IdleCursor? idleCursor;
     private Forms.NotifyIcon? tray;
     private Forms.ContextMenuStrip? trayMenu;
     private Drawing.Icon? trayIcon;
@@ -43,16 +44,25 @@ public partial class App : Application
         MainWindow = window;
         instance.Listen(path => Dispatcher.InvokeAsync(() => ShowViewer(path)));
         CreateTray(window);
-
-        if (startInTray)
+        nint handle = new WindowInteropHelper(window).EnsureHandle();
+        idleCursor = new IdleCursor(HwndSource.FromHwnd(handle));
+        Activated += (_, _) => idleCursor?.ResetLocal();
+        Deactivated += (_, _) => idleCursor?.ResetLocal();
+        if (!RefreshCursorSettings())
         {
-            new WindowInteropHelper(window).EnsureHandle();
+            tray?.ShowBalloonTip(3000, "IMG Viewer",
+                "El cursor solo se puede ocultar dentro de IMG Viewer en este equipo.", Forms.ToolTipIcon.Info);
         }
-        else
+
+        if (!startInTray)
         {
             ShowViewer(path);
         }
     }
+
+    internal bool RefreshCursorSettings() =>
+        idleCursor?.Configure(ViewerPreferences.HideIdleCursor, ViewerPreferences.CursorIdleSeconds,
+            ViewerPreferences.CursorAcrossWindows) ?? true;
 
     private void CreateTray(MainWindow window)
     {
@@ -145,6 +155,7 @@ public partial class App : Application
     protected override void OnExit(ExitEventArgs e)
     {
         exitRequested = true;
+        idleCursor?.Dispose();
         tray?.Dispose();
         trayMenu?.Dispose();
         trayIcon?.Dispose();

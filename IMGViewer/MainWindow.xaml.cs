@@ -34,7 +34,6 @@ public partial class MainWindow : Window
     {
         Interval = TimeSpan.FromMilliseconds(GetDoubleClickTime())
     };
-    private bool viewerControlsVisible;
     private Point? viewerPressStart;
     private Point? windowDragOffset;
     private Point? photoDragPosition;
@@ -81,7 +80,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
-        viewerClickTimer.Tick += (_, _) => ToggleViewerControls();
+        viewerClickTimer.Tick += (_, _) => ToggleMetadataFooter();
         slideShowTimer.Tick += SlideShowTimer_Tick;
         recycleNoticeTimer.Tick += (_, _) => HideRecycleNotice();
     }
@@ -247,7 +246,7 @@ public partial class MainWindow : Window
 
         if (viewerClickTimer.IsEnabled)
         {
-            ToggleViewerControls();
+            ToggleMetadataFooter();
         }
 
         viewerPressStart = e.GetPosition(this);
@@ -392,12 +391,12 @@ public partial class MainWindow : Window
         Math.Abs(end.X - start.X) >= SystemParameters.MinimumHorizontalDragDistance ||
         Math.Abs(end.Y - start.Y) >= SystemParameters.MinimumVerticalDragDistance;
 
-    private void ToggleViewerControls()
+    private void ToggleMetadataFooter()
     {
         viewerClickTimer.Stop();
-        viewerControlsVisible = !viewerControlsVisible;
-        MetadataFooter.Visibility = viewerControlsVisible ? Visibility.Visible : Visibility.Collapsed;
-        UpdateViewerToolbar();
+        MetadataFooter.Visibility = MetadataFooter.Visibility == Visibility.Visible
+            ? Visibility.Collapsed
+            : Visibility.Visible;
         UpdateMetadataFooter();
     }
 
@@ -408,18 +407,9 @@ public partial class MainWindow : Window
         string label = inGrid ? "Volver a imagen" : "Abrir cuadrícula";
         ViewModeButton.ToolTip = $"{label} · G";
         System.Windows.Automation.AutomationProperties.SetName(ViewModeButton, label);
-        FloatingControls.Visibility = viewerControlsVisible || inGrid
-            ? Visibility.Visible
-            : Visibility.Collapsed;
     }
 
-    private void InfoButton_Click(object sender, RoutedEventArgs e)
-    {
-        MetadataFooter.Visibility = MetadataFooter.Visibility == Visibility.Visible
-            ? Visibility.Collapsed
-            : Visibility.Visible;
-        UpdateMetadataFooter();
-    }
+    private void InfoButton_Click(object sender, RoutedEventArgs e) => ToggleMetadataFooter();
 
     private void CloseButton_Click(object sender, RoutedEventArgs e)
     {
@@ -544,6 +534,18 @@ public partial class MainWindow : Window
         }
 
         ModifierKeys modifiers = Keyboard.Modifiers;
+        if (e.Key == Key.C && modifiers == ModifierKeys.None && Photo.Source is not null)
+        {
+            if (!e.IsRepeat)
+            {
+                Photo.Stretch = Photo.Stretch == Stretch.Uniform ? Stretch.UniformToFill : Stretch.Uniform;
+                SetPhotoPan(0, 0);
+            }
+
+            e.Handled = true;
+            return;
+        }
+
         if (e.Key == Key.F2 && modifiers == ModifierKeys.None && currentIndex >= 0)
         {
             if (!e.IsRepeat)

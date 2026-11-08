@@ -135,6 +135,7 @@
 
     <Grid x:Name="PhotoViewport" Background="{StaticResource ViewerBackground}" ClipToBounds="True" SizeChanged="PhotoViewport_SizeChanged">
         <Image x:Name="Photo" Stretch="Uniform" RenderTransformOrigin="0.5,0.5"
+               HorizontalAlignment="Center" VerticalAlignment="Center"
                MouseLeftButtonDown="Photo_MouseLeftButtonDown">
             <Image.RenderTransform>
                 <TransformGroup>
@@ -143,7 +144,8 @@
                 </TransformGroup>
             </Image.RenderTransform>
         </Image>
-        <Image x:Name="MarkerOverlay" Stretch="Uniform" IsHitTestVisible="False"
+        <Image x:Name="MarkerOverlay" Stretch="{Binding Stretch, ElementName=Photo}" IsHitTestVisible="False"
+               HorizontalAlignment="Center" VerticalAlignment="Center"
                RenderTransformOrigin="{Binding RenderTransformOrigin, ElementName=Photo}"
                RenderTransform="{Binding RenderTransform, ElementName=Photo}" />
         <StackPanel x:Name="EmptyState" HorizontalAlignment="Center" VerticalAlignment="Center">
@@ -285,9 +287,38 @@
             </Grid>
         </DockPanel>
 
-        <Grid HorizontalAlignment="Right" VerticalAlignment="Top">
+        <Grid x:Name="ToolbarArea" HorizontalAlignment="Right" VerticalAlignment="Top">
+            <Grid.Style>
+                <Style TargetType="Grid">
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding Visibility, ElementName=FolderGrid}" Value="Collapsed">
+                            <Setter Property="Background" Value="Transparent" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Grid.Style>
             <WrapPanel x:Name="FloatingControls" Orientation="Horizontal"
-                        HorizontalAlignment="Right" Margin="12,12,12,0" Visibility="Collapsed">
+                       HorizontalAlignment="Right" Margin="12,12,12,0">
+                <WrapPanel.Style>
+                    <Style TargetType="WrapPanel">
+                        <Setter Property="Opacity" Value="0" />
+                        <Setter Property="IsEnabled" Value="False" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsMouseOver, ElementName=ToolbarArea}" Value="True">
+                                <Setter Property="Opacity" Value="1" />
+                                <Setter Property="IsEnabled" Value="True" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding Visibility, ElementName=MetadataFooter}" Value="Visible">
+                                <Setter Property="Opacity" Value="1" />
+                                <Setter Property="IsEnabled" Value="True" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding Visibility, ElementName=FolderGrid}" Value="Visible">
+                                <Setter Property="Opacity" Value="1" />
+                                <Setter Property="IsEnabled" Value="True" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </WrapPanel.Style>
                 <StackPanel x:Name="GridActions" Orientation="Horizontal"
                             Margin="0,0,8,0" Visibility="Collapsed">
                     <Button Style="{StaticResource FloatingButton}" Margin="0,0,6,0"

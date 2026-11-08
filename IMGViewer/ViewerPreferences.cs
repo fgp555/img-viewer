@@ -27,6 +27,53 @@ internal static class ViewerPreferences
         }
     }
 
+    internal const int DefaultCursorIdleSeconds = 3;
+    internal const int MaximumCursorIdleSeconds = 30;
+
+    internal static bool HideIdleCursor
+    {
+        get
+        {
+            using RegistryKey? settings = Registry.CurrentUser.OpenSubKey(SettingsKey);
+            return settings?.GetValue(nameof(HideIdleCursor)) is 1;
+        }
+        set
+        {
+            using RegistryKey settings = Registry.CurrentUser.CreateSubKey(SettingsKey);
+            settings.SetValue(nameof(HideIdleCursor), value ? 1 : 0, RegistryValueKind.DWord);
+        }
+    }
+
+    internal static bool CursorAcrossWindows
+    {
+        get
+        {
+            using RegistryKey? settings = Registry.CurrentUser.OpenSubKey(SettingsKey);
+            return settings?.GetValue(nameof(CursorAcrossWindows)) is 1;
+        }
+        set
+        {
+            using RegistryKey settings = Registry.CurrentUser.CreateSubKey(SettingsKey);
+            settings.SetValue(nameof(CursorAcrossWindows), value ? 1 : 0, RegistryValueKind.DWord);
+        }
+    }
+
+    internal static int CursorIdleSeconds
+    {
+        get
+        {
+            using RegistryKey? settings = Registry.CurrentUser.OpenSubKey(SettingsKey);
+            return settings?.GetValue(nameof(CursorIdleSeconds)) is int seconds && seconds is >= 1 and <= MaximumCursorIdleSeconds
+                ? seconds
+                : DefaultCursorIdleSeconds;
+        }
+        set
+        {
+            using RegistryKey settings = Registry.CurrentUser.CreateSubKey(SettingsKey);
+            settings.SetValue(nameof(CursorIdleSeconds), value, RegistryValueKind.DWord);
+        }
+    }
+
     internal static bool CopyCapturesToClipboard
     {
         get
