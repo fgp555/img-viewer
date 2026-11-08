@@ -21,7 +21,8 @@ Visor de imágenes de escritorio para Windows, desarrollado con WPF y .NET 10. E
 ## Etapa 3 · Presentación y Papelera
 
 - [ ] Reproducir las imágenes de una carpeta como presentación, en el mismo orden que las flechas.
-- [ ] Enviar la imagen actual a la Papelera de reciclaje y mostrar la siguiente disponible.
+- [x] Enviar la imagen actual a la Papelera con Supr y mostrar la siguiente disponible.
+- [x] Recuperar con Shift + Supr la última imagen enviada a la Papelera desde el visor durante la sesión.
 
 ## Etapa 4 · Edición rápida e información
 
