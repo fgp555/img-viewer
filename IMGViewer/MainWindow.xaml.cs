@@ -5,6 +5,7 @@ using System.Windows;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
 using System.Windows.Shell;
 using System.Windows.Threading;
@@ -21,12 +22,12 @@ public partial class MainWindow : Window
     private string[] folderImages = [];
     private int currentIndex = -1;
     private RecycledPhoto? lastRecycledPhoto;
-    private DispatcherTimer? recycleNoticeTimer;
+    private readonly DispatcherTimer recycleNoticeTimer = new() { Interval = TimeSpan.FromSeconds(5) };
     private readonly DispatcherTimer slideShowTimer = new() { Interval = TimeSpan.FromSeconds(3) };
-    private const string RecycleNotice = "Enviada a la Papelera · Shift + Supr para recuperar.";
+    private BitmapSource? lastSavedPhoto;
     private BitmapSource? rotationBasePhoto;
     private int rotationDegrees;
-    private bool hasCropEdit;
+    private bool hasPixelEdit;
     private bool showTransparencyGrid;
 
     private Point? windowDragOffset;
@@ -72,10 +73,17 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         slideShowTimer.Tick += SlideShowTimer_Tick;
+        recycleNoticeTimer.Tick += (_, _) => HideRecycleNotice();
     }
 
     private void Photo_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
+        if (TryStartMarker(e))
+        {
+            e.Handled = true;
+            return;
+        }
+
         if ((Keyboard.Modifiers & ModifierKeys.Control) != 0)
         {
             if (PhotoZoom.ScaleX > 1 && !windowDragOffset.HasValue && CaptureMouse())
@@ -139,7 +147,7 @@ public partial class MainWindow : Window
     protected override void OnClosed(EventArgs e)
     {
         slideShowTimer.Stop();
-        recycleNoticeTimer?.Stop();
+        recycleNoticeTimer.Stop();
         base.OnClosed(e);
     }
 
@@ -200,7 +208,7 @@ public partial class MainWindow : Window
     protected override void OnPreviewMouseDown(MouseButtonEventArgs e)
     {
         base.OnPreviewMouseDown(e);
-        if (photoDragPosition.HasValue || e.ChangedButton != MouseButton.Middle || windowedMode.HasValue || WindowState != WindowState.Normal || !CaptureMouse())
+        if (markerDrag.HasValue || photoDragPosition.HasValue || e.ChangedButton != MouseButton.Middle || windowedMode.HasValue || WindowState != WindowState.Normal || !CaptureMouse())
         {
             return;
         }
@@ -216,6 +224,13 @@ public partial class MainWindow : Window
     protected override void OnPreviewMouseMove(MouseEventArgs e)
     {
         base.OnPreviewMouseMove(e);
+        if (markerDrag.HasValue)
+        {
+            UpdateMarkerPreview(e);
+            e.Handled = true;
+            return;
+        }
+
         if (photoDragPosition is Point previous)
         {
             if (e.LeftButton != MouseButtonState.Pressed)
@@ -253,6 +268,13 @@ public partial class MainWindow : Window
     protected override void OnPreviewMouseUp(MouseButtonEventArgs e)
     {
         base.OnPreviewMouseUp(e);
+        if (markerDrag.HasValue && e.ChangedButton == MouseButton.Left)
+        {
+            CompleteMarker(e);
+            e.Handled = true;
+            return;
+        }
+
         if ((e.ChangedButton == MouseButton.Middle && windowDragOffset.HasValue) ||
             (e.ChangedButton == MouseButton.Left && photoDragPosition.HasValue))
         {
@@ -264,6 +286,14 @@ public partial class MainWindow : Window
     protected override void OnLostMouseCapture(MouseEventArgs e)
     {
         base.OnLostMouseCapture(e);
+        if (markerDrag.HasValue && !IsMouseCaptured)
+        {
+            markerDrag = null;
+            ClearValue(CursorProperty);
+            ClearValue(ForceCursorProperty);
+            RefreshMarkerOverlay();
+        }
+
         if ((windowDragOffset.HasValue || photoDragPosition.HasValue) && !IsMouseCaptured)
         {
             windowDragOffset = null;
@@ -354,14 +384,66 @@ public partial class MainWindow : Window
 
     private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
     {
-        if (e.Key == Key.Escape && windowedMode.HasValue)
+        if (markerDrag.HasValue)
         {
-            ToggleFullScreen();
+            if (e.Key == Key.Escape)
+            {
+                ReleaseMouseCapture();
+            }
+
+            e.Handled = true;
+            return;
+        }
+
+        if (e.Key == Key.Z && Keyboard.Modifiers == ModifierKeys.Control && markers.Count > 0)
+        {
+            if (!e.IsRepeat)
+            {
+                UndoMarker();
+            }
+
+            e.Handled = true;
+            return;
+        }
+
+        if (e.Key == Key.Escape && (HasPendingChanges || windowedMode.HasValue))
+        {
+            if (!e.IsRepeat)
+            {
+                if (HasPendingChanges)
+                {
+                    DiscardPendingChanges();
+                }
+                else
+                {
+                    ToggleFullScreen();
+                }
+            }
+
             e.Handled = true;
             return;
         }
 
         ModifierKeys modifiers = Keyboard.Modifiers;
+        if (e.Key == Key.C && modifiers == ModifierKeys.Control && Photo.Source is BitmapSource bitmap)
+        {
+            if (!e.IsRepeat)
+            {
+                try
+                {
+                    Clipboard.SetImage(FlattenMarkers(bitmap));
+                    StatusText.Text = "Imagen copiada al portapapeles.";
+                }
+                catch (ExternalException)
+                {
+                    StatusText.Text = "No se pudo copiar la imagen. Vuelve a intentarlo.";
+                }
+            }
+
+            e.Handled = true;
+            return;
+        }
+
         if (e.Key == Key.Delete && modifiers is ModifierKeys.None or ModifierKeys.Shift)
         {
             if (!e.IsRepeat)
@@ -450,9 +532,11 @@ public partial class MainWindow : Window
         if (!NavigateFrom(removedIndex, 1) && !NavigateFrom(removedIndex - 1, -1))
         {
             currentIndex = -1;
+            lastSavedPhoto = null;
             rotationBasePhoto = null;
-            hasCropEdit = false;
+            hasPixelEdit = false;
             CropButton.Visibility = Visibility.Collapsed;
+            ClearMarkers();
             Photo.Source = null;
             ResetPhotoView();
             SetRotationDegrees(0);
@@ -462,22 +546,46 @@ public partial class MainWindow : Window
         }
 
         UpdateSlideShowAvailability();
-        StatusText.Text = RecycleNotice;
-        recycleNoticeTimer?.Stop();
-        recycleNoticeTimer ??= new DispatcherTimer { Interval = TimeSpan.FromSeconds(4) };
-        recycleNoticeTimer.Tick -= HideRecycleNotice;
-        recycleNoticeTimer.Tick += HideRecycleNotice;
+        StatusText.Text = string.Empty;
+        ShowRecycleNotice();
+    }
+
+    private void ShowRecycleNotice()
+    {
+        recycleNoticeTimer.Stop();
+        RestorePhotoButton.Visibility = Visibility.Visible;
+        UpdateRecycleNoticeAnimation();
         recycleNoticeTimer.Start();
     }
 
-    private void HideRecycleNotice(object? sender, EventArgs e)
+    private void RestorePhotoButton_MouseEnter(object sender, MouseEventArgs e) => UpdateRecycleNoticeAnimation();
+
+    private void RestorePhotoButton_MouseLeave(object sender, MouseEventArgs e) => UpdateRecycleNoticeAnimation();
+
+    private void UpdateRecycleNoticeAnimation()
     {
-        recycleNoticeTimer?.Stop();
-        if (StatusText.Text == RecycleNotice)
+        if (RestorePhotoButton.IsVisible && !RestorePhotoButton.IsMouseOver && SystemParameters.ClientAreaAnimation)
         {
-            StatusText.Text = string.Empty;
+            RestorePhotoButton.BeginAnimation(OpacityProperty, new DoubleAnimation(1, 0.4, TimeSpan.FromMilliseconds(400))
+            {
+                AutoReverse = true,
+                RepeatBehavior = RepeatBehavior.Forever
+            });
+        }
+        else
+        {
+            RestorePhotoButton.BeginAnimation(OpacityProperty, null);
         }
     }
+
+    private void HideRecycleNotice()
+    {
+        recycleNoticeTimer.Stop();
+        RestorePhotoButton.BeginAnimation(OpacityProperty, null);
+        RestorePhotoButton.Visibility = Visibility.Collapsed;
+    }
+
+    private void RestorePhotoButton_Click(object sender, RoutedEventArgs e) => RestorePhoto();
 
     private void RestorePhoto()
     {
@@ -497,6 +605,7 @@ public partial class MainWindow : Window
         {
             photo.Restore(new WindowInteropHelper(this).Handle);
             lastRecycledPhoto = null;
+            HideRecycleNotice();
             OpenImage(photo.OriginalPath);
             if (StatusText.Text.Length == 0)
             {
@@ -517,15 +626,16 @@ public partial class MainWindow : Window
         }
 
         SetSlideShowPlaying(false);
-        var editor = new CropWindow(bitmap) { Owner = this };
+        var editor = new CropWindow(FlattenMarkers(bitmap)) { Owner = this };
         if (editor.ShowDialog() != true || editor.Result is not { } result)
         {
             return;
         }
 
+        ClearMarkers();
         rotationBasePhoto = result;
         Photo.Source = result;
-        hasCropEdit = true;
+        hasPixelEdit = true;
         SetRotationDegrees(0);
         ResetPhotoView();
         StatusText.Text = string.Empty;
@@ -537,6 +647,14 @@ public partial class MainWindow : Window
         if (rotationBasePhoto is null)
         {
             return;
+        }
+
+        if (markers.Count > 0 && Photo.Source is BitmapSource bitmap)
+        {
+            rotationBasePhoto = FlattenMarkers(bitmap);
+            ClearMarkers();
+            hasPixelEdit = true;
+            SetRotationDegrees(0);
         }
 
         SetRotationDegrees((rotationDegrees + degrees + 360) % 360);
@@ -559,7 +677,33 @@ public partial class MainWindow : Window
     private void SetRotationDegrees(int degrees)
     {
         rotationDegrees = degrees;
-        SavePendingButton.Visibility = degrees == 0 && !hasCropEdit ? Visibility.Collapsed : Visibility.Visible;
+        UpdatePendingSaveIndicator();
+    }
+
+    private bool HasPendingChanges => rotationDegrees != 0 || hasPixelEdit || markers.Count > 0;
+
+    private void DiscardPendingChanges()
+    {
+        if (lastSavedPhoto is not { } bitmap)
+        {
+            return;
+        }
+
+        ClearMarkers();
+        Photo.Source = bitmap;
+        rotationBasePhoto = bitmap;
+        hasPixelEdit = false;
+        SetRotationDegrees(0);
+        ResetPhotoView();
+        UpdateMetadataFooter();
+        StatusText.Text = string.Empty;
+    }
+
+    private void UpdatePendingSaveIndicator()
+    {
+        SavePendingButton.Visibility = HasPendingChanges
+            ? Visibility.Visible
+            : Visibility.Collapsed;
     }
 
     private void SavePendingButton_Click(object sender, RoutedEventArgs e)
@@ -600,7 +744,7 @@ public partial class MainWindow : Window
                 return;
             }
         }
-        else if (rotationDegrees == 0 && !hasCropEdit)
+        else if (!HasPendingChanges)
         {
             StatusText.Text = "No hay cambios que guardar.";
             return;
@@ -608,11 +752,15 @@ public partial class MainWindow : Window
 
         try
         {
+            bitmap = FlattenMarkers(bitmap);
             WritePhoto(bitmap, destination, saveCopy);
             if (!saveCopy)
             {
+                ClearMarkers();
+                Photo.Source = bitmap;
+                lastSavedPhoto = bitmap;
                 rotationBasePhoto = bitmap;
-                hasCropEdit = false;
+                hasPixelEdit = false;
                 SetRotationDegrees(0);
                 UpdateMetadataFooter();
             }
@@ -683,7 +831,7 @@ public partial class MainWindow : Window
 
     private void Window_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
     {
-        if (windowDragOffset.HasValue || photoDragPosition.HasValue || e.Delta == 0 || currentIndex < 0)
+        if (markerDrag.HasValue || windowDragOffset.HasValue || photoDragPosition.HasValue || e.Delta == 0 || currentIndex < 0)
         {
             return;
         }
@@ -766,8 +914,10 @@ public partial class MainWindow : Window
             bitmap.Freeze();
 
             ResetPhotoView();
+            ClearMarkers();
+            lastSavedPhoto = bitmap;
             rotationBasePhoto = bitmap;
-            hasCropEdit = false;
+            hasPixelEdit = false;
             SetRotationDegrees(0);
             CropButton.Visibility = Visibility.Visible;
             Photo.Source = bitmap;

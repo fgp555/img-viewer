@@ -28,7 +28,7 @@ Visor de imágenes de escritorio para Windows, desarrollado con WPF y .NET 10. E
 
 - [x] Girar 90° en sentido horario con R y antihorario con Shift + R.
 - [x] Recortar con un marco libre y enderezar de −15° a +15° en una misma vista previa.
-- [ ] Marcar capturas con flechas o rectángulos.
+- [x] Dibujar flechas con Alt + arrastre y rectángulos con Shift + arrastre. Deshacer la última marca con Ctrl + Z.
 - [x] Guardar sobre el original con Ctrl + S o guardar una copia con Ctrl + Shift + S.
 - [x] Mostrar dimensiones, tamaño del archivo y datos EXIF disponibles en un pie que se abre y cierra con el botón de información.
 

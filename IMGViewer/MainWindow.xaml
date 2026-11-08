@@ -11,6 +11,7 @@
     </WindowChrome.WindowChrome>
 
     <Window.Resources>
+        <SolidColorBrush x:Key="ActionRed" Color="#FFBD2638" />
         <SolidColorBrush x:Key="ViewerBackground" Color="#141820" />
         <DrawingBrush x:Key="TransparencyBackground"
                       TileMode="Tile" Viewport="0,0,24,24" ViewportUnits="Absolute"
@@ -79,7 +80,7 @@
         <Style x:Key="CloseButton" TargetType="Button" BasedOn="{StaticResource FloatingButton}">
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#FFBD2638" />
+                    <Setter Property="Background" Value="{StaticResource ActionRed}" />
                 </Trigger>
             </Style.Triggers>
         </Style>
@@ -95,6 +96,9 @@
                 </TransformGroup>
             </Image.RenderTransform>
         </Image>
+        <Image x:Name="MarkerOverlay" Stretch="Uniform" IsHitTestVisible="False"
+               RenderTransformOrigin="{Binding RenderTransformOrigin, ElementName=Photo}"
+               RenderTransform="{Binding RenderTransform, ElementName=Photo}" />
         <StackPanel x:Name="EmptyState" HorizontalAlignment="Center" VerticalAlignment="Center">
             <TextBlock Text="Arrastra una imagen aquí" Foreground="White"
                        HorizontalAlignment="Center" FontSize="24" />
@@ -114,14 +118,39 @@
                            Margin="16,8" Foreground="White" Background="#EF202632"
                            TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
 
-                <Button x:Name="SavePendingButton" Style="{StaticResource SavePendingButton}"
-                        HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="12"
-                        Visibility="Collapsed" ToolTip="Cambios sin guardar · Ctrl + S"
-                        AutomationProperties.Name="Guardar cambios en el archivo original"
-                        Click="SavePendingButton_Click">
-                    <Path Style="{StaticResource FloatingIcon}"
-                          Data="M 2,2 H 13 L 16,5 V 16 H 2 Z M 5,2 V 7 H 12 V 2 M 5,16 V 10 H 13 V 16" />
-                </Button>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"
+                            VerticalAlignment="Bottom" Margin="12">
+                    <Button x:Name="RestorePhotoButton" Style="{StaticResource FloatingButton}" Background="{StaticResource ActionRed}"
+                            Visibility="Collapsed" ToolTipService.ShowDuration="5000"
+                            AutomationProperties.Name="Restaurar la última imagen enviada a la Papelera"
+                            MouseEnter="RestorePhotoButton_MouseEnter" MouseLeave="RestorePhotoButton_MouseLeave"
+                            Click="RestorePhotoButton_Click">
+                        <Button.ToolTip>
+                            <ToolTip Padding="10,6" Content="Restaurar la última imagen · Shift + Supr" />
+                        </Button.ToolTip>
+                        <Path>
+                            <Path.Style>
+                                <Style TargetType="Path" BasedOn="{StaticResource FloatingIcon}">
+                                    <Setter Property="Data" Value="M 2,5 H 16 M 6,5 V 2 H 12 V 5 M 4,5 L 5,16 H 13 L 14,5 M 7,8 V 13 M 11,8 V 13" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=Button}}" Value="True">
+                                            <Setter Property="Data" Value="M 7,3 L 2,8 L 7,13 M 2,8 H 11 C 15,8 17,10 17,14 V 16" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Path.Style>
+                        </Path>
+                    </Button>
+
+                    <Button x:Name="SavePendingButton" Style="{StaticResource SavePendingButton}"
+                            Margin="8,0,0,0"
+                            Visibility="Collapsed" ToolTip="Cambios sin guardar · Ctrl + S"
+                            AutomationProperties.Name="Guardar cambios en el archivo original"
+                            Click="SavePendingButton_Click">
+                        <Path Style="{StaticResource FloatingIcon}"
+                              Data="M 2,2 H 13 L 16,5 V 16 H 2 Z M 5,2 V 7 H 12 V 2 M 5,16 V 10 H 13 V 16" />
+                    </Button>
+                </StackPanel>
             </Grid>
         </DockPanel>
 
