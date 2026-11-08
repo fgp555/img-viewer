@@ -2,22 +2,31 @@
 
 Visor de imágenes de escritorio para Windows, desarrollado con WPF y .NET 10. El objetivo es ofrecer funciones sencillas y útiles para ver imágenes y preparar capturas de pantalla.
 
-## Versión 1 · Visor
+## Etapa 1 · Abrir y recorrer imágenes
 
-- Abrir imágenes arrastrándolas a la ventana.
-- Ver la imagen a pantalla completa, hacer zoom y desplazarla cuando esté ampliada.
-- Pasar a la imagen anterior o siguiente de la misma carpeta con las flechas del teclado.
-- Reproducir las imágenes de una carpeta como presentación. La presentación y las flechas siguen el mismo orden.
-- Enviar la imagen actual a la Papelera de reciclaje.
+- [x] Abrir imágenes JPG, PNG o BMP arrastrándolas a la ventana.
+- [x] Ajustar la imagen al espacio disponible.
+- [x] Recorrer las imágenes de la misma carpeta por nombre con las flechas del teclado o la rueda del mouse.
+- [ ] Verificar la apertura y la navegación en la app con tres imágenes de una carpeta.
 
-## Versión 2 · Edición rápida e información
+## Etapa 2 · Controles del visor
 
-- Girar, enderezar y recortar imágenes.
-- Marcar capturas con flechas o rectángulos.
-- Usar **Guardar copia** como acción principal al editar para conservar el original.
-- Mostrar dimensiones, tamaño del archivo y datos EXIF cuando estén disponibles, como fecha de captura, cámara e ISO.
+- [ ] Entrar y salir de pantalla completa.
+- [ ] Hacer zoom y desplazar la imagen ampliada.
 
-## Versión 3 · Captura de pantalla
+## Etapa 3 · Presentación y Papelera
 
-- Seleccionar un área de la pantalla y capturarla.
-- Abrir la captura directamente en IMG Viewer para marcarla con las herramientas de la versión 2.
+- [ ] Reproducir las imágenes de una carpeta como presentación, en el mismo orden que las flechas.
+- [ ] Enviar la imagen actual a la Papelera de reciclaje y mostrar la siguiente disponible.
+
+## Etapa 4 · Edición rápida e información
+
+- [ ] Girar, enderezar y recortar imágenes.
+- [ ] Marcar capturas con flechas o rectángulos.
+- [ ] Usar **Guardar copia** como acción principal al editar para conservar el original.
+- [ ] Mostrar dimensiones, tamaño del archivo y datos EXIF cuando estén disponibles, como fecha de captura, cámara e ISO.
+
+## Etapa 5 · Captura de pantalla
+
+- [ ] Seleccionar un área de la pantalla y capturarla.
+- [ ] Abrir la captura directamente en IMG Viewer para marcarla con las herramientas de la etapa 4.

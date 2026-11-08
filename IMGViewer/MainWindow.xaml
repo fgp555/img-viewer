@@ -1,12 +1,22 @@
-﻿<Window x:Class="IMGViewer.MainWindow"
+<Window x:Class="IMGViewer.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:IMGViewer"
-        mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
-    <Grid>
-
-    </Grid>
+        Title="IMG Viewer" Height="450" Width="800"
+        AllowDrop="True" DragOver="Window_DragOver" Drop="Window_Drop"
+        PreviewKeyDown="Window_PreviewKeyDown" PreviewMouseWheel="Window_PreviewMouseWheel">
+    <DockPanel Background="#141820">
+        <TextBlock x:Name="StatusText"
+                   DockPanel.Dock="Bottom" Margin="16,8"
+                   Foreground="#CED5E2" TextWrapping="Wrap"
+                   AutomationProperties.LiveSetting="Polite" />
+        <Grid ClipToBounds="True">
+            <Image x:Name="Photo" Stretch="Uniform" />
+            <StackPanel x:Name="EmptyState" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <TextBlock Text="Arrastra una imagen aquí" Foreground="White"
+                           HorizontalAlignment="Center" FontSize="24" />
+                <TextBlock Text="JPG, PNG o BMP" Foreground="#CED5E2"
+                           HorizontalAlignment="Center" Margin="0,8,0,0" />
+            </StackPanel>
+        </Grid>
+    </DockPanel>
 </Window>
