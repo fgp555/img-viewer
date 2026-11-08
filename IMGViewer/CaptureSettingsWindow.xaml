@@ -21,6 +21,12 @@
                   Foreground="White" Margin="0,0,0,8" Click="BackgroundSetting_Click" />
         <CheckBox x:Name="StartWithWindows" Content="Iniciar con Windows en la bandeja"
                   Foreground="White" Click="BackgroundSetting_Click" />
+        <Separator Margin="0,18,0,12" />
+        <TextBlock Text="Cuadrícula" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,10" />
+        <DockPanel LastChildFill="False">
+            <TextBlock Text="Imágenes por fila" VerticalAlignment="Center" Margin="0,0,12,0" />
+            <ComboBox x:Name="GridColumnPicker" Width="65" AutomationProperties.Name="Imágenes por fila" />
+        </DockPanel>
         <Button Content="Cerrar" IsCancel="True" HorizontalAlignment="Right" Margin="0,14,0,0" Padding="10,5" />
     </StackPanel>
 </Window>

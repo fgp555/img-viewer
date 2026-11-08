@@ -14,7 +14,7 @@ Las cinco etapas iniciales están completadas. Los cambios posteriores se regist
 
 ## Etapa 2 · Controles del visor
 
-- [x] Mover la ventana al arrastrar con el botón central del mouse y mostrar el cursor de mano.
+- [x] Mover la ventana con arrastre izquierdo sobre la foto o el fondo del visor y mostrar el cursor de mano.
 - [x] Alternar la pantalla completa con doble clic sobre la imagen. Pulsar Esc también permite salir.
 - [x] Ampliar y reducir la imagen con Ctrl + rueda.
 - [x] Desplazar la imagen ampliada con Ctrl + arrastre con el botón izquierdo.

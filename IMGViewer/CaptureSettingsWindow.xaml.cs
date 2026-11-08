@@ -9,9 +9,33 @@ public partial class CaptureSettingsWindow : Window
     public CaptureSettingsWindow()
     {
         InitializeComponent();
-        CloseToTray.IsChecked = BackgroundPreferences.CloseToTray;
-        StartWithWindows.IsChecked = BackgroundPreferences.StartWithWindows;
+        GridColumnPicker.ItemsSource = Enumerable.Range(1, ViewerPreferences.MaximumGridColumns);
+        GridColumnPicker.SelectedItem = ViewerPreferences.GridColumns;
+        GridColumnPicker.SelectionChanged += GridColumnPicker_SelectionChanged;
+        CloseToTray.IsChecked = ViewerPreferences.CloseToTray;
+        StartWithWindows.IsChecked = ViewerPreferences.StartWithWindows;
         FolderPath.Text = CapturePreferences.CaptureFolder;
+    }
+
+    private void GridColumnPicker_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        if (GridColumnPicker.SelectedItem is not int columns)
+        {
+            return;
+        }
+
+        try
+        {
+            ViewerPreferences.GridColumns = columns;
+            SettingsStatus.Text = string.Empty;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
+        {
+            GridColumnPicker.SelectionChanged -= GridColumnPicker_SelectionChanged;
+            GridColumnPicker.SelectedItem = ViewerPreferences.GridColumns;
+            GridColumnPicker.SelectionChanged += GridColumnPicker_SelectionChanged;
+            SettingsStatus.Text = "No se pudo guardar la cantidad de imágenes por fila.";
+        }
     }
 
     private void BackgroundSetting_Click(object sender, RoutedEventArgs e)
@@ -20,11 +44,11 @@ public partial class CaptureSettingsWindow : Window
         {
             if (sender == CloseToTray)
             {
-                BackgroundPreferences.CloseToTray = CloseToTray.IsChecked == true;
+                ViewerPreferences.CloseToTray = CloseToTray.IsChecked == true;
             }
             else
             {
-                BackgroundPreferences.StartWithWindows = StartWithWindows.IsChecked == true;
+                ViewerPreferences.StartWithWindows = StartWithWindows.IsChecked == true;
             }
 
             SettingsStatus.Text = string.Empty;

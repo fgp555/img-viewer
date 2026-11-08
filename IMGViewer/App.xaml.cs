@@ -108,7 +108,7 @@ public partial class App : Application
 
     internal bool TryHideViewer(MainWindow window)
     {
-        if (exitRequested || tray is null || !BackgroundPreferences.CloseToTray)
+        if (exitRequested || tray is null || !ViewerPreferences.CloseToTray)
         {
             return false;
         }

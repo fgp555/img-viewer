@@ -9,7 +9,7 @@ IMG Viewer es un visor de imágenes para Windows hecho con WPF y .NET 10. Permit
 - Apertura de JPG, JPEG, PNG y BMP al arrastrarlos a la ventana o desde **Abrir con** en el Explorador.
 - Navegación por nombre con las flechas o la rueda. Presentación en bucle en pantalla completa, con reproducción y pausa y un intervalo de tres segundos.
 - Doble clic en la foto para alternar la pantalla completa. **Ctrl + rueda** amplía o reduce la imagen y **Ctrl + arrastre izquierdo** la desplaza cuando está ampliada.
-- Ventana sin barra de título, con borde gris fino, sombra nativa y botones flotantes. Mantener presionada la rueda y arrastrar mueve la ventana.
+- Ventana sin barra de título, con borde gris fino, sombra nativa y botones flotantes. Arrastrar con el botón izquierdo sobre la foto o el fondo mueve la ventana.
 - **T** alterna el fondo oscuro y el damero para revisar transparencias. El fondo del visor no forma parte de la imagen.
 - El botón de información abre un pie con nombre, posición, dimensiones, tamaño de archivo y datos EXIF disponibles, como fecha de captura, cámara e ISO.
 
@@ -35,6 +35,29 @@ IMG Viewer es un visor de imágenes para Windows hecho con WPF y .NET 10. Permit
 - **Pantalla completa** captura el monitor seleccionado y **Esc** cancela. La captura se abre en el visor para marcarla, copiarla o guardarla. Si la captura todavía no tiene archivo, **Ctrl + S** pide un nombre.
 
 ## Cambios posteriores
+
+### 2026-11-07 · Redimensionado proporcional
+
+- En modo Imagen, mantener **Ctrl** al arrastrar un borde o una esquina ajusta la ventana a la proporción de la foto actual. Al soltar **Ctrl**, el tamaño vuelve a ser libre.
+
+### 2026-11-07 · Controles al hacer clic
+
+- Un clic izquierdo sobre la foto o el fondo del visor muestra u oculta el pie de metadatos y la barra superior. El arrastre sigue moviendo la ventana y el doble clic alterna la pantalla completa.
+- En la cuadrícula, los botones superiores quedan accesibles y un clic en una miniatura abre la foto.
+
+### 2026-11-07 · Gestos del mouse
+
+- Arrastrar con el botón izquierdo sobre la foto o el fondo del visor mueve la ventana. El doble clic sobre la foto sigue alternando la pantalla completa.
+- El clic central alterna entre Imagen y Cuadrícula, igual que **G**. Girar la rueda cambia de foto en el visor y desplaza la cuadrícula.
+
+### 2026-11-07 · Vista de cuadrícula
+
+- **G** o el ícono de cuatro cuadros alterna entre el visor y una cuadrícula con miniaturas cuadradas. Las miniaturas llenan su celda y las fotos originales conservan su encuadre.
+- La cuadrícula abre la carpeta de la foto actual. Si la foto todavía no tiene archivo o el visor está vacío, muestra la carpeta configurada para las capturas.
+- Las fotos se ordenan por nombre, la rueda desplaza la cuadrícula y un clic abre la foto seleccionada. La foto actual se resalta.
+- La ruta de la carpeta se muestra en un pie compacto. Si se trunca, puedes verla completa al pasar el mouse.
+- El espacio libre del encabezado permite mover la ventana con arrastre izquierdo.
+- En **Configuración → Cuadrícula**, elige entre una y ocho imágenes por fila. El valor inicial es tres y la preferencia se guarda.
 
 ### 2026-11-07 · Bandeja e instancia única
 

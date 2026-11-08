@@ -106,7 +106,98 @@
                        HorizontalAlignment="Center" Margin="0,8,0,0" />
         </StackPanel>
 
-        <DockPanel VerticalAlignment="Bottom">
+        <Grid x:Name="FolderGrid" Visibility="Collapsed" Background="#141820">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="54" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <Border x:Name="GridDragHeader" Background="Transparent" />
+            <ListBox x:Name="GridRows" Grid.Row="1" Margin="10,0" Background="Transparent"
+                     BorderThickness="0" Padding="0" HorizontalContentAlignment="Stretch"
+                     ScrollViewer.CanContentScroll="True" ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                     ScrollViewer.VerticalScrollBarVisibility="Visible" VirtualizingPanel.IsVirtualizing="True"
+                     VirtualizingPanel.VirtualizationMode="Recycling" VirtualizingPanel.ScrollUnit="Pixel"
+                     AutomationProperties.Name="Imágenes de la carpeta" SizeChanged="GridRows_SizeChanged" ScrollViewer.ScrollChanged="GridRows_ScrollChanged">
+                <ListBox.ItemContainerStyle>
+                    <Style TargetType="ListBoxItem">
+                        <Setter Property="Padding" Value="0" />
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="ListBoxItem">
+                                    <ContentPresenter />
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                        <Setter Property="Focusable" Value="False" />
+                    </Style>
+                </ListBox.ItemContainerStyle>
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <ItemsControl ItemsSource="{Binding}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Orientation="Horizontal" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Button Width="{Binding Tag, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                                            Height="{Binding Tag, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                                            ToolTip="{Binding Name}" AutomationProperties.Name="{Binding Name}"
+                                            Click="GridPhoto_Click" Cursor="Hand">
+                                        <Button.Template>
+                                            <ControlTemplate TargetType="Button">
+                                                <Border x:Name="Tile" Margin="2" BorderThickness="2"
+                                                        BorderBrush="Transparent" Background="#262C36">
+                                                    <Grid ClipToBounds="True">
+                                                        <Image x:Name="Thumbnail" Source="{Binding Thumbnail}" Stretch="UniformToFill" />
+                                                        <TextBlock Text="{Binding Name}" Foreground="#D3D9E3" Margin="6"
+                                                                   HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                                   TextTrimming="CharacterEllipsis">
+                                                            <TextBlock.Style>
+                                                                <Style TargetType="TextBlock">
+                                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding Source, ElementName=Thumbnail}" Value="{x:Null}">
+                                                                            <Setter Property="Visibility" Value="Visible" />
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </TextBlock.Style>
+                                                        </TextBlock>
+                                                    </Grid>
+                                                </Border>
+                                                <ControlTemplate.Triggers>
+                                                    <DataTrigger Binding="{Binding IsCurrent}" Value="True">
+                                                        <Setter TargetName="Tile" Property="BorderBrush" Value="#77ADFF" />
+                                                    </DataTrigger>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter TargetName="Tile" Property="BorderBrush" Value="White" />
+                                                    </Trigger>
+                                                    <Trigger Property="IsKeyboardFocused" Value="True">
+                                                        <Setter TargetName="Tile" Property="BorderBrush" Value="White" />
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Button.Template>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+            <TextBlock x:Name="GridMessage" Grid.Row="1" Foreground="White" TextWrapping="Wrap"
+                       HorizontalAlignment="Center" VerticalAlignment="Center" Margin="12"
+                       IsHitTestVisible="False" AutomationProperties.LiveSetting="Polite" />
+            <Border Grid.Row="2" Padding="12,5" Background="#202632"
+                    BorderBrush="#454C58" BorderThickness="0,1,0,0">
+                <TextBlock x:Name="GridFolderPath" Foreground="#D3D9E3"
+                           TextTrimming="CharacterEllipsis" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}" />
+            </Border>
+        </Grid>
+        <DockPanel x:Name="ImageFooter" VerticalAlignment="Bottom">
             <Border x:Name="MetadataFooter" DockPanel.Dock="Bottom" Visibility="Collapsed"
                     Background="#F2202632" BorderBrush="#686868" BorderThickness="0,1,0,0"
                     Padding="12,8">
@@ -154,22 +245,15 @@
             </Grid>
         </DockPanel>
 
-        <Grid HorizontalAlignment="Right" VerticalAlignment="Top" Background="Transparent">
+        <Grid HorizontalAlignment="Right" VerticalAlignment="Top">
             <StackPanel x:Name="FloatingControls" Orientation="Horizontal"
-                        HorizontalAlignment="Right" Margin="12,12,12,0">
-                <StackPanel.Style>
-                    <Style TargetType="StackPanel">
-                        <Setter Property="Opacity" Value="0" />
-                        <Style.Triggers>
-                            <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=Grid}}" Value="True">
-                                <Setter Property="Opacity" Value="1" />
-                            </DataTrigger>
-                            <Trigger Property="IsKeyboardFocusWithin" Value="True">
-                                <Setter Property="Opacity" Value="1" />
-                            </Trigger>
-                        </Style.Triggers>
-                    </Style>
-                </StackPanel.Style>
+                        HorizontalAlignment="Right" Margin="12,12,12,0" Visibility="Collapsed">
+                <Button Style="{StaticResource FloatingButton}" Margin="0,0,8,0"
+                        ToolTip="Cambiar vista · G" AutomationProperties.Name="Cambiar entre imagen y cuadrícula"
+                        Click="FolderGridButton_Click">
+                    <Path Style="{StaticResource FloatingIcon}"
+                          Data="M 1,1 H 7 V 7 H 1 Z M 11,1 H 17 V 7 H 11 Z M 1,11 H 7 V 17 H 1 Z M 11,11 H 17 V 17 H 11 Z" />
+                </Button>
                 <Button x:Name="SlideShowButton" Style="{StaticResource FloatingButton}" Margin="0,0,8,0"
                         Visibility="Collapsed" ToolTip="Reproducir presentación"
                         AutomationProperties.Name="Reproducir presentación" Click="SlideShowButton_Click">

@@ -11,7 +11,8 @@ public partial class MainWindow
 {
     private const int ScreenCaptureHotkey = 1;
     private const int HotkeyMessage = 0x0312;
-    private HwndSource? hotkeySource;
+    private HwndSource? windowSource;
+    private bool captureHotkeyRegistered;
     private bool captureInProgress;
 
     protected override void OnSourceInitialized(EventArgs e)
@@ -20,14 +21,13 @@ public partial class MainWindow
         nint handle = new WindowInteropHelper(this).Handle;
         const uint noRepeat = 0x4000;
         const uint printScreen = 0x2C;
-        if (!RegisterHotKey(handle, ScreenCaptureHotkey, noRepeat, printScreen))
+        windowSource = HwndSource.FromHwnd(handle);
+        windowSource.AddHook(WindowMessageHook);
+        captureHotkeyRegistered = RegisterHotKey(handle, ScreenCaptureHotkey, noRepeat, printScreen);
+        if (!captureHotkeyRegistered)
         {
             StatusText.Text = "Impr Pant no está disponible como atajo global.";
-            return;
         }
-
-        hotkeySource = HwndSource.FromHwnd(handle);
-        hotkeySource.AddHook(CaptureHotkeyHook);
     }
 
     protected override void OnClosing(CancelEventArgs e)
@@ -45,21 +45,32 @@ public partial class MainWindow
             return;
         }
 
-        ReleaseCaptureHotkey();
+        ReleaseWindowMessages();
     }
 
-    private void ReleaseCaptureHotkey()
+    private void ReleaseWindowMessages()
     {
-        if (hotkeySource is not null)
+        if (windowSource is not null)
         {
-            UnregisterHotKey(hotkeySource.Handle, ScreenCaptureHotkey);
-            hotkeySource.RemoveHook(CaptureHotkeyHook);
-            hotkeySource = null;
+            if (captureHotkeyRegistered)
+            {
+                UnregisterHotKey(windowSource.Handle, ScreenCaptureHotkey);
+                captureHotkeyRegistered = false;
+            }
+
+            windowSource.RemoveHook(WindowMessageHook);
+            windowSource = null;
         }
     }
 
-    private nint CaptureHotkeyHook(nint window, int message, nint id, nint data, ref bool handled)
+    private nint WindowMessageHook(nint window, int message, nint id, nint data, ref bool handled)
     {
+        if (message == SizingMessage && TryResizeToPhoto(id, data))
+        {
+            handled = true;
+            return 1;
+        }
+
         if (message == HotkeyMessage && id == ScreenCaptureHotkey)
         {
             handled = true;
@@ -108,6 +119,10 @@ public partial class MainWindow
         SetSlideShowPlaying(false);
         var settings = new CaptureSettingsWindow { Owner = this };
         settings.ShowDialog();
+        if (IsFolderGridOpen)
+        {
+            LoadFolderGrid();
+        }
     }
 
     private void SaveAndOpenCapture(BitmapSource bitmap, DateTime timestamp)
@@ -164,6 +179,7 @@ public partial class MainWindow
         CropButton.Visibility = Visibility.Visible;
         EmptyState.Visibility = Visibility.Collapsed;
         Title = "IMG Viewer — Captura de pantalla";
+        CloseFolderGrid();
         ShowPosition();
         UpdateSlideShowAvailability();
     }

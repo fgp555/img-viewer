@@ -30,6 +30,12 @@ public partial class MainWindow : Window
     private bool hasPixelEdit;
     private bool showTransparencyGrid;
 
+    private readonly DispatcherTimer viewerClickTimer = new()
+    {
+        Interval = TimeSpan.FromMilliseconds(GetDoubleClickTime())
+    };
+    private bool viewerControlsVisible;
+    private Point? viewerPressStart;
     private Point? windowDragOffset;
     private Point? photoDragPosition;
 
@@ -69,9 +75,13 @@ public partial class MainWindow : Window
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool GetWindowRect(nint window, out ScreenRect bounds);
 
+    [DllImport("user32.dll", ExactSpelling = true)]
+    private static extern uint GetDoubleClickTime();
+
     public MainWindow()
     {
         InitializeComponent();
+        viewerClickTimer.Tick += (_, _) => ToggleViewerControls();
         slideShowTimer.Tick += SlideShowTimer_Tick;
         recycleNoticeTimer.Tick += (_, _) => HideRecycleNotice();
     }
@@ -102,6 +112,7 @@ public partial class MainWindow : Window
             return;
         }
 
+        viewerClickTimer.Stop();
         ToggleFullScreen();
         e.Handled = true;
     }
@@ -146,6 +157,7 @@ public partial class MainWindow : Window
 
     protected override void OnClosed(EventArgs e)
     {
+        viewerClickTimer.Stop();
         slideShowTimer.Stop();
         recycleNoticeTimer.Stop();
         base.OnClosed(e);
@@ -153,7 +165,7 @@ public partial class MainWindow : Window
 
     private void UpdateSlideShowAvailability()
     {
-        bool available = windowedMode.HasValue && currentIndex >= 0 && folderImages.Length > 1;
+        bool available = !IsFolderGridOpen && windowedMode.HasValue && currentIndex >= 0 && folderImages.Length > 1;
         SlideShowButton.Visibility = available ? Visibility.Visible : Visibility.Collapsed;
         if (!available)
         {
@@ -208,17 +220,37 @@ public partial class MainWindow : Window
     protected override void OnPreviewMouseDown(MouseButtonEventArgs e)
     {
         base.OnPreviewMouseDown(e);
-        if (markerDrag.HasValue || photoDragPosition.HasValue || e.ChangedButton != MouseButton.Middle || windowedMode.HasValue || WindowState != WindowState.Normal || !CaptureMouse())
+        viewerPressStart = null;
+        if (markerDrag.HasValue || photoDragPosition.HasValue || windowDragOffset.HasValue)
         {
             return;
         }
 
-        Point pointer = PointToScreen(e.GetPosition(this));
-        Point origin = PointToScreen(new Point());
-        windowDragOffset = new Point(pointer.X - origin.X, pointer.Y - origin.Y);
-        Cursor = Cursors.Hand;
-        ForceCursor = true;
-        e.Handled = true;
+        if (e.ChangedButton == MouseButton.Middle)
+        {
+            ToggleFolderGrid();
+            e.Handled = true;
+            return;
+        }
+
+        if (e.ChangedButton != MouseButton.Left || Keyboard.Modifiers != ModifierKeys.None ||
+            !(IsFolderGridOpen ? e.OriginalSource == GridDragHeader : IsViewerSurface(e)))
+        {
+            return;
+        }
+
+        if (e.ClickCount > 1)
+        {
+            viewerClickTimer.Stop();
+            return;
+        }
+
+        if (viewerClickTimer.IsEnabled)
+        {
+            ToggleViewerControls();
+        }
+
+        viewerPressStart = e.GetPosition(this);
     }
 
     protected override void OnPreviewMouseMove(MouseEventArgs e)
@@ -247,12 +279,38 @@ public partial class MainWindow : Window
             return;
         }
 
+        if (viewerPressStart is Point start)
+        {
+            if (e.LeftButton != MouseButtonState.Pressed || Keyboard.Modifiers != ModifierKeys.None)
+            {
+                viewerPressStart = null;
+                return;
+            }
+
+            if (!MovedBeyondClickThreshold(start, e.GetPosition(this)))
+            {
+                return;
+            }
+
+            viewerPressStart = null;
+            if (windowedMode.HasValue || WindowState != WindowState.Normal || !CaptureMouse())
+            {
+                return;
+            }
+
+            Point origin = PointToScreen(new Point());
+            Point pressed = PointToScreen(start);
+            windowDragOffset = new Point(pressed.X - origin.X, pressed.Y - origin.Y);
+            Cursor = Cursors.Hand;
+            ForceCursor = true;
+        }
+
         if (windowDragOffset is not Point offset)
         {
             return;
         }
 
-        if (e.MiddleButton != MouseButtonState.Pressed)
+        if (e.LeftButton != MouseButtonState.Pressed)
         {
             ReleaseMouseCapture();
             return;
@@ -268,17 +326,31 @@ public partial class MainWindow : Window
     protected override void OnPreviewMouseUp(MouseButtonEventArgs e)
     {
         base.OnPreviewMouseUp(e);
-        if (markerDrag.HasValue && e.ChangedButton == MouseButton.Left)
+        if (e.ChangedButton != MouseButton.Left)
+        {
+            return;
+        }
+
+        Point? press = viewerPressStart;
+        viewerPressStart = null;
+        if (markerDrag.HasValue)
         {
             CompleteMarker(e);
             e.Handled = true;
             return;
         }
 
-        if ((e.ChangedButton == MouseButton.Middle && windowDragOffset.HasValue) ||
-            (e.ChangedButton == MouseButton.Left && photoDragPosition.HasValue))
+        if (windowDragOffset.HasValue || photoDragPosition.HasValue)
         {
             ReleaseMouseCapture();
+            e.Handled = true;
+            return;
+        }
+
+        if (press is Point start && !IsFolderGridOpen && Keyboard.Modifiers == ModifierKeys.None && IsViewerSurface(e) &&
+            !MovedBeyondClickThreshold(start, e.GetPosition(this)))
+        {
+            viewerClickTimer.Start();
             e.Handled = true;
         }
     }
@@ -286,6 +358,7 @@ public partial class MainWindow : Window
     protected override void OnLostMouseCapture(MouseEventArgs e)
     {
         base.OnLostMouseCapture(e);
+        viewerPressStart = null;
         if (markerDrag.HasValue && !IsMouseCaptured)
         {
             markerDrag = null;
@@ -310,6 +383,29 @@ public partial class MainWindow : Window
         {
             DragMove();
         }
+    }
+
+    private bool IsViewerSurface(MouseEventArgs e) =>
+        e.OriginalSource == Photo || e.OriginalSource == PhotoViewport || EmptyState.IsMouseOver;
+
+    private static bool MovedBeyondClickThreshold(Point start, Point end) =>
+        Math.Abs(end.X - start.X) >= SystemParameters.MinimumHorizontalDragDistance ||
+        Math.Abs(end.Y - start.Y) >= SystemParameters.MinimumVerticalDragDistance;
+
+    private void ToggleViewerControls()
+    {
+        viewerClickTimer.Stop();
+        viewerControlsVisible = !viewerControlsVisible;
+        MetadataFooter.Visibility = viewerControlsVisible ? Visibility.Visible : Visibility.Collapsed;
+        UpdateViewerToolbar();
+        UpdateMetadataFooter();
+    }
+
+    private void UpdateViewerToolbar()
+    {
+        FloatingControls.Visibility = viewerControlsVisible || IsFolderGridOpen
+            ? Visibility.Visible
+            : Visibility.Collapsed;
     }
 
     private void InfoButton_Click(object sender, RoutedEventArgs e)
@@ -377,6 +473,7 @@ public partial class MainWindow : Window
         folderImages = GetFolderImages(path);
         currentIndex = Array.FindIndex(folderImages, file =>
             StringComparer.OrdinalIgnoreCase.Equals(file, path));
+        CloseFolderGrid();
         ShowPosition();
         SetSlideShowPlaying(false);
         UpdateSlideShowAvailability();
@@ -392,6 +489,32 @@ public partial class MainWindow : Window
             }
 
             e.Handled = true;
+            return;
+        }
+
+        if (e.Key == Key.G && Keyboard.Modifiers == ModifierKeys.None)
+        {
+            if (!e.IsRepeat)
+            {
+                ToggleFolderGrid();
+            }
+
+            e.Handled = true;
+            return;
+        }
+
+        if (IsFolderGridOpen)
+        {
+            if (e.Key == Key.Escape)
+            {
+                if (!e.IsRepeat)
+                {
+                    CloseFolderGrid();
+                }
+
+                e.Handled = true;
+            }
+
             return;
         }
 
@@ -848,7 +971,7 @@ public partial class MainWindow : Window
 
     private void Window_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
     {
-        if (markerDrag.HasValue || windowDragOffset.HasValue || photoDragPosition.HasValue || e.Delta == 0 || Photo.Source is null)
+        if (IsFolderGridOpen || markerDrag.HasValue || windowDragOffset.HasValue || photoDragPosition.HasValue || e.Delta == 0 || Photo.Source is null)
         {
             return;
         }
