@@ -7,6 +7,7 @@ using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shell;
+using System.Windows.Threading;
 
 namespace IMGViewer;
 
@@ -19,6 +20,9 @@ public partial class MainWindow : Window
 
     private string[] folderImages = [];
     private int currentIndex = -1;
+    private RecycledPhoto? lastRecycledPhoto;
+    private DispatcherTimer? recycleNoticeTimer;
+    private const string RecycleNotice = "Enviada a la Papelera · Shift + Supr para recuperar.";
     private BitmapSource? savedPhoto;
     private int rotationDegrees;
     private bool showTransparencyGrid;
@@ -294,6 +298,24 @@ public partial class MainWindow : Window
         }
 
         ModifierKeys modifiers = Keyboard.Modifiers;
+        if (e.Key == Key.Delete && modifiers is ModifierKeys.None or ModifierKeys.Shift)
+        {
+            if (!e.IsRepeat)
+            {
+                if (modifiers == ModifierKeys.Shift)
+                {
+                    RestorePhoto();
+                }
+                else if (currentIndex >= 0)
+                {
+                    RecycleCurrentPhoto();
+                }
+            }
+
+            e.Handled = true;
+            return;
+        }
+
         if (e.Key == Key.T && modifiers == ModifierKeys.None)
         {
             if (!e.IsRepeat)
@@ -344,6 +366,80 @@ public partial class MainWindow : Window
 
         e.Handled = true;
         Navigate(direction);
+    }
+
+    private void RecycleCurrentPhoto()
+    {
+        string path = folderImages[currentIndex];
+        try
+        {
+            lastRecycledPhoto = RecycledPhoto.Recycle(path, new WindowInteropHelper(this).Handle);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or COMException or OperationCanceledException)
+        {
+            StatusText.Text = "No se pudo enviar la imagen a la Papelera.";
+            return;
+        }
+
+        int removedIndex = currentIndex;
+        folderImages = folderImages.Where((_, index) => index != removedIndex).ToArray();
+        if (!NavigateFrom(removedIndex, 1) && !NavigateFrom(removedIndex - 1, -1))
+        {
+            currentIndex = -1;
+            savedPhoto = null;
+            Photo.Source = null;
+            ResetPhotoView();
+            SetRotationDegrees(0);
+            EmptyState.Visibility = Visibility.Visible;
+            ImageInfo.Text = "No hay una imagen abierta.";
+            Title = "IMG Viewer";
+        }
+
+        StatusText.Text = RecycleNotice;
+        recycleNoticeTimer?.Stop();
+        recycleNoticeTimer ??= new DispatcherTimer { Interval = TimeSpan.FromSeconds(4) };
+        recycleNoticeTimer.Tick -= HideRecycleNotice;
+        recycleNoticeTimer.Tick += HideRecycleNotice;
+        recycleNoticeTimer.Start();
+    }
+
+    private void HideRecycleNotice(object? sender, EventArgs e)
+    {
+        recycleNoticeTimer?.Stop();
+        if (StatusText.Text == RecycleNotice)
+        {
+            StatusText.Text = string.Empty;
+        }
+    }
+
+    private void RestorePhoto()
+    {
+        if (lastRecycledPhoto is not { } photo)
+        {
+            StatusText.Text = "No hay una imagen que recuperar en esta sesión.";
+            return;
+        }
+
+        if (Path.Exists(photo.OriginalPath))
+        {
+            StatusText.Text = "Ya existe un archivo con ese nombre en la ubicación original.";
+            return;
+        }
+
+        try
+        {
+            photo.Restore(new WindowInteropHelper(this).Handle);
+            lastRecycledPhoto = null;
+            OpenImage(photo.OriginalPath);
+            if (StatusText.Text.Length == 0)
+            {
+                StatusText.Text = "Imagen recuperada.";
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or COMException or OperationCanceledException)
+        {
+            StatusText.Text = "No se pudo recuperar la imagen de la Papelera.";
+        }
     }
 
     private void RotatePhoto(int degrees)
@@ -515,16 +611,23 @@ public partial class MainWindow : Window
 
     private void Navigate(int direction)
     {
+        NavigateFrom(currentIndex + direction, direction);
+    }
+
+    private bool NavigateFrom(int startIndex, int direction)
+    {
         // Skip unreadable files so they do not block access to the rest of the folder.
-        for (int index = currentIndex + direction; index >= 0 && index < folderImages.Length; index += direction)
+        for (int index = startIndex; index >= 0 && index < folderImages.Length; index += direction)
         {
             if (TryLoadPhoto(folderImages[index]))
             {
                 currentIndex = index;
                 ShowPosition();
-                return;
+                return true;
             }
         }
+
+        return false;
     }
 
     private static bool IsSupportedImage(string path) =>
