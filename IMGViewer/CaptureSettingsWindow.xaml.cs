@@ -12,6 +12,7 @@ public partial class CaptureSettingsWindow : Window
         GridColumnPicker.ItemsSource = Enumerable.Range(1, ViewerPreferences.MaximumGridColumns);
         GridColumnPicker.SelectedItem = ViewerPreferences.GridColumns;
         GridColumnPicker.SelectionChanged += GridColumnPicker_SelectionChanged;
+        CopyCapturesToClipboard.IsChecked = ViewerPreferences.CopyCapturesToClipboard;
         CloseToTray.IsChecked = ViewerPreferences.CloseToTray;
         StartWithWindows.IsChecked = ViewerPreferences.StartWithWindows;
         FolderPath.Text = CapturePreferences.CaptureFolder;
@@ -38,11 +39,15 @@ public partial class CaptureSettingsWindow : Window
         }
     }
 
-    private void BackgroundSetting_Click(object sender, RoutedEventArgs e)
+    private void ToggleSetting_Click(object sender, RoutedEventArgs e)
     {
         try
         {
-            if (sender == CloseToTray)
+            if (sender == CopyCapturesToClipboard)
+            {
+                ViewerPreferences.CopyCapturesToClipboard = CopyCapturesToClipboard.IsChecked == true;
+            }
+            else if (sender == CloseToTray)
             {
                 ViewerPreferences.CloseToTray = CloseToTray.IsChecked == true;
             }
@@ -61,7 +66,7 @@ public partial class CaptureSettingsWindow : Window
                 option.IsChecked = option.IsChecked != true;
             }
 
-            SettingsStatus.Text = "No se pudo guardar la opción de segundo plano.";
+            SettingsStatus.Text = "No se pudo guardar la opción.";
         }
     }
 

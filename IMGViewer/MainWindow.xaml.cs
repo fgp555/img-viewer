@@ -548,6 +548,17 @@ public partial class MainWindow : Window
         }
 
         ModifierKeys modifiers = Keyboard.Modifiers;
+        if (e.Key == Key.F2 && modifiers == ModifierKeys.None && currentIndex >= 0)
+        {
+            if (!e.IsRepeat)
+            {
+                RenameCurrentPhoto();
+            }
+
+            e.Handled = true;
+            return;
+        }
+
         if (e.Key == Key.C && modifiers == ModifierKeys.Control && Photo.Source is BitmapSource bitmap)
         {
             if (!e.IsRepeat)
@@ -635,6 +646,23 @@ public partial class MainWindow : Window
 
         e.Handled = true;
         Navigate(direction);
+    }
+
+    private void RenameCurrentPhoto()
+    {
+        SetSlideShowPlaying(false);
+        var dialog = new RenameWindow(folderImages[currentIndex]) { Owner = this };
+        if (dialog.ShowDialog() != true || dialog.RenamedPath is not { } path)
+        {
+            return;
+        }
+
+        folderImages = GetFolderImages(path);
+        currentIndex = Array.FindIndex(folderImages, file => StringComparer.OrdinalIgnoreCase.Equals(file, path));
+        Title = $"IMG Viewer — {Path.GetFileName(path)}";
+        ShowPosition();
+        UpdateSlideShowAvailability();
+        StatusText.Text = "Archivo renombrado.";
     }
 
     private void RecycleCurrentPhoto()

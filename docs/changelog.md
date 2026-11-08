@@ -36,6 +36,14 @@ IMG Viewer es un visor de imágenes para Windows hecho con WPF y .NET 10. Permit
 
 ## Cambios posteriores
 
+### 2026-11-07 · Renombrar imágenes
+
+- **F2** permite renombrar el archivo de la imagen abierta sin cambiar su extensión ni descartar las ediciones pendientes. Si el nombre está ocupado, el visor pide otro.
+
+### 2026-11-07 · Capturas al portapapeles
+
+- La casilla **Copiar las capturas al portapapeles** copia cada captura confirmada además de guardarla y abrirla en el visor. Viene desactivada y la preferencia se conserva al cerrar la app.
+
 ### 2026-11-07 · Redimensionado proporcional
 
 - En modo Imagen, mantener **Ctrl** al arrastrar un borde o una esquina ajusta la ventana a la proporción de la foto actual. Al soltar **Ctrl**, el tamaño vuelve a ser libre.

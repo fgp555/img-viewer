@@ -15,12 +15,14 @@
             <Button Content="Restablecer a Descargas" Click="ResetFolder_Click" Padding="10,5" Margin="0,0,8,0" />
 
         </WrapPanel>
+        <CheckBox x:Name="CopyCapturesToClipboard" Content="Copiar las capturas al portapapeles"
+                  Foreground="White" Margin="0,12,0,0" Click="ToggleSetting_Click" />
         <Separator Margin="0,18,0,12" />
         <TextBlock Text="Segundo plano" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,10" />
         <CheckBox x:Name="CloseToTray" Content="Ocultar en la bandeja al cerrar"
-                  Foreground="White" Margin="0,0,0,8" Click="BackgroundSetting_Click" />
+                  Foreground="White" Margin="0,0,0,8" Click="ToggleSetting_Click" />
         <CheckBox x:Name="StartWithWindows" Content="Iniciar con Windows en la bandeja"
-                  Foreground="White" Click="BackgroundSetting_Click" />
+                  Foreground="White" Click="ToggleSetting_Click" />
         <Separator Margin="0,18,0,12" />
         <TextBlock Text="Cuadrícula" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,10" />
         <DockPanel LastChildFill="False">

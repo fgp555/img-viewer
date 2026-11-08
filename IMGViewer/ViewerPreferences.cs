@@ -27,6 +27,20 @@ internal static class ViewerPreferences
         }
     }
 
+    internal static bool CopyCapturesToClipboard
+    {
+        get
+        {
+            using RegistryKey? settings = Registry.CurrentUser.OpenSubKey(SettingsKey);
+            return settings?.GetValue(nameof(CopyCapturesToClipboard)) is 1;
+        }
+        set
+        {
+            using RegistryKey settings = Registry.CurrentUser.CreateSubKey(SettingsKey);
+            settings.SetValue(nameof(CopyCapturesToClipboard), value ? 1 : 0, RegistryValueKind.DWord);
+        }
+    }
+
     internal static bool CloseToTray
     {
         get

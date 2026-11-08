@@ -98,6 +98,21 @@ public partial class MainWindow
             if (selector.ShowDialog() == true && selector.Result is { } bitmap)
             {
                 SaveAndOpenCapture(bitmap, timestamp);
+                if (ViewerPreferences.CopyCapturesToClipboard)
+                {
+                    try
+                    {
+                        Clipboard.SetImage(bitmap);
+                    }
+                    catch (ExternalException)
+                    {
+                        string message = "No se pudo copiar la captura al portapapeles.";
+                        StatusText.Text = string.IsNullOrEmpty(StatusText.Text)
+                            ? message
+                            : $"{StatusText.Text} {message}";
+                    }
+                }
+
                 if (Application.Current is App app)
                 {
                     app.ShowViewer();
