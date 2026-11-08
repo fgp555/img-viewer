@@ -29,12 +29,15 @@
             <Setter Property="Height" Value="36" />
             <Setter Property="Background" Value="#DD202632" />
             <Setter Property="Foreground" Value="White" />
-            <Setter Property="FontSize" Value="21" />
+            <Setter Property="BorderBrush" Value="#99FFFFFF" />
+            <Setter Property="BorderThickness" Value="1" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}" CornerRadius="18">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="5"
+                                BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
+                                SnapsToDevicePixels="True">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Border>
                     </ControlTemplate>
@@ -48,6 +51,20 @@
                     <Setter Property="Background" Value="#FF414D60" />
                 </Trigger>
             </Style.Triggers>
+        </Style>
+
+        <Geometry x:Key="PlayIcon">M 4,2 L 15,9 L 4,16 Z</Geometry>
+        <Geometry x:Key="PauseIcon">M 6,2 V 16 M 12,2 V 16</Geometry>
+
+        <Style x:Key="FloatingIcon" TargetType="Path">
+            <Setter Property="Width" Value="18" />
+            <Setter Property="Height" Value="18" />
+            <Setter Property="Stretch" Value="Uniform" />
+            <Setter Property="Stroke" Value="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+            <Setter Property="StrokeThickness" Value="1.6" />
+            <Setter Property="StrokeLineJoin" Value="Round" />
+            <Setter Property="StrokeStartLineCap" Value="Round" />
+            <Setter Property="StrokeEndLineCap" Value="Round" />
         </Style>
 
         <Style x:Key="SavePendingButton" TargetType="Button" BasedOn="{StaticResource FloatingButton}">
@@ -85,25 +102,30 @@
                        HorizontalAlignment="Center" Margin="0,8,0,0" />
         </StackPanel>
 
-        <TextBlock x:Name="StatusText" VerticalAlignment="Bottom" HorizontalAlignment="Center"
-                   Margin="16,8" Foreground="White" Background="#EF202632"
-                   TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
+        <DockPanel VerticalAlignment="Bottom">
+            <Border x:Name="MetadataFooter" DockPanel.Dock="Bottom" Visibility="Collapsed"
+                    Background="#F2202632" BorderBrush="#686868" BorderThickness="0,1,0,0"
+                    Padding="12,8">
+                <TextBlock x:Name="ImageInfo" Foreground="White" TextWrapping="Wrap"
+                           AutomationProperties.LiveSetting="Polite" />
+            </Border>
+            <Grid>
+                <TextBlock x:Name="StatusText" VerticalAlignment="Bottom" HorizontalAlignment="Center"
+                           Margin="16,8" Foreground="White" Background="#EF202632"
+                           TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
 
-        <Button x:Name="SavePendingButton" Style="{StaticResource SavePendingButton}"
-                HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="12"
-                Visibility="Collapsed" ToolTip="Rotación sin guardar · Ctrl + S"
-                AutomationProperties.Name="Guardar rotación en el archivo original"
-                Click="SavePendingButton_Click">
-            <Path Width="18" Height="18" Stretch="Uniform" Stroke="White" StrokeThickness="1.6"
-                  StrokeLineJoin="Round"
-                  Data="M 2,2 H 13 L 16,5 V 16 H 2 Z M 5,2 V 7 H 12 V 2 M 5,16 V 10 H 13 V 16" />
-        </Button>
+                <Button x:Name="SavePendingButton" Style="{StaticResource SavePendingButton}"
+                        HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="12"
+                        Visibility="Collapsed" ToolTip="Rotación sin guardar · Ctrl + S"
+                        AutomationProperties.Name="Guardar rotación en el archivo original"
+                        Click="SavePendingButton_Click">
+                    <Path Style="{StaticResource FloatingIcon}"
+                          Data="M 2,2 H 13 L 16,5 V 16 H 2 Z M 5,2 V 7 H 12 V 2 M 5,16 V 10 H 13 V 16" />
+                </Button>
+            </Grid>
+        </DockPanel>
 
         <Grid HorizontalAlignment="Right" VerticalAlignment="Top" Background="Transparent">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-            </Grid.RowDefinitions>
             <StackPanel x:Name="FloatingControls" Orientation="Horizontal"
                         HorizontalAlignment="Right" Margin="12,12,12,0">
                 <StackPanel.Style>
@@ -119,36 +141,30 @@
                         </Style.Triggers>
                     </Style>
                 </StackPanel.Style>
-                <Button Content="✥" Style="{StaticResource FloatingButton}" Margin="0,0,8,0"
+                <Button x:Name="SlideShowButton" Style="{StaticResource FloatingButton}" Margin="0,0,8,0"
+                        Visibility="Collapsed" ToolTip="Reproducir presentación"
+                        AutomationProperties.Name="Reproducir presentación" Click="SlideShowButton_Click">
+                    <Path x:Name="SlideShowIcon" Style="{StaticResource FloatingIcon}" Data="{StaticResource PlayIcon}" />
+                </Button>
+                <Button Style="{StaticResource FloatingButton}" Margin="0,0,8,0"
                         Cursor="SizeAll" Focusable="False" ToolTip="Mover ventana"
                         AutomationProperties.Name="Mover ventana"
-                        PreviewMouseLeftButtonDown="MoveButton_PreviewMouseLeftButtonDown" />
-                <Button x:Name="InfoButton" Content="ⓘ" Style="{StaticResource FloatingButton}" Margin="0,0,8,0"
-                        AutomationProperties.Name="Información de la imagen" PreviewMouseLeftButtonDown="InfoButton_PreviewMouseLeftButtonDown" />
-                <Button Content="×" Style="{StaticResource CloseButton}" ToolTip="Cerrar"
-                        AutomationProperties.Name="Cerrar ventana" Click="CloseButton_Click" />
+                        PreviewMouseLeftButtonDown="MoveButton_PreviewMouseLeftButtonDown">
+                    <Path Style="{StaticResource FloatingIcon}"
+                          Data="M 9,1 V 17 M 1,9 H 17 M 6,4 L 9,1 L 12,4 M 6,14 L 9,17 L 12,14 M 4,6 L 1,9 L 4,12 M 14,6 L 17,9 L 14,12" />
+                </Button>
+                <Button x:Name="InfoButton" Style="{StaticResource FloatingButton}" Margin="0,0,8,0"
+                        AutomationProperties.Name="Información de la imagen"
+                        ToolTip="Mostrar u ocultar metadatos" Click="InfoButton_Click">
+                    <Path Style="{StaticResource FloatingIcon}"
+                          Data="M 9,1 A 8,8 0 1 1 9,17 A 8,8 0 1 1 9,1 Z M 9,8 V 13 M 9,5 V 5.3" />
+                </Button>
+                <Button Style="{StaticResource CloseButton}" ToolTip="Cerrar"
+                        AutomationProperties.Name="Cerrar ventana" Click="CloseButton_Click">
+                    <Path Style="{StaticResource FloatingIcon}" Width="13" Height="13"
+                          Data="M 1,1 L 12,12 M 12,1 L 1,12" />
+                </Button>
             </StackPanel>
-            <Border Grid.Row="1" HorizontalAlignment="Right" Margin="12,0,12,12"
-                    Padding="12,8" MaxWidth="260" CornerRadius="8" Background="#EF202632">
-                <Border.Style>
-                    <Style TargetType="Border">
-                        <Setter Property="Visibility" Value="Collapsed" />
-                        <Style.Triggers>
-                            <DataTrigger Binding="{Binding IsMouseOver, ElementName=InfoButton}" Value="True">
-                                <Setter Property="Visibility" Value="Visible" />
-                            </DataTrigger>
-                            <DataTrigger Binding="{Binding IsKeyboardFocused, ElementName=InfoButton}" Value="True">
-                                <Setter Property="Visibility" Value="Visible" />
-                            </DataTrigger>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Visibility" Value="Visible" />
-                            </Trigger>
-                        </Style.Triggers>
-                    </Style>
-                </Border.Style>
-                <TextBlock x:Name="ImageInfo" Text="No hay una imagen abierta."
-                           Foreground="White" TextWrapping="Wrap" />
-            </Border>
         </Grid>
         <Border BorderBrush="#686868" BorderThickness="1"
                 IsHitTestVisible="False" SnapsToDevicePixels="True">

@@ -22,6 +22,7 @@ public partial class MainWindow : Window
     private int currentIndex = -1;
     private RecycledPhoto? lastRecycledPhoto;
     private DispatcherTimer? recycleNoticeTimer;
+    private readonly DispatcherTimer slideShowTimer = new() { Interval = TimeSpan.FromSeconds(3) };
     private const string RecycleNotice = "Enviada a la Papelera · Shift + Supr para recuperar.";
     private BitmapSource? savedPhoto;
     private int rotationDegrees;
@@ -69,6 +70,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        slideShowTimer.Tick += SlideShowTimer_Tick;
     }
 
     private void Photo_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -106,6 +108,7 @@ public partial class MainWindow : Window
             SetScreenBounds(handle, previous.Bounds);
             WindowState = previous.State;
             windowedMode = null;
+            UpdateSlideShowAvailability();
             return;
         }
 
@@ -129,6 +132,61 @@ public partial class MainWindow : Window
         ResizeMode = ResizeMode.NoResize;
         Topmost = true;
         SetScreenBounds(handle, info.Monitor);
+        UpdateSlideShowAvailability();
+    }
+
+    protected override void OnClosed(EventArgs e)
+    {
+        slideShowTimer.Stop();
+        recycleNoticeTimer?.Stop();
+        base.OnClosed(e);
+    }
+
+    private void UpdateSlideShowAvailability()
+    {
+        bool available = windowedMode.HasValue && currentIndex >= 0 && folderImages.Length > 1;
+        SlideShowButton.Visibility = available ? Visibility.Visible : Visibility.Collapsed;
+        if (!available)
+        {
+            SetSlideShowPlaying(false);
+        }
+    }
+
+    private void SlideShowButton_Click(object sender, RoutedEventArgs e)
+    {
+        SetSlideShowPlaying(!slideShowTimer.IsEnabled);
+    }
+
+    private void SetSlideShowPlaying(bool playing)
+    {
+        if (playing)
+        {
+            slideShowTimer.Start();
+        }
+        else
+        {
+            slideShowTimer.Stop();
+        }
+
+        SlideShowIcon.Data = (Geometry)FindResource(playing ? "PauseIcon" : "PlayIcon");
+        string label = playing ? "Pausar presentación" : "Reproducir presentación";
+        SlideShowButton.ToolTip = label;
+        System.Windows.Automation.AutomationProperties.SetName(SlideShowButton, label);
+    }
+
+    private void SlideShowTimer_Tick(object? sender, EventArgs e)
+    {
+        int previousIndex = currentIndex;
+        for (int step = 1; step < folderImages.Length; step++)
+        {
+            int index = (previousIndex + step) % folderImages.Length;
+            if (TryShowPhotoAt(index))
+            {
+                return;
+            }
+        }
+
+        SetSlideShowPlaying(false);
     }
 
     private static void SetScreenBounds(nint handle, ScreenRect bounds)
@@ -223,9 +281,12 @@ public partial class MainWindow : Window
         }
     }
 
-    private void InfoButton_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    private void InfoButton_Click(object sender, RoutedEventArgs e)
     {
-        e.Handled = true;
+        MetadataFooter.Visibility = MetadataFooter.Visibility == Visibility.Visible
+            ? Visibility.Collapsed
+            : Visibility.Visible;
+        UpdateMetadataFooter();
     }
 
     private void CloseButton_Click(object sender, RoutedEventArgs e)
@@ -286,6 +347,8 @@ public partial class MainWindow : Window
         currentIndex = Array.FindIndex(folderImages, file =>
             StringComparer.OrdinalIgnoreCase.Equals(file, path));
         ShowPosition();
+        SetSlideShowPlaying(false);
+        UpdateSlideShowAvailability();
     }
 
     private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
@@ -391,10 +454,11 @@ public partial class MainWindow : Window
             ResetPhotoView();
             SetRotationDegrees(0);
             EmptyState.Visibility = Visibility.Visible;
-            ImageInfo.Text = "No hay una imagen abierta.";
+            UpdateMetadataFooter();
             Title = "IMG Viewer";
         }
 
+        UpdateSlideShowAvailability();
         StatusText.Text = RecycleNotice;
         recycleNoticeTimer?.Stop();
         recycleNoticeTimer ??= new DispatcherTimer { Interval = TimeSpan.FromSeconds(4) };
@@ -462,6 +526,7 @@ public partial class MainWindow : Window
         }
 
         ResetPhotoView();
+        UpdateMetadataFooter();
         StatusText.Text = string.Empty;
     }
 
@@ -522,6 +587,7 @@ public partial class MainWindow : Window
             {
                 savedPhoto = bitmap;
                 SetRotationDegrees(0);
+                UpdateMetadataFooter();
             }
 
             StatusText.Text = saveCopy ? "Copia guardada." : "Cambios guardados.";
@@ -619,15 +685,25 @@ public partial class MainWindow : Window
         // Skip unreadable files so they do not block access to the rest of the folder.
         for (int index = startIndex; index >= 0 && index < folderImages.Length; index += direction)
         {
-            if (TryLoadPhoto(folderImages[index]))
+            if (TryShowPhotoAt(index))
             {
-                currentIndex = index;
-                ShowPosition();
                 return true;
             }
         }
 
         return false;
+    }
+
+    private bool TryShowPhotoAt(int index)
+    {
+        if (!TryLoadPhoto(folderImages[index]))
+        {
+            return false;
+        }
+
+        currentIndex = index;
+        ShowPosition();
+        return true;
     }
 
     private static bool IsSupportedImage(string path) =>
@@ -680,6 +756,70 @@ public partial class MainWindow : Window
     private void ShowPosition()
     {
         StatusText.Text = string.Empty;
-        ImageInfo.Text = $"{Path.GetFileName(folderImages[currentIndex])}{Environment.NewLine}{currentIndex + 1} / {folderImages.Length}";
+        UpdateMetadataFooter();
+    }
+
+    private void UpdateMetadataFooter()
+    {
+        if (MetadataFooter.Visibility != Visibility.Visible)
+        {
+            return;
+        }
+
+        if (currentIndex < 0 || Photo.Source is not BitmapSource bitmap)
+        {
+            ImageInfo.Text = "No hay una imagen abierta.";
+            return;
+        }
+
+        string path = folderImages[currentIndex];
+        var fields = new List<string>
+        {
+            Path.GetFileName(path),
+            $"{currentIndex + 1} / {folderImages.Length}",
+            $"{bitmap.PixelWidth} × {bitmap.PixelHeight} px"
+        };
+
+        try
+        {
+            using var stream = File.OpenRead(path);
+            long bytes = stream.Length;
+            fields.Add(bytes switch
+            {
+                >= 1048576 => $"{bytes / 1048576.0:0.##} MiB",
+                >= 1024 => $"{bytes / 1024.0:0.##} KiB",
+                _ => $"{bytes} B"
+            });
+
+            BitmapDecoder decoder = BitmapDecoder.Create(stream, BitmapCreateOptions.DelayCreation, BitmapCacheOption.None);
+            if (decoder.Frames[0].Metadata is BitmapMetadata metadata)
+            {
+                string? date = metadata.DateTaken;
+                string? camera = metadata.CameraModel;
+                object? iso = metadata.GetQuery("/app1/ifd/exif/{ushort=34855}");
+
+                if (!string.IsNullOrWhiteSpace(date))
+                {
+                    fields.Add($"Captura: {date}");
+                }
+
+                if (!string.IsNullOrWhiteSpace(camera))
+                {
+                    fields.Add($"Cámara: {camera}");
+                }
+
+                if (iso is ushort or uint)
+                {
+                    fields.Add($"ISO {iso}");
+                }
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or
+                                   NotSupportedException or FormatException or COMException or ArgumentException)
+        {
+            // A missing or unreadable metadata block should not prevent viewing the image.
+        }
+
+        ImageInfo.Text = string.Join("  ·  ", fields);
     }
 }

@@ -20,7 +20,7 @@ Visor de imágenes de escritorio para Windows, desarrollado con WPF y .NET 10. E
 
 ## Etapa 3 · Presentación y Papelera
 
-- [ ] Reproducir las imágenes de una carpeta como presentación, en el mismo orden que las flechas.
+- [x] Reproducir y pausar una presentación de la carpeta en pantalla completa, en el mismo orden que las flechas.
 - [x] Enviar la imagen actual a la Papelera con Supr y mostrar la siguiente disponible.
 - [x] Recuperar con Shift + Supr la última imagen enviada a la Papelera desde el visor durante la sesión.
 
@@ -30,7 +30,7 @@ Visor de imágenes de escritorio para Windows, desarrollado con WPF y .NET 10. E
 - [ ] Enderezar y recortar imágenes.
 - [ ] Marcar capturas con flechas o rectángulos.
 - [x] Guardar sobre el original con Ctrl + S o guardar una copia con Ctrl + Shift + S.
-- [ ] Mostrar dimensiones, tamaño del archivo y datos EXIF cuando estén disponibles, como fecha de captura, cámara e ISO.
+- [x] Mostrar dimensiones, tamaño del archivo y datos EXIF disponibles en un pie que se abre y cierra con el botón de información.
 
 ## Etapa 5 · Captura de pantalla
 
