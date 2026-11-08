@@ -36,6 +36,10 @@ IMG Viewer es un visor de imágenes para Windows hecho con WPF y .NET 10. Permit
 
 ## Cambios posteriores
 
+### 2026-11-08 · Acerca de IMG Viewer
+
+- Configuración muestra la versión del ejecutable, **2026.11.1**, y un enlace a la página de IMG Viewer.
+
 ### 2026-11-08 · Iconos para cambiar de vista
 
 - Desde Imagen, el botón muestra una cuadrícula. Desde Cuadrícula, muestra una foto para volver al visor.

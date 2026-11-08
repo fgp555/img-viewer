@@ -1,4 +1,6 @@
-﻿using System.IO;
+﻿using System.ComponentModel;
+using System.Diagnostics;
+using System.IO;
 using System.Windows;
 using Microsoft.Win32;
 
@@ -9,6 +11,7 @@ public partial class CaptureSettingsWindow : Window
     public CaptureSettingsWindow()
     {
         InitializeComponent();
+        AppVersion.Text = $"Versión {typeof(App).Assembly.GetName().Version?.ToString(3)}";
         GridColumnPicker.ItemsSource = Enumerable.Range(1, ViewerPreferences.MaximumGridColumns);
         GridColumnPicker.SelectedItem = ViewerPreferences.GridColumns;
         GridColumnPicker.SelectionChanged += GridColumnPicker_SelectionChanged;
@@ -16,6 +19,19 @@ public partial class CaptureSettingsWindow : Window
         CloseToTray.IsChecked = ViewerPreferences.CloseToTray;
         StartWithWindows.IsChecked = ViewerPreferences.StartWithWindows;
         FolderPath.Text = CapturePreferences.CaptureFolder;
+    }
+
+    private void AppPage_RequestNavigate(object sender, System.Windows.Navigation.RequestNavigateEventArgs e)
+    {
+        e.Handled = true;
+        try
+        {
+            Process.Start(new ProcessStartInfo(e.Uri.AbsoluteUri) { UseShellExecute = true });
+        }
+        catch (Exception ex) when (ex is Win32Exception or InvalidOperationException)
+        {
+            SettingsStatus.Text = "No se pudo abrir la página de IMG Viewer.";
+        }
     }
 
     private void GridColumnPicker_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)

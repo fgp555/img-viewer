@@ -29,6 +29,13 @@
             <TextBlock Text="Imágenes por fila" VerticalAlignment="Center" Margin="0,0,12,0" />
             <ComboBox x:Name="GridColumnPicker" Width="65" AutomationProperties.Name="Imágenes por fila" />
         </DockPanel>
+        <Separator Margin="0,18,0,12" />
+        <TextBlock Text="Acerca de IMG Viewer" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,8" />
+        <TextBlock x:Name="AppVersion" Margin="0,0,0,6" />
+        <TextBlock>
+            <Hyperlink NavigateUri="https://frankgp.com/img-viewer" Foreground="#9BC5FF"
+                       RequestNavigate="AppPage_RequestNavigate">frankgp.com/img-viewer</Hyperlink>
+        </TextBlock>
         <Button Content="Cerrar" IsCancel="True" HorizontalAlignment="Right" Margin="0,14,0,0" Padding="10,5" />
     </StackPanel>
 </Window>
