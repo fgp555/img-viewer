@@ -194,6 +194,12 @@
                     <Path Style="{StaticResource FloatingIcon}"
                           Data="M 9,1 A 8,8 0 1 1 9,17 A 8,8 0 1 1 9,1 Z M 9,8 V 13 M 9,5 V 5.3" />
                 </Button>
+                <Button Style="{StaticResource FloatingButton}" Margin="0,0,8,0"
+                        ToolTip="Configuración" AutomationProperties.Name="Configuración"
+                        Click="CaptureSettingsButton_Click">
+                    <Path Style="{StaticResource FloatingIcon}"
+                          Data="M 7,1 H 11 L 12,4 L 14,4 L 16,3 L 18,7 L 16,9 L 16,11 L 18,13 L 16,17 L 13,16 L 12,17 L 11,19 H 7 L 6,17 L 5,16 L 2,17 L 0,13 L 2,11 V 9 L 0,7 L 2,3 L 4,4 H 6 Z M 12,10 A 3,3 0 1 1 6,10 A 3,3 0 1 1 12,10 Z" />
+                </Button>
                 <Button Style="{StaticResource CloseButton}" ToolTip="Cerrar"
                         AutomationProperties.Name="Cerrar ventana" Click="CloseButton_Click">
                     <Path Style="{StaticResource FloatingIcon}" Width="13" Height="13"

@@ -728,9 +728,9 @@ public partial class MainWindow : Window
                 Title = saveCopy ? "Guardar copia" : "Guardar captura",
                 InitialDirectory = originalPath is null ? string.Empty : Path.GetDirectoryName(originalPath),
                 FileName = originalPath is null
-                    ? $"Captura {DateTime.Now:yyyy-MM-dd HH-mm-ss}.png"
+                    ? CapturePreferences.FileName(DateTime.Now)
                     : Path.GetFileNameWithoutExtension(originalPath) + " - copia",
-                DefaultExt = originalPath is null ? ".png" : Path.GetExtension(originalPath),
+                DefaultExt = originalPath is null ? ".jpg" : Path.GetExtension(originalPath),
                 Filter = "Imágenes JPG, PNG y BMP|*.jpg;*.jpeg;*.png;*.bmp",
                 AddExtension = true
             };
@@ -790,7 +790,7 @@ public partial class MainWindow : Window
         }
     }
 
-    private static void WritePhoto(BitmapSource bitmap, string destination, bool writeNewDestination)
+    private static void WritePhoto(BitmapSource bitmap, string destination, bool writeNewDestination, bool overwrite = true)
     {
         BitmapEncoder encoder = Path.GetExtension(destination).ToLowerInvariant() switch
         {
@@ -812,7 +812,7 @@ public partial class MainWindow : Window
 
             if (writeNewDestination)
             {
-                File.Move(temporaryPath, destination, overwrite: true);
+                File.Move(temporaryPath, destination, overwrite);
             }
             else
             {

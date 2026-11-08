@@ -1,4 +1,4 @@
-# Registro de cambios de IMG Viewer
+﻿# Registro de cambios de IMG Viewer
 
 ## Funciones incorporadas en las etapas 1 a 5
 
@@ -32,8 +32,15 @@ IMG Viewer es un visor de imágenes para Windows hecho con WPF y .NET 10. Permit
 
 - **Impr Pant** inicia la captura desde otra aplicación mientras IMG Viewer está abierto. Si Windows abre Recortes con esa tecla, desactiva esa asignación antes de usarla en el visor.
 - La selección se hace sobre una instantánea congelada. Al mover el cursor se resalta el marco visible de la ventana, al hacer clic se captura esa ventana y al arrastrar se selecciona una región manual.
-- **Pantalla completa** captura el monitor seleccionado y **Esc** cancela. La captura se abre en el visor para marcarla, copiarla o guardarla. El primer **Ctrl + S** pide un nombre y propone PNG.
+- **Pantalla completa** captura el monitor seleccionado y **Esc** cancela. La captura se abre en el visor para marcarla, copiarla o guardarla. Si la captura todavía no tiene archivo, **Ctrl + S** pide un nombre.
 
 ## Cambios posteriores
+
+### 2026-11-07 · Guardado automático de capturas
+
+- Al confirmar una captura, IMG Viewer la guarda como JPG en Descargas y la abre en el visor. Usa el formato `screen-261107-223518.jpg` y añade un sufijo numérico si el nombre ya existe.
+- El engranaje permite cambiar la carpeta de capturas o restablecer Descargas. La elección se conserva al cerrar la app.
+- Si el guardado automático falla, la captura se abre sin archivo para guardarla manualmente con **Ctrl + S**.
+
 
 Añadir cada cambio visible para el usuario con su fecha, el comportamiento y el atajo, si lo tiene. Registrar por separado las correcciones y las limitaciones relevantes. Para el futuro README y la landing page, conservar ejemplos de uso y capturas que muestren la función en acción.

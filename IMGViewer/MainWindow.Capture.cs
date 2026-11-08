@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel;
+using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
@@ -70,12 +71,13 @@ public partial class MainWindow
         captureInProgress = true;
         try
         {
+            DateTime timestamp = DateTime.Now;
             DesktopSnapshot snapshot = DesktopSnapshot.Capture();
             SetSlideShowPlaying(false);
             var selector = new ScreenCaptureWindow(snapshot);
             if (selector.ShowDialog() == true && selector.Result is { } bitmap)
             {
-                OpenCapture(bitmap);
+                SaveAndOpenCapture(bitmap, timestamp);
                 if (WindowState == WindowState.Minimized)
                 {
                     WindowState = WindowState.Normal;
@@ -91,6 +93,53 @@ public partial class MainWindow
         finally
         {
             captureInProgress = false;
+        }
+    }
+
+    private void CaptureSettingsButton_Click(object sender, RoutedEventArgs e)
+    {
+        SetSlideShowPlaying(false);
+        var settings = new CaptureSettingsWindow { Owner = this };
+        settings.ShowDialog();
+    }
+
+    private void SaveAndOpenCapture(BitmapSource bitmap, DateTime timestamp)
+    {
+        try
+        {
+            string path = SaveCaptureFile(bitmap, CapturePreferences.CaptureFolder, timestamp);
+            OpenImage(path);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or NotSupportedException or
+                                   InvalidOperationException or ArgumentException or ExternalException)
+        {
+            OpenCapture(bitmap);
+            StatusText.Text = "No se pudo guardar la captura automáticamente. Usa Ctrl + S para elegir una ubicación.";
+        }
+    }
+
+    private static string SaveCaptureFile(BitmapSource bitmap, string folder, DateTime timestamp)
+    {
+        Directory.CreateDirectory(folder);
+        string name = CapturePreferences.FileName(timestamp);
+        string stem = Path.GetFileNameWithoutExtension(name);
+        for (int suffix = 0; ; suffix++)
+        {
+            string path = Path.Combine(folder, suffix == 0 ? name : $"{stem}-{suffix}.jpg");
+            if (Path.Exists(path))
+            {
+                continue;
+            }
+
+            try
+            {
+                WritePhoto(bitmap, path, writeNewDestination: true, overwrite: false);
+                return path;
+            }
+            catch (IOException) when (Path.Exists(path))
+            {
+                // Another instance took this name between the check and the move.
+            }
         }
     }
 
