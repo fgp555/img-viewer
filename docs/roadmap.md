@@ -27,7 +27,7 @@ Visor de imágenes de escritorio para Windows, desarrollado con WPF y .NET 10. E
 ## Etapa 4 · Edición rápida e información
 
 - [x] Girar 90° en sentido horario con R y antihorario con Shift + R.
-- [ ] Enderezar y recortar imágenes.
+- [x] Recortar con un marco libre y enderezar de −15° a +15° en una misma vista previa.
 - [ ] Marcar capturas con flechas o rectángulos.
 - [x] Guardar sobre el original con Ctrl + S o guardar una copia con Ctrl + Shift + S.
 - [x] Mostrar dimensiones, tamaño del archivo y datos EXIF disponibles en un pie que se abre y cierra con el botón de información.

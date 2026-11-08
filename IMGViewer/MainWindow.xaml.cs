@@ -24,8 +24,9 @@ public partial class MainWindow : Window
     private DispatcherTimer? recycleNoticeTimer;
     private readonly DispatcherTimer slideShowTimer = new() { Interval = TimeSpan.FromSeconds(3) };
     private const string RecycleNotice = "Enviada a la Papelera · Shift + Supr para recuperar.";
-    private BitmapSource? savedPhoto;
+    private BitmapSource? rotationBasePhoto;
     private int rotationDegrees;
+    private bool hasCropEdit;
     private bool showTransparencyGrid;
 
     private Point? windowDragOffset;
@@ -449,7 +450,9 @@ public partial class MainWindow : Window
         if (!NavigateFrom(removedIndex, 1) && !NavigateFrom(removedIndex - 1, -1))
         {
             currentIndex = -1;
-            savedPhoto = null;
+            rotationBasePhoto = null;
+            hasCropEdit = false;
+            CropButton.Visibility = Visibility.Collapsed;
             Photo.Source = null;
             ResetPhotoView();
             SetRotationDegrees(0);
@@ -506,9 +509,32 @@ public partial class MainWindow : Window
         }
     }
 
+    private void CropButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (Photo.Source is not BitmapSource bitmap)
+        {
+            return;
+        }
+
+        SetSlideShowPlaying(false);
+        var editor = new CropWindow(bitmap) { Owner = this };
+        if (editor.ShowDialog() != true || editor.Result is not { } result)
+        {
+            return;
+        }
+
+        rotationBasePhoto = result;
+        Photo.Source = result;
+        hasCropEdit = true;
+        SetRotationDegrees(0);
+        ResetPhotoView();
+        StatusText.Text = string.Empty;
+        UpdateMetadataFooter();
+    }
+
     private void RotatePhoto(int degrees)
     {
-        if (savedPhoto is null)
+        if (rotationBasePhoto is null)
         {
             return;
         }
@@ -516,11 +542,11 @@ public partial class MainWindow : Window
         SetRotationDegrees((rotationDegrees + degrees + 360) % 360);
         if (rotationDegrees == 0)
         {
-            Photo.Source = savedPhoto;
+            Photo.Source = rotationBasePhoto;
         }
         else
         {
-            var rotated = new TransformedBitmap(savedPhoto, new RotateTransform(rotationDegrees));
+            var rotated = new TransformedBitmap(rotationBasePhoto, new RotateTransform(rotationDegrees));
             rotated.Freeze();
             Photo.Source = rotated;
         }
@@ -533,7 +559,7 @@ public partial class MainWindow : Window
     private void SetRotationDegrees(int degrees)
     {
         rotationDegrees = degrees;
-        SavePendingButton.Visibility = degrees == 0 ? Visibility.Collapsed : Visibility.Visible;
+        SavePendingButton.Visibility = degrees == 0 && !hasCropEdit ? Visibility.Collapsed : Visibility.Visible;
     }
 
     private void SavePendingButton_Click(object sender, RoutedEventArgs e)
@@ -574,7 +600,7 @@ public partial class MainWindow : Window
                 return;
             }
         }
-        else if (rotationDegrees == 0)
+        else if (rotationDegrees == 0 && !hasCropEdit)
         {
             StatusText.Text = "No hay cambios que guardar.";
             return;
@@ -585,7 +611,8 @@ public partial class MainWindow : Window
             WritePhoto(bitmap, destination, saveCopy);
             if (!saveCopy)
             {
-                savedPhoto = bitmap;
+                rotationBasePhoto = bitmap;
+                hasCropEdit = false;
                 SetRotationDegrees(0);
                 UpdateMetadataFooter();
             }
@@ -739,8 +766,10 @@ public partial class MainWindow : Window
             bitmap.Freeze();
 
             ResetPhotoView();
-            savedPhoto = bitmap;
+            rotationBasePhoto = bitmap;
+            hasCropEdit = false;
             SetRotationDegrees(0);
+            CropButton.Visibility = Visibility.Visible;
             Photo.Source = bitmap;
             EmptyState.Visibility = Visibility.Collapsed;
             Title = $"IMG Viewer — {Path.GetFileName(path)}";

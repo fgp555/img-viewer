@@ -116,8 +116,8 @@
 
                 <Button x:Name="SavePendingButton" Style="{StaticResource SavePendingButton}"
                         HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="12"
-                        Visibility="Collapsed" ToolTip="Rotación sin guardar · Ctrl + S"
-                        AutomationProperties.Name="Guardar rotación en el archivo original"
+                        Visibility="Collapsed" ToolTip="Cambios sin guardar · Ctrl + S"
+                        AutomationProperties.Name="Guardar cambios en el archivo original"
                         Click="SavePendingButton_Click">
                     <Path Style="{StaticResource FloatingIcon}"
                           Data="M 2,2 H 13 L 16,5 V 16 H 2 Z M 5,2 V 7 H 12 V 2 M 5,16 V 10 H 13 V 16" />
@@ -152,6 +152,12 @@
                         PreviewMouseLeftButtonDown="MoveButton_PreviewMouseLeftButtonDown">
                     <Path Style="{StaticResource FloatingIcon}"
                           Data="M 9,1 V 17 M 1,9 H 17 M 6,4 L 9,1 L 12,4 M 6,14 L 9,17 L 12,14 M 4,6 L 1,9 L 4,12 M 14,6 L 17,9 L 14,12" />
+                </Button>
+                <Button x:Name="CropButton" Style="{StaticResource FloatingButton}" Margin="0,0,8,0"
+                        Visibility="Collapsed" ToolTip="Recortar y enderezar"
+                        AutomationProperties.Name="Recortar y enderezar" Click="CropButton_Click">
+                    <Path Style="{StaticResource FloatingIcon}"
+                          Data="M 5,1 V 13 H 17 M 1,5 H 13 V 17" />
                 </Button>
                 <Button x:Name="InfoButton" Style="{StaticResource FloatingButton}" Margin="0,0,8,0"
                         AutomationProperties.Name="Información de la imagen"
