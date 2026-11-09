@@ -162,6 +162,7 @@ public partial class MainWindow : Window
         viewerClickTimer.Stop();
         slideShowTimer.Stop();
         recycleNoticeTimer.Stop();
+        CancelFolderGridLoad();
         base.OnClosed(e);
     }
 
@@ -414,6 +415,8 @@ public partial class MainWindow : Window
 
     private void InfoButton_Click(object sender, RoutedEventArgs e) => ToggleMetadataFooter();
 
+    private void MinimizeButton_Click(object sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;
+
     private void CloseButton_Click(object sender, RoutedEventArgs e)
     {
         Close();
@@ -518,7 +521,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (e.Key == Key.Escape && (HasPendingChanges || windowedMode.HasValue))
+        if (e.Key == Key.Escape)
         {
             if (!e.IsRepeat)
             {
@@ -526,9 +529,13 @@ public partial class MainWindow : Window
                 {
                     DiscardPendingChanges();
                 }
-                else
+                else if (windowedMode.HasValue)
                 {
                     ToggleFullScreen();
+                }
+                else
+                {
+                    Close();
                 }
             }
 
@@ -708,6 +715,7 @@ public partial class MainWindow : Window
             hasPixelEdit = false;
             CropButton.Visibility = Visibility.Collapsed;
             ClearMarkers();
+            HideCaptureFrame();
             Photo.Source = null;
             ResetPhotoView();
             SetRotationDegrees(0);
@@ -1079,6 +1087,7 @@ public partial class MainWindow : Window
         double maxY = Math.Max(0, (Photo.ActualHeight * scale - PhotoViewport.ActualHeight) / 2);
         PhotoPan.X = Math.Clamp(x, -maxX, maxX);
         PhotoPan.Y = Math.Clamp(y, -maxY, maxY);
+        UpdateCaptureFrame();
     }
 
     private void Window_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
@@ -1172,6 +1181,8 @@ public partial class MainWindow : Window
         try
         {
             BitmapSource bitmap = ReadPhotoBitmap(path);
+            StopGridPhotoAnimation();
+            HideCaptureFrame();
 
             ClearMarkers();
             lastSavedPhoto = bitmap;

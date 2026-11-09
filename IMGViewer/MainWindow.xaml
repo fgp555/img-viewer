@@ -95,7 +95,9 @@
                         <Border x:Name="Tile" Margin="2" BorderThickness="2"
                                 BorderBrush="Transparent" Background="#262C36">
                             <Grid ClipToBounds="True">
-                                <Image x:Name="Thumbnail" Source="{Binding Thumbnail}" Stretch="UniformToFill" />
+                                <Image x:Name="Thumbnail" Stretch="UniformToFill"
+                                       Loaded="GridThumbnail_Loaded" Unloaded="GridThumbnail_Unloaded"
+                                       DataContextChanged="GridThumbnail_Changed" IsVisibleChanged="GridThumbnail_Changed" />
                                 <TextBlock Text="{Binding Name}" Foreground="#D3D9E3" Margin="6"
                                            HorizontalAlignment="Center" VerticalAlignment="Center"
                                            TextTrimming="CharacterEllipsis">
@@ -148,6 +150,25 @@
                HorizontalAlignment="Center" VerticalAlignment="Center"
                RenderTransformOrigin="{Binding RenderTransformOrigin, ElementName=Photo}"
                RenderTransform="{Binding RenderTransform, ElementName=Photo}" />
+        <Canvas IsHitTestVisible="False">
+            <Border x:Name="CaptureFrame" Visibility="Collapsed" Opacity="0.85"
+                    BorderThickness="2" CornerRadius="3" ClipToBounds="True" SnapsToDevicePixels="True">
+                <Border.BorderBrush>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                        <GradientStop Color="#FFC857" Offset="0" />
+                        <GradientStop Color="#FF537F" Offset="0.5" />
+                        <GradientStop Color="#A778FF" Offset="1" />
+                    </LinearGradientBrush>
+                </Border.BorderBrush>
+                <Border HorizontalAlignment="Left" VerticalAlignment="Top" Margin="8"
+                        Background="#EB171320" CornerRadius="4" Padding="7,3">
+                    <TextBlock Text="Captura" Foreground="White" FontSize="12" FontWeight="SemiBold" />
+                </Border>
+            </Border>
+        </Canvas>
+        <Canvas IsHitTestVisible="False">
+            <Image x:Name="GridOpenImage" Visibility="Collapsed" Stretch="UniformToFill" />
+        </Canvas>
         <StackPanel x:Name="EmptyState" HorizontalAlignment="Center" VerticalAlignment="Center">
             <TextBlock Text="Arrastra una imagen aquí" Foreground="White"
                        HorizontalAlignment="Center" FontSize="24" />
@@ -345,9 +366,9 @@
                     <Path x:Name="ViewModeIcon" Style="{StaticResource FloatingIcon}" Data="{StaticResource SquareLayoutIcon}" />
                 </Button>
                 <Button x:Name="GridLayoutButton" Style="{StaticResource FloatingButton}" Margin="0,0,8,0"
-                        Visibility="{Binding Visibility, ElementName=FolderGrid}" ToolTip="Cambiar a Masonry"
-                        AutomationProperties.Name="Cambiar a Masonry" Click="GridLayoutButton_Click">
-                    <Path x:Name="GridLayoutIcon" Style="{StaticResource FloatingIcon}" Data="{StaticResource MasonryLayoutIcon}" />
+                        Visibility="{Binding Visibility, ElementName=FolderGrid}" ToolTip="Cambiar a cuadrado"
+                        AutomationProperties.Name="Cambiar a cuadrado" Click="GridLayoutButton_Click">
+                    <Path x:Name="GridLayoutIcon" Style="{StaticResource FloatingIcon}" Data="{StaticResource SquareLayoutIcon}" />
                 </Button>
                 <Button x:Name="SlideShowButton" Style="{StaticResource FloatingButton}" Margin="0,0,8,0"
                         Visibility="Collapsed" ToolTip="Reproducir presentación"
@@ -385,6 +406,10 @@
                         Click="CaptureSettingsButton_Click">
                     <Path Style="{StaticResource FloatingIcon}"
                           Data="M 7,1 H 11 L 12,4 L 14,4 L 16,3 L 18,7 L 16,9 L 16,11 L 18,13 L 16,17 L 13,16 L 12,17 L 11,19 H 7 L 6,17 L 5,16 L 2,17 L 0,13 L 2,11 V 9 L 0,7 L 2,3 L 4,4 H 6 Z M 12,10 A 3,3 0 1 1 6,10 A 3,3 0 1 1 12,10 Z" />
+                </Button>
+                <Button Style="{StaticResource FloatingButton}" Margin="0,0,8,0" ToolTip="Minimizar"
+                        AutomationProperties.Name="Minimizar ventana" Click="MinimizeButton_Click">
+                    <Path Style="{StaticResource FloatingIcon}" Width="13" Height="13" Data="M 1,6 H 12" />
                 </Button>
                 <Button Style="{StaticResource CloseButton}" ToolTip="Cerrar"
                         AutomationProperties.Name="Cerrar ventana" Click="CloseButton_Click">

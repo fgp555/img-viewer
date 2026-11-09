@@ -36,6 +36,29 @@ IMG Viewer es un visor de imágenes para Windows hecho con WPF y .NET 10. Permit
 
 ## Cambios posteriores
 
+### 2026-11-09 · Transición de la cuadrícula al visor
+
+- Al abrir una foto con doble clic, la imagen se amplía desde la posición visible de la miniatura. La transición dura 200 ms y respeta la configuración de animaciones de Windows.
+
+
+### 2026-11-09 · Carga de la cuadrícula
+
+- La cuadrícula abre en **Masonry** por defecto. La lectura de la carpeta y de las miniaturas se hace en segundo plano, con una caché limitada en memoria y cancelación al cambiar de carpeta o volver a Imagen.
+
+
+### 2026-11-09 · Botón Minimizar
+
+- El botón **Minimizar**, junto a **Cerrar**, envía la ventana a la barra de tareas.
+
+### 2026-11-09 · Marco de captura
+
+- Al abrir una captura nueva, el visor destaca sus bordes con un marco degradado y la etiqueta **Captura**. El marco hace un pulso suave si las animaciones de Windows están activadas. Al guardar o copiar, se usa la imagen sin el marco.
+
+### 2026-11-09 · Esc en modo Imagen
+
+- Tras atender un trazo, los cambios pendientes o la pantalla completa, **Esc** ejecuta la misma acción que **×**. La preferencia de cierre decide si el visor se oculta en la bandeja o si la app se cierra.
+
+
 ### 2026-11-08 · Inicio con información
 
 - El visor arranca en modo Imagen con el pie de información abierto y la barra superior visible. El inicio con Windows sigue abriendo la app en la bandeja cuando esa opción está activada.

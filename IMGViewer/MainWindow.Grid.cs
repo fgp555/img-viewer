@@ -3,7 +3,6 @@ using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using System.Windows.Media.Imaging;
 
 namespace IMGViewer;
 
@@ -14,6 +13,7 @@ public partial class MainWindow
     private int loadedGridColumns;
     private GridPhoto[] gridPhotos = [];
     private int selectionAnchor = -1;
+    private CancellationTokenSource? gridLoad;
 
     private string? CurrentGridImage => currentIndex >= 0 ? folderImages[currentIndex] : null;
 
@@ -29,6 +29,7 @@ public partial class MainWindow
             return;
         }
 
+        StopGridPhotoAnimation();
         viewerClickTimer.Stop();
         SetSlideShowPlaying(false);
         FolderGrid.Visibility = Visibility.Visible;
@@ -57,6 +58,7 @@ public partial class MainWindow
             lastGridPosition = (GridFolderPath.Text, CurrentGridImage, loadedGridColumns, masonryMode, scroller.VerticalOffset);
         }
 
+        CancelFolderGridLoad();
         FolderGrid.Visibility = Visibility.Collapsed;
         UpdateViewerToolbar();
         GridRows.ItemsSource = null;
@@ -71,12 +73,22 @@ public partial class MainWindow
         Keyboard.Focus(this);
     }
 
-    private void LoadFolderGrid(string? folderOverride = null)
+    private void CancelFolderGridLoad()
+    {
+        gridLoad?.Cancel();
+        gridLoad?.Dispose();
+        gridLoad = null;
+    }
+
+    private async void LoadFolderGrid(string? folderOverride = null)
     {
         string? current = CurrentGridImage;
         string folder = folderOverride ?? (current is null ? CapturePreferences.CaptureFolder : Path.GetDirectoryName(current)!);
+        CancelFolderGridLoad();
+        gridLoad = new CancellationTokenSource();
+        CancellationToken token = gridLoad.Token;
         GridFolderPath.Text = folder;
-        GridMessage.Text = string.Empty;
+        GridMessage.Text = "Cargando imágenes…";
         SetGridStatus(string.Empty);
         GridRows.ItemsSource = null;
         gridPhotos = [];
@@ -88,11 +100,23 @@ public partial class MainWindow
 
         try
         {
-            gridPhotos = Directory.EnumerateFiles(folder)
-                .Where(IsSupportedImage)
+            GridPhoto[] loaded = await Task.Run(() => Directory.EnumerateFiles(folder)
+                .Where(path =>
+                {
+                    token.ThrowIfCancellationRequested();
+                    return IsSupportedImage(path);
+                })
                 .OrderBy(Path.GetFileName, StringComparer.OrdinalIgnoreCase)
                 .Select(path => new GridPhoto(path, StringComparer.OrdinalIgnoreCase.Equals(path, current)))
-                .ToArray();
+                .ToArray(), token);
+
+            if (token.IsCancellationRequested)
+            {
+                return;
+            }
+
+            gridPhotos = loaded;
+            GridMessage.Text = string.Empty;
             var photos = gridPhotos.Chunk(columns).ToArray();
             GridRows.ItemsSource = photos;
             UpdateGridLayout();
@@ -115,13 +139,15 @@ public partial class MainWindow
                 GridRows.ScrollIntoView(selectedRow ?? photos[0]);
             }
         }
-        catch (DirectoryNotFoundException)
-        {
-            GridMessage.Text = "La carpeta de imágenes todavía no existe.";
-        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested) { }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            GridMessage.Text = "No se pudo abrir la carpeta de imágenes.";
+            if (!token.IsCancellationRequested)
+            {
+                GridMessage.Text = ex is DirectoryNotFoundException
+                    ? "La carpeta de imágenes todavía no existe."
+                    : "No se pudo abrir la carpeta de imágenes.";
+            }
         }
     }
 
@@ -229,19 +255,23 @@ public partial class MainWindow
     private void GridPhoto_MouseDoubleClick(object sender, MouseButtonEventArgs e)
     {
         if (e.ChangedButton == MouseButton.Left && Keyboard.Modifiers == ModifierKeys.None &&
-            sender is Button { DataContext: GridPhoto photo } && !gridBatchInProgress)
+            sender is Button { DataContext: GridPhoto photo } tile && !gridBatchInProgress)
         {
-            OpenGridPhoto(photo);
+            OpenGridPhoto(photo, GetGridTransitionStart(tile));
             e.Handled = true;
         }
     }
 
-    private void OpenGridPhoto(GridPhoto photo)
+    private void OpenGridPhoto(GridPhoto photo, Rect? transitionStart = null)
     {
         OpenImage(photo.Path);
         if (IsFolderGridOpen)
         {
             SetGridStatus(StatusText.Text);
+        }
+        else if (transitionStart is { } start)
+        {
+            AnimateGridPhoto(start);
         }
     }
 
@@ -267,20 +297,5 @@ public partial class MainWindow
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;
-
-        public BitmapSource? Thumbnail
-        {
-            get
-            {
-                try
-                {
-                    return ReadPhotoBitmap(Path, 384);
-                }
-                catch (Exception ex) when (IsBatchImageError(ex))
-                {
-                    return null;
-                }
-            }
-        }
     }
 }

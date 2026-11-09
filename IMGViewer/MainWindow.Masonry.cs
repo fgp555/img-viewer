@@ -7,7 +7,7 @@ namespace IMGViewer;
 
 public partial class MainWindow
 {
-    private bool masonryMode;
+    private bool masonryMode = true;
     private (GridPhoto Photo, Rect Bounds)[] masonryTiles = [];
     private readonly Dictionary<GridPhoto, ContentPresenter> masonryVisible = [];
     private GridPhoto[]? masonryLoading;
@@ -49,21 +49,31 @@ public partial class MainWindow
     private async void LoadMasonryAspects()
     {
         GridPhoto[] photos = gridPhotos;
-        if (photos.Length == 0 || masonryAspects is not null || ReferenceEquals(masonryLoading, photos))
+        if (photos.Length == 0 || masonryAspects is not null || ReferenceEquals(masonryLoading, photos) || gridLoad is null)
         {
             return;
         }
 
         masonryLoading = photos;
-        double[] aspects = await Task.Run(() => photos.Select(photo =>
+        CancellationToken token = gridLoad.Token;
+        double[] aspects;
+        try
         {
-            var dimensions = FindResizeExample([photo.Path]);
-            return dimensions is { Width: > 0, Height: > 0 } size ? (double)size.Height / size.Width : 1;
-        }).ToArray());
+            aspects = await Task.Run(() => photos.Select(photo =>
+            {
+                token.ThrowIfCancellationRequested();
+                var dimensions = FindResizeExample([photo.Path]);
+                return dimensions is { Width: > 0, Height: > 0 } size ? (double)size.Height / size.Width : 1;
+            }).ToArray(), token);
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested)
+        {
+            return;
+        }
 
         await Dispatcher.InvokeAsync(() =>
         {
-            if (!ReferenceEquals(gridPhotos, photos))
+            if (token.IsCancellationRequested || !ReferenceEquals(gridPhotos, photos))
             {
                 return;
             }
@@ -73,6 +83,14 @@ public partial class MainWindow
             if (masonryMode && IsFolderGridOpen)
             {
                 ReflowMasonry();
+                if (MasonryScroll.VerticalOffset == 0)
+                {
+                    var selected = masonryTiles.FirstOrDefault(tile => tile.Photo.IsCurrent);
+                    if (selected.Photo is not null && selected.Bounds.Top >= MasonryScroll.ViewportHeight)
+                    {
+                        MasonryScroll.ScrollToVerticalOffset(selected.Bounds.Top);
+                    }
+                }
             }
         });
     }

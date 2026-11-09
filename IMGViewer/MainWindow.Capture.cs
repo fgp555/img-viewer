@@ -166,6 +166,11 @@ public partial class MainWindow
         {
             string path = SaveCaptureFile(bitmap, CapturePreferences.CaptureFolder, timestamp);
             OpenImage(path);
+            if (!StringComparer.OrdinalIgnoreCase.Equals(CurrentGridImage, path))
+            {
+                OpenCapture(bitmap);
+                StatusText.Text = "La captura se guardó, pero no se pudo volver a abrir el archivo.";
+            }
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or NotSupportedException or
                                    InvalidOperationException or ArgumentException or ExternalException)
@@ -173,6 +178,8 @@ public partial class MainWindow
             OpenCapture(bitmap);
             StatusText.Text = "No se pudo guardar la captura automáticamente. Usa Ctrl + S para elegir una ubicación.";
         }
+
+        ShowCaptureFrame();
     }
 
     private static string SaveCaptureFile(BitmapSource bitmap, string folder, DateTime timestamp)
