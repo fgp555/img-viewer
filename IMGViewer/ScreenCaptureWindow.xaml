@@ -6,22 +6,20 @@
         PreviewKeyDown="Window_PreviewKeyDown">
     <Grid x:Name="Surface" ClipToBounds="True" SizeChanged="Surface_SizeChanged">
         <Image x:Name="FrozenDesktop" Stretch="Fill" IsHitTestVisible="False" />
-        <Grid x:Name="SelectionSurface" Background="Transparent" Cursor="Cross"
+        <Grid x:Name="SelectionSurface" Focusable="True" Background="Transparent" Cursor="Cross"
               MouseLeftButtonDown="Selection_MouseLeftButtonDown" MouseMove="Selection_MouseMove"
+              MouseWheel="Selection_MouseWheel" MouseLeave="Selection_MouseLeave"
               MouseLeftButtonUp="Selection_MouseLeftButtonUp" LostMouseCapture="Selection_LostMouseCapture">
             <Path x:Name="Dimmer" Fill="#99000000" IsHitTestVisible="False" />
-            <Path x:Name="Outline" Stroke="White" StrokeThickness="2" IsHitTestVisible="False" />
+            <Path x:Name="Outline" Stroke="#FFFFC247" StrokeThickness="1.5" StrokeDashArray="5,3" IsHitTestVisible="False" />
+            <Line x:Name="HorizontalGuide" Stroke="#FFFFC247" StrokeThickness="1" Opacity="0.8" IsHitTestVisible="False" Visibility="Collapsed" />
+            <Line x:Name="VerticalGuide" Stroke="#FFFFC247" StrokeThickness="1" Opacity="0.8" IsHitTestVisible="False" Visibility="Collapsed" />
         </Grid>
         <Canvas>
-            <Border x:Name="Toolbar" Background="#F2202632" CornerRadius="6" Padding="10"
-                    SizeChanged="Surface_SizeChanged">
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="Clic: ventana · Arrastrar: área" Foreground="White"
-                               VerticalAlignment="Center" Margin="0,0,12,0" />
-                    <Button Content="Pantalla completa" Padding="10,5" Click="CaptureMonitor_Click" Margin="0,0,8,0" />
-                    <Button Content="Cancelar" Padding="10,5" IsCancel="True" />
-                </StackPanel>
-            </Border>
+            <Button x:Name="Toolbar" Background="#F0181818" Foreground="White" BorderThickness="0" Padding="10,5" Cursor="Hand" Click="CaptureMonitor_Click" SizeChanged="Surface_SizeChanged" ToolTip="Capturar el monitor completo · Esc cancela" AutomationProperties.Name="Capturar pantalla completa">
+                <Button.Template><ControlTemplate TargetType="Button"><Border x:Name="Pill" Background="{TemplateBinding Background}" CornerRadius="16" Padding="{TemplateBinding Padding}"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border><ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Pill" Property="Background" Value="#333333"/></Trigger><Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Pill" Property="Background" Value="#333333"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Button.Template>
+                <StackPanel Orientation="Horizontal"><TextBlock Text="Pantalla completa" FontSize="11" VerticalAlignment="Center"/><TextBlock FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" Text="&#xE740;" FontSize="16" Foreground="#FFC247" Margin="7,0,0,0" VerticalAlignment="Center"/></StackPanel>
+            </Button>
         </Canvas>
     </Grid>
 </Window>

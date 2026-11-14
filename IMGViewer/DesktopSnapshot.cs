@@ -7,19 +7,29 @@ using System.Windows.Media.Imaging;
 
 namespace IMGViewer;
 
-internal sealed class DesktopSnapshot(BitmapSource bitmap, Int32Rect bounds, IReadOnlyList<Int32Rect> windows)
+internal sealed class DesktopSnapshot(BitmapSource bitmap, Int32Rect bounds, IReadOnlyList<Int32Rect> windows, IReadOnlyList<nint> handles)
 {
     internal BitmapSource Bitmap { get; } = bitmap;
     internal Int32Rect Bounds { get; } = bounds;
     internal IReadOnlyList<Int32Rect> Windows { get; } = windows;
+    internal IReadOnlyList<nint> Handles { get; } = handles;
 
     internal static DesktopSnapshot Capture()
     {
         var desktop = new Int32Rect(GetSystemMetrics(76), GetSystemMetrics(77),
             GetSystemMetrics(78), GetSystemMetrics(79));
+        return new DesktopSnapshot(CapturePixels(desktop), desktop, [], []);
+    }
+
+    internal DesktopSnapshot WithWindowBounds()
+    {
+        Int32Rect desktop = Bounds;
         var visibleWindows = new List<Int32Rect>();
+        var handles = new List<nint>();
         EnumWindows((window, _) =>
         {
+            GetWindowThreadProcessId(window, out uint processId);
+            if (processId == Environment.ProcessId) return true;
             if (IsWindowVisible(window) && !IsIconic(window) && GetWindowTextLengthW(window) > 0 &&
                 TryGetVisibleWindowRect(window, out NativeRect rect) &&
                 (DwmGetWindowAttribute(window, 14, out int cloaked, sizeof(int)) != 0 || cloaked == 0))
@@ -28,13 +38,14 @@ internal sealed class DesktopSnapshot(BitmapSource bitmap, Int32Rect bounds, IRe
                 if (area.Width > 0 && area.Height > 0)
                 {
                     visibleWindows.Add(area);
+                    handles.Add(window);
                 }
             }
 
             return true;
         }, 0);
 
-        return new DesktopSnapshot(CapturePixels(desktop), desktop, visibleWindows);
+        return new DesktopSnapshot(Bitmap, desktop, visibleWindows, handles);
     }
 
     private static bool TryGetVisibleWindowRect(nint window, out NativeRect rect)
@@ -142,6 +153,8 @@ internal sealed class DesktopSnapshot(BitmapSource bitmap, Int32Rect bounds, IRe
         public NativeRect WorkArea;
         public uint Flags;
     }
+
+    [DllImport("user32.dll")] private static extern uint GetWindowThreadProcessId(nint window, out uint processId);
 
     private delegate bool EnumWindowsCallback(nint window, nint state);
 

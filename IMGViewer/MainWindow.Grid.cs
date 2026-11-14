@@ -36,7 +36,6 @@ public partial class MainWindow
         UpdateViewerToolbar();
         ImageFooter.Visibility = Visibility.Collapsed;
         CropButton.Visibility = Visibility.Collapsed;
-        InfoButton.Visibility = Visibility.Collapsed;
         UpdateSlideShowAvailability();
         LoadFolderGrid();
         if (!masonryMode)
@@ -52,6 +51,7 @@ public partial class MainWindow
             return;
         }
 
+        StopGridSelectionScroll();
         EndGridDrag();
         if (ActiveGridScroller is { } scroller)
         {
@@ -68,13 +68,13 @@ public partial class MainWindow
         UpdateGridSelection();
         ImageFooter.Visibility = Visibility.Visible;
         CropButton.Visibility = Photo.Source is null ? Visibility.Collapsed : Visibility.Visible;
-        InfoButton.Visibility = Visibility.Visible;
         UpdateSlideShowAvailability();
         Keyboard.Focus(this);
     }
 
     private void CancelFolderGridLoad()
     {
+        StopGridSelectionScroll();
         gridLoad?.Cancel();
         gridLoad?.Dispose();
         gridLoad = null;
@@ -116,6 +116,7 @@ public partial class MainWindow
             }
 
             gridPhotos = loaded;
+            UpdateGridSelection();
             GridMessage.Text = string.Empty;
             var photos = gridPhotos.Chunk(columns).ToArray();
             GridRows.ItemsSource = photos;
@@ -166,15 +167,31 @@ public partial class MainWindow
 
     private void UpdateGridThumbnailSize(int columns)
     {
-        double width = GridRows.ActualWidth - 4;
+        // The square list can be collapsed while masonry owns the viewport.
+        double width = Math.Max(GridRows.ActualWidth, GridScrollArea.ActualWidth) - 4;
+        if (width <= 0 || columns <= 0) return;
         GridRows.Tag = Math.Max(1, Math.Floor(width / columns));
     }
 
     private void GridPhoto_Click(object sender, RoutedEventArgs e)
     {
-        if (sender is Button { DataContext: GridPhoto photo })
+        if (sender is not Button { DataContext: GridPhoto photo } tile)
         {
-            SelectGridPhoto(photo, Keyboard.Modifiers);
+            return;
+        }
+
+        ScrollViewer? scroller = ActiveGridScroller;
+        Rect bounds = Rect.Empty;
+        if (scroller is not null && scroller.IsAncestorOf(tile))
+        {
+            bounds = tile.TransformToAncestor(scroller).TransformBounds(new Rect(tile.RenderSize));
+            bounds.Offset(0, scroller.VerticalOffset);
+        }
+
+        SelectGridPhoto(photo, Keyboard.Modifiers);
+        if (photo.IsSelected && scroller is not null && !bounds.IsEmpty)
+        {
+            RevealSelectedGridTile(photo, scroller, bounds);
         }
     }
 
@@ -218,6 +235,8 @@ public partial class MainWindow
     private void UpdateGridSelection()
     {
         string[] paths = SelectedGridPaths();
+        UpdateToolbarActions();
+        UpdateSelectAllState();
         GridActions.Visibility = paths.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
         GridSelectionInfo.Text = paths.Length switch
         {
@@ -264,7 +283,7 @@ public partial class MainWindow
 
     private void OpenGridPhoto(GridPhoto photo, Rect? transitionStart = null)
     {
-        OpenImage(photo.Path);
+        OpenImage(photo.Path, resetMarkup: false);
         if (IsFolderGridOpen)
         {
             SetGridStatus(StatusText.Text);

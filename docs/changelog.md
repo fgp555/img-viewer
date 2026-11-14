@@ -1,4 +1,4 @@
-﻿# Registro de cambios de IMG Viewer
+# Registro de cambios de IMG Viewer
 
 ## Funciones incorporadas en las etapas 1 a 5
 
@@ -35,6 +35,45 @@ IMG Viewer es un visor de imágenes para Windows hecho con WPF y .NET 10. Permit
 - **Pantalla completa** captura el monitor seleccionado y **Esc** cancela. La captura se abre en el visor para marcarla, copiarla o guardarla. Si la captura todavía no tiene archivo, **Ctrl + S** pide un nombre.
 
 ## Cambios posteriores
+
+### 2026-11-14 · Tamaño de imagen y ventana
+
+- En modo Imagen, **Alt + 1**, **Alt + 2** y **Alt + 3** muestran la imagen al 50 %, 100 % y 150 % en píxeles de pantalla y ajustan la ventana a su proporción. Si es necesario, salen de pantalla completa.
+- Se respeta el tamaño mínimo de la ventana para mantener los controles accesibles.
+
+
+### 2026-11-14 · Opacidad configurable del fondo
+
+- Configuración permite ajustar la opacidad del fondo semitransparente entre 1 % y 100 %, con 25 % por defecto. El ajuste se aplica al momento y se conserva al cerrar la app.
+
+
+### 2026-11-14 · WebP y fondo al 50 %
+
+- Apertura de WebP estático, miniaturas en Cuadrado y Masonry, y conversión individual desde **Guardar copia** a PNG, JPG, BMP o WebP sin pérdida. Se incorporan Imazen.WebP 11.0.0 y su runtime Windows x64 1.6.1.
+- WebP y PNG conservan transparencia. JPG usa el codificador existente. La reproducción de WebP animado queda pendiente.
+- El fondo inicial del visor tiene un 50 % de opacidad para permitir clic y arrastre sobre las zonas libres. **T** alterna entre semitransparente, oscuro y cuadrícula. Las exportaciones conservan sus propios píxeles y transparencia.
+
+
+### 2026-11-14 · Fondo transparente inicial
+
+- El visor inicia con fondo transparente. **T** alterna entre transparente, sólido oscuro y cuadrícula. El fondo solo afecta la visualización.
+- La ventana usa transparencia de WPF y conserva el borde gris. La sombra nativa puede variar al usar una ventana transparente.
+
+
+### 2026-11-14 · Abrir SVG
+
+- Se incorpora SharpVectors.Wpf 1.8.6 para abrir SVG desde el Explorador o arrastrarlos al visor, recorrerlos y mostrarlos en Cuadrado y Masonry.
+- El SVG se representa como imagen con transparencia para usar las herramientas actuales. Las ediciones se exportan como PNG, JPG o BMP y el original SVG se conserva.
+- La representación de trabajo se limita a 8192 px por lado y 32 megapíxeles. Los recursos externos de SVG se omiten.
+
+
+### 2026-11-09 · Salir con Shift + clic
+
+- **Shift + clic en Cerrar** sale por completo de IMG Viewer, incluida la bandeja. Un clic normal sigue la preferencia de cierre.
+
+### 2026-11-09 · Selección visible en la cuadrícula
+
+- Al seleccionar una miniatura cerca del borde inferior, la cuadrícula se desplaza suavemente si el pie de metadatos reduce el espacio visible. Si la miniatura ya se ve completa, la cuadrícula se queda en su posición.
 
 ### 2026-11-09 · Transición de la cuadrícula al visor
 
@@ -161,3 +200,344 @@ IMG Viewer es un visor de imágenes para Windows hecho con WPF y .NET 10. Permit
 
 
 Añadir cada cambio visible para el usuario con su fecha, el comportamiento y el atajo, si lo tiene. Registrar por separado las correcciones y las limitaciones relevantes. Para el futuro README y la landing page, conservar ejemplos de uso y capturas que muestren la función en acción.
+
+
+## 2026-11-14 — Áreas internas en capturas
+
+- La captura detecta paneles y contenido accesible de las aplicaciones antes de mostrar la pantalla congelada, sin nuevas bibliotecas externas.
+- El cursor muestra una cruz con líneas de lado a lado y el área detectada tiene un borde amarillo discontinuo.
+- Clic captura el área resaltada; la rueda cambia entre áreas superpuestas y la ventana completa. Arrastrar conserva la selección manual y Esc cancela.
+- La detección tiene un tiempo limitado y depende de la accesibilidad de cada aplicación; si no hay áreas disponibles, se mantiene la captura de ventana. Captura solo contenido visible.
+
+
+## 2026-11-14 — Menús, paneles laterales y modo zen
+
+- Nueva presentación con menús Archivo, Editar, Ver y Ayuda, una barra de acciones compacta y controles de ventana en la parte superior. La zona libre del encabezado permite mover la ventana.
+- Archivo permite abrir imagen o carpeta, guardar, guardar copia, capturar, cerrar imagen, ocultar/cerrar la ventana y salir completamente. Editar reúne copiar, girar, recortar, redimensionar, convertir formato y enviar a la Papelera.
+- Galería lateral izquierda con miniaturas virtualizadas de la carpeta actual, apertura con un clic y reutilización de la caché de miniaturas. La cuadrícula mantiene su selección múltiple y acciones masivas.
+- Panel derecho para flechas y rectángulos, color y grosor. Cada marca conserva su estilo y siguen disponibles Alt/Shift + arrastre. Ctrl + arrastre conserva el desplazamiento de la imagen ampliada.
+- Ambos paneles se pueden plegar y redimensionar. Se recuerdan sus preferencias y se ocultan temporalmente cuando falta espacio.
+- El clic izquierdo deja de ocultar controles. El clic derecho abre un menú contextual con Modo zen primero, seguido de Copiar, Cerrar ventana, Convertir y más acciones.
+- Modo zen oculta menús, botones, paneles e información. Se restaura desde el mismo menú contextual o con Tab desde el visor. No modifica el archivo ni la preferencia de los paneles.
+- Ctrl + O abre imagen y Ctrl + Shift + O abre carpeta. Ayuda incluye los atajos, la página y la versión de la app. Convertir utiliza Guardar copia para elegir PNG, JPG, WebP o BMP.
+- Los ajustes de tamaño del visor tienen en cuenta el espacio de los nuevos menús y paneles.
+
+- Verificación: compilación Release x64 sin errores ni advertencias; revisión visual de menús y contexto, entrada/salida de zen, apertura de miniaturas y dibujo de flecha roja más rectángulo azul en imágenes de ejemplo. Esc cierra un menú abierto sin descartar marcas.
+
+
+## 2026-11-14 — Tema neutro, búsqueda y barra de estado
+
+- Paleta gris oscura para cabecera, menús y paneles, con borde exterior y separadores discretos. Los iconos de acciones no tienen borde ni fondo permanente; conservan respuesta al pasar el mouse y al recibir foco.
+- Icono de IMG Viewer y botones de imagen anterior/siguiente antes del menú Archivo. El icono se incluye como recurso WPF para funcionar también en la publicación de un solo archivo.
+- Botones de minimizar, maximizar/restaurar y cerrar con proporciones y trazos de estilo Windows. El icono de maximizar cambia al de restaurar y el cierre se resalta en rojo al pasar el mouse. El maximizado respeta el área útil del monitor y la barra de tareas.
+- Buscador en la galería por nombre o ruta relativa, limitado a la carpeta actual y sus subcarpetas mientras hay texto. Al vaciarlo muestra solo las imágenes de la carpeta actual. Búsqueda en segundo plano, con espera breve al escribir y cancelación; omite subcarpetas inaccesibles y no sigue enlaces a otros directorios.
+- Barra de estado de 28 px, estilo VS Code, con metadatos, estado y acciones de guardado/restauración. Tiene su propia fila fuera del lienzo y no tapa la imagen. La cuadrícula utiliza el mismo estilo de barra. Los textos largos se abrevian y se pueden consultar completos en el tooltip.
+- Se mantiene el modo zen y se devuelve el foco al visor al pulsar sobre la imagen después de escribir una búsqueda.
+- Verificación: Release x64 sin errores ni advertencias; búsqueda comprobada con coincidencia en subcarpeta y archivo coincidente fuera de alcance excluido; medición confirma que el borde inferior del lienzo coincide con el inicio del footer. Revisión visual del tema, cabecera, búsqueda, cuadrícula y maximizado con footer visible.
+
+
+## 2026-11-14 — Iconos Fluent y acciones junto a marcación
+
+- Iconos de la ventana principal unificados mediante Segoe Fluent Icons, con Segoe MDL2 Assets como alternativa del sistema. Se reemplazan los trazos personalizados y caracteres sueltos de acciones, navegación, presentación, selección de vista y controles de ventana; no se añaden paquetes externos.
+- Copiar, guardar, restaurar la última imagen eliminada y enviar a la Papelera se agrupan en la barra superior, junto al lápiz de marcación. El footer queda exclusivamente para metadatos y estado.
+- Guardar permanece visible, se desactiva cuando no corresponde y se muestra en ámbar si hay cambios pendientes. El botón de restauración conserva su aviso rojo de cinco segundos, parpadeo y cambio al icono Deshacer al pasar el mouse.
+- Copiar y eliminar usan los mismos botones en el visor y la cuadrícula, respetando la selección y desactivándose durante acciones masivas.
+- Verificación: Release x64 sin errores ni advertencias, revisión visual de los iconos y su ubicación; eliminación y recuperación de una imagen de ejemplo, giro y guardado desde el nuevo botón. El footer permanece separado del lienzo y sin botones.
+
+
+## 2026-11-14 — Configuración, selección y recuperación
+
+- Marco redondeado y colores comunes para la ventana principal y los diálogos propios; icono monocromo y mayor espacio superior. En modo zen se eliminan el borde y las esquinas redondeadas.
+- Información siempre visible fuera de zen, sin botón Info. T y su botón alternan únicamente fondo sólido y cuadrícula; se elimina la opción de opacidad.
+- Configuración con navegación lateral, búsqueda de secciones, tarjetas e interruptores: General, Capturas, Galería, Cursor y Acerca de.
+- Galería con botón + para añadir y recordar carpetas, selector de carpeta y buscador con placeholder.
+- Botones directos para fondo, captura, pantalla completa y zen. Todas las acciones y atajos ofrece botones para operaciones adicionales, escalas y herramientas.
+- Casillas por miniatura y Seleccionar todas en cuadrícula, con estados vacío, marcado e intermedio de Segoe Fluent Icons. Ctrl + A selecciona todas; conserva la selección múltiple y el peso total.
+- Historial de eliminaciones de la sesión: botón Deshacer permanente mientras haya archivos recuperables, con aviso rojo de cinco segundos. Ctrl + Z deshace primero una marca pendiente o recupera la última eliminación; puede repetirse para recuperar varios archivos, también los eliminados desde la cuadrícula.
+- Skill multiproyecto ui-consistency-wpf actualizado con pautas reutilizables sobre iconos de selección, diálogos, configuración y modo sin distracciones.
+
+
+## 2026-11-14 — Refinamiento de menús y búsqueda
+
+- Menú contextual y desplegables con superficie gris neutra, esquinas redondeadas, separación y resaltado discreto.
+- Cabecera con altura y fondo uniformes, sin márgenes de otro color, y flechas anterior/siguiente reducidas a 12 px.
+- Selector de carpetas con ChevronDown de Segoe Fluent Icons, reemplazando el carácter de texto.
+- Buscador de galería redondeado con icono Search Fluent, placeholder y borde de foco.
+
+
+## 2026-11-14 — Scroll, formatos y fondo de capturas
+
+- Barras de desplazamiento delgadas, con indicador gris oscuro y respuesta al hover/arrastre, compartidas por galería, ajustes y diálogos.
+- Configuración > Galería incluye JPG, JPEG, PNG, BMP, SVG y WebP, con casillas y Seleccionar todos. Se recuerda la selección y se aplica a apertura, navegación y galería; los formatos de exportación se mantienen disponibles.
+- Al capturar pantalla se activa directamente el fondo de cuadrícula y deja de mostrarse el marco coloreado. T o su botón permiten volver al fondo sólido.
+
+- Deshacer eliminación deja de parpadear; el botón mantiene opacidad fija y conserva la recuperación de archivos.
+- Deshacer usa el mismo fondo neutro y hover de los demás botones, sin fondo rojo.
+
+
+## 2026-11-14 — Menú de bandeja oscuro
+
+- El menú del icono de notificaciones utiliza un renderer oscuro propio para Windows Forms, con texto claro, espaciado, resaltado gris y separadores discretos.
+- Se añaden Abrir carpeta… y Acerca de IMG Viewer, junto a Abrir, Capturar y Salir. Abrir carpeta utiliza el mismo flujo del menú Archivo.
+
+- Zen y modo normal conservan por separado el tamaño, posición y estado maximizado durante la sesión. Redimensionar en zen ya no modifica las dimensiones del modo normal; todas las salidas de zen restauran su disposición.
+
+
+## 2026-11-14 — Conversión masiva y barra compacta
+
+- Se retiran los iconos de redimensionar de la barra principal y la selección de cuadrícula. Redimensionar permanece en Todas las acciones (tres puntos), Editar y el menú contextual cuando corresponde.
+- Convertir formato admite varias imágenes seleccionadas en cuadrícula desde los tres puntos, Editar o el menú contextual. Permite PNG, JPG, WebP sin pérdida y BMP; guarda copias con nombres únicos junto a los originales y muestra el resultado. JPG compone las transparencias sobre blanco.
+
+
+## 2026-11-14 — Sección Formatos y visor predeterminado
+
+- Los tipos de archivo y Seleccionar todos se trasladan de Galería a la nueva sección Formatos, incluida en la búsqueda de ajustes.
+- Configurar como visor predeterminado registra el ejecutable actual para el usuario y abre la página de IMG Viewer en Aplicaciones predeterminadas de Windows. La elección de asociaciones la confirma el usuario en Windows; no se modifica UserChoice.
+- Se registran los formatos compatibles para Abrir con. Si se cambia de ubicación el ejecutable, el botón permite actualizar las rutas.
+
+- Cubrir / ajustar la imagen cambia de C a Z. Ctrl + C conserva Copiar y Ctrl + Z conserva Deshacer.
+
+- Con la imagen ampliada, mantener el botón central y arrastrar desplaza la imagen con cursor de mano y los mismos límites de Ctrl + arrastre. Sin ampliación, el clic central conserva el cambio de vista imagen/cuadrícula.
+
+- El clic central alterna cubrir/ajustar igual que Z en modo imagen. Arrastrar con el central conserva el desplazamiento de la imagen ampliada y no alterna el ajuste al soltar. G sigue alternando imagen/cuadrícula.
+
+- El zoom de cubrir/ajustar con clic central utiliza el punto pulsado como ancla, conservando su posición bajo el cursor hasta los límites de desplazamiento de la imagen. Z mantiene su comportamiento de teclado.
+
+- La captura oculta el visor antes de congelar el escritorio, espera la actualización del compositor y captura las ventanas detrás. Al cancelar o fallar recupera la visibilidad y el estado anteriores; al completar muestra la captura.
+- Se centra la altura real de los glifos de anterior/siguiente y los controles de ventana; los botones de título ocupan los 40 px del encabezado.
+
+- Menú de bandeja refinado: ancho mínimo de 240 px, filas de 34 px, texto Segoe UI 9.5, marco y hover redondeados, separadores completos y espaciado adaptado al DPI. Se añade Configuración… entre Abrir carpeta y Acerca de.
+
+
+## 2026-11-14 — Marcas Limpio y Contraste
+
+- Flechas con punta triangular rellena, proporciones adaptadas al grosor y remate redondeado, sin unión visible entre cuerpo y punta.
+- Rectángulos sin relleno con esquinas suavemente redondeadas.
+- Selector Limpio / Contraste en marcación. Contraste añade un contorno blanco y negro para distinguir las marcas sobre fondos claros y oscuros. Cada marca conserva color, grosor y estilo propios al deshacer, copiar y exportar.
+- Implementación con geometrías nativas WPF, sin dependencias adicionales.
+
+
+## 2026-11-14 — Flechas estilizadas y curvas
+
+- Selector de forma Clásica, Estilizada y Curva. Estilizada y Curva tienen cola fina, cuerpo progresivo y punta rellena.
+- La última flecha curva permite ajustar su curvatura arrastrando un tirador central; el tirador se oculta en zen y no se copia ni exporta.
+- Conservan color, grosor y acabado Limpio/Contraste. Implementación WPF sin dependencias nuevas.
+
+- Flechas Estilizada y Curva con punta tipo arpón: extremos laterales retrasados y base cóncava con muescas junto al cuerpo.
+
+- Flecha Estilizada predeterminada. Al abrir una captura se sale de zen, se muestra marcación con Flecha seleccionada y grosor 50%. El grosor se presenta como porcentaje.
+- Un único icono Deshacer junto a Copiar reemplaza el botón de texto del panel y el control exclusivo de recuperación. Sin parpadeo, deshace marcas y luego eliminaciones, igual que Ctrl + Z; se desactiva cuando no hay acciones disponibles.
+
+- Nombres de archivo centrados bajo las miniaturas de la galería.
+
+- Al abrir o navegar a una imagen se oculta marcación y se activa Mover ventana. Las capturas conservan la apertura automática de marcación con Flecha seleccionada.
+
+- Texto del menú de bandeja centrado verticalmente respecto a la altura completa de cada fila, conservando alineación lateral y espaciado DPI.
+
+
+## 2026-11-14 — Ventana compacta
+
+- Por debajo de 640 px, cabecera con controles de ventana visibles y menús agrupados en ☰. Barra de una fila con Galería, Vista, Copiar, Deshacer, Marcación y Más acciones.
+- Acciones secundarias accesibles desde los tres puntos. Paneles laterales superpuestos sobre el contenido en ancho compacto, alternando galería/marcación sin reducir el lienzo.
+
+- Corrección de esquinas claras: plantilla de ventana transparente sin decoración predeterminada y recorte del marco exterior con su mismo radio. Zen, maximizado y pantalla completa conservan esquinas rectas.
+
+
+## 2026-11-14 — Guardado manual de capturas
+
+- Las capturas quedan en memoria hasta Guardar o Ctrl + S, sin crear un archivo automáticamente por defecto. El diálogo propone Imágenes y WebP sin pérdida.
+- Configuración > Capturas incorpora Guardar capturas automáticamente, desactivado por defecto, y elección de carpeta y formato (WebP, PNG, JPG, BMP).
+- Nueva preferencia de carpeta con valor inicial Imágenes; la antigua carpeta del guardado automático no se reutiliza. Las capturas conservan su flujo de marcación y copia al portapapeles opcional.
+
+
+## 2026-11-14 — Mano alzada, Texto y Blur
+
+- Mano alzada en marcación y Alt + Shift + arrastre izquierdo, con color, grosor y contraste.
+- Texto se activa con Ctrl + T; clic en la imagen abre un editor con tamaño y texto multilínea.
+- Blur se activa con Ctrl + B; arrastrar delimita un desenfoque gaussiano aplicado como marca.
+- Las tres operaciones se incluyen al copiar/exportar y se deshacen con el icono o Ctrl + Z, sin nuevas bibliotecas.
+
+
+## 2026-11-14 — Historial temporal de capturas
+
+- Galería separada en Carpeta y Capturas de esta sesión. Cada captura mantiene imagen y marcas en memoria al cambiar entre ellas.
+- Miniaturas con × para descartar una captura y Limpiar todo para descartar el historial sin guardar ni borrar archivos existentes.
+- Guardar/Ctrl + S conserva el guardado explícito de la captura elegida; el guardado automático opcional sigue respetando Configuración. El historial vive durante la sesión, incluida la bandeja, y se pierde al salir completamente.
+
+- Grosor predeterminado de marcación ajustado a 30%, también al abrir capturas.
+
+- V activa Mover ventana y desactiva la marcación o desplazamiento de imagen seleccionados, sin interferir al escribir en campos de texto.
+
+- Mano alzada suavizada con filtro moderado de vibración y curvas cuadráticas continuas, grosor uniforme y extremos redondos. La vista previa y la exportación usan la misma geometría, conservando el recorrido sin convertirlo en una figura automática.
+
+- Texto se edita directamente en el lienzo, sin modal. Clic crea ancho libre; arrastrar crea ancho fijo con ajuste de línea y altura automática. Ctrl + Enter o salir del campo confirma, Esc cancela; tamaño configurable en marcación.
+
+- Footer con destino de captura y formato antes de guardar; identifica Imágenes como predeterminada y muestra ruta personalizada completa en tooltip. Tras guardar muestra la ruta real, con clic para abrir la carpeta y seleccionar el archivo. Capturas sin guardar se indican en ámbar.
+
+- Corregido V al quedar el foco en selectores del panel: activa Mover ventana, actualiza su selección y restaura el cursor. Los campos de escritura conservan la entrada de texto.
+
+
+## 2026-11-14 — Tamaño inicial adaptable
+
+- Primera apertura centrada al 80% del área útil del monitor, respetando barra de tareas y escala.
+- Al cerrar se recuerdan tamaño, posición relativa al monitor y estado maximizado; siguientes aperturas los recuperan. Si falta el monitor anterior se centra en el actual y se limita al área visible.
+- Las dimensiones de zen no reemplazan las del modo normal; la pantalla completa tampoco se guarda como tamaño normal.
+
+- Suavizado mejorado de mano alzada: remuestreo por distancia uniforme, filtro espacial moderado y curvas cúbicas con tangentes limitadas. Conserva extremos y recorrido libre; no reconoce ni convierte formas. Misma geometría en vista previa y exportación.
+
+- Marcación solo se reinicia al abrir una imagen externa (Explorador, arrastrar archivo o Abrir imagen). Galería, cuadrícula, recuperación y navegación entre imágenes conservan el panel y la herramienta seleccionada. Las capturas mantienen su activación de Flecha Estilizada.
+
+- Tamaño inicial adaptativo reducido del 80% al 60% del área útil del monitor. Se mantiene la restauración de la última disposición guardada.
+
+
+## 2026-11-14 — Estabilizador de mano alzada
+
+- Estabilizador de tipo cuerda para mano alzada, activado inicialmente a 12 px de pantalla; ajustable de 0 a 30 px en marcación (0 desactiva).
+- El punto dibujado sigue al cursor al superar esa distancia, independientemente de la resolución y zoom. Conserva el suavizado mejorado y no añade un segmento brusco al soltar. No afecta a flechas, rectángulos, texto ni blur.
+
+- Mano alzada añade Trazo Uniforme / Brush (Uniforme por defecto). Brush simula presión mediante velocidad, suaviza los cambios de ancho y afina inicio/final; conserva estabilizador, color, contraste y geometría al copiar/guardar.
+
+
+## 2026-11-14 — Captura prioritaria
+
+- Impr Pant prioriza congelar los píxeles antes de enumerar ventanas o consultar accesibilidad. Se elimina la espera fija de 160 ms al ocultar el visor; se sincroniza con el compositor.
+- El selector aparece sin esperar la detección de áreas. La selección manual funciona desde el inicio y las ventanas/áreas internas se incorporan en segundo plano usando sus HWND originales.
+- Resultados tardíos se ignoran si el selector ya se cerró y no interrumpen un arrastre en curso. Tiempos de captura y presentación disponibles en la salida Debug.
+
+- Selector de captura con una sola píldora Pantalla completa e icono Fluent, centrada arriba y oculta al arrastrar. Esc anula la selección manual en curso; sin selección manual cancela toda la captura.
+
+- Color predeterminado de marcación cambiado a coral #F87171, con muestra y etiqueta del panel coherentes.
+
+- Marcación predeterminada ajustada a rojo suave #F24F57, intermedio entre rojo puro y coral, con opacidad completa.
+
+
+### Atajo configurable de captura
+- Ctrl + Impr Pant es el atajo global predeterminado. Configuración > Capturas incluye Cambiar atajo y Usar Impr Pant.
+- El atajo se guarda entre sesiones; se valida disponibilidad y se conserva el anterior ante conflictos o errores de guardado. Menú, botón y ayuda muestran el atajo elegido.
+- Impr Pant sola incluye indicaciones para desactivar su acceso a Recortes de Windows.
+
+
+### Acceso a captura en la barra de acciones
+- Capturar se ubica a la derecha, antes de Copiar, junto a Deshacer, Guardar, Eliminar y Marcación.
+- En ventanas estrechas permanece visible antes de Copiar; su tooltip muestra el atajo configurado.
+
+
+### Marco nativo de Windows 11
+- La ventana principal utiliza un HWND opaco y esquinas/borde oscuros nativos de DWM, sin el doble recorte redondeado de WPF que dejaba esquinas blancas.
+- Zen y pantalla completa solicitan esquinas rectas y ningún borde; al restaurar se recupera el marco normal. En sistemas anteriores a Windows 11 se conserva una ventana opaca de esquinas rectas.
+
+
+### Cambio de masonry a cuadrados
+- El tamaño cuadrado usa el ancho del área de galería aunque la lista esté oculta; se recalcula al alternar el diseño.
+- El desplazamiento se restaura después del layout y se limita al contenido disponible para evitar una vista vacía.
+
+
+### Escape en selección de captura
+- El selector toma el foco de teclado al abrir y al empezar una selección para recibir Escape.
+- Escape durante el arrastre anula el área y evita capturar al soltar; sin arrastre cancela toda la captura.
+
+
+### Encabezado de galería
+- Pestañas Carpeta/Capturas con subrayado activo, sin cajas.
+- Selector de carpeta sin borde, menú oscuro redondeado y check Fluent en la carpeta activa; añadir carpeta a su derecha.
+- Se elimina el título redundante Galería y se reduce el radio del buscador a 6 px.
+
+
+### Minimizar después de copiar
+- Nueva opción en General, desactivada por defecto y persistida entre sesiones.
+- Copiar manualmente con botón o Ctrl+C minimiza a la barra de tareas solo después de copiar correctamente; funciona en imagen y cuadrícula. La copia automática de capturas conserva la ventana.
+
+
+### Panel de marcación contextual
+- Herramientas como filas con iconos Fluent y fondo suave en la selección, conservando controles radio y atajos.
+- Propiedades visibles solo para la herramienta activa; selectores sin borde, sliders finos y muestras de color con check.
+- Se retiran la vista previa estática de varias herramientas y los textos largos permanentes; ayuda disponible en tooltips.
+
+
+### WebP para publicación web
+- WebP usa compresión con pérdida y calidad 80% por defecto, configurable entre 1 y 100.
+- Sin pérdida es una opción explícita, desactivada por defecto; al activarla se oculta calidad conservando su valor.
+- Preferencia compartida y persistente para guardar, capturas automáticas y conversiones individuales o masivas. Controles en Configuración > Formatos, al elegir WebP en Capturas y en conversión masiva.
+- Se elimina la etiqueta fija WebP sin pérdida de los selectores y del diálogo de guardado.
+
+
+### Alineación de herramientas
+- Ajuste óptico del texto de las seis herramientas de marcación para alinearlo con los iconos, conservando la altura de las filas.
+
+
+### Tarjetas de galería
+- Miniaturas cover con proporción original, esquinas de 8 px y nombre blanco superpuesto sobre degradado negro inferior.
+- Nombre en una línea con elipsis y tooltip completo; selección exterior y foco de teclado visibles. Aplicado también al historial de capturas.
+- Se conserva la carga asíncrona, cancelación al reciclar y caché de miniaturas.
+
+
+### Formato visible en la galería
+- Nombre de archivo sin extensión a la izquierda, con elipsis; formato en etiqueta independiente a la derecha para conservarlo visible con nombres largos.
+- El tooltip conserva el nombre completo con extensión. Las capturas sin guardar no muestran un formato ficticio.
+
+
+### Arrastrar desde galería
+- Un clic abre; arrastrar más allá del umbral del sistema entrega un archivo real a carpetas y aplicaciones compatibles, ofreciendo solo copia.
+- Vista flotante con miniatura y nombre durante el arrastre; el visor ignora sus propios drops.
+- Las capturas generan una copia temporal con anotaciones y formato/calidad configurados, sin marcar el historial como guardado. Los temporales recientes se conservan para destinos que leen de forma diferida y se limpian tras siete días al exportar otra captura.
+
+
+### Scroll y renombrado en galería
+- Scroll por píxeles con animación breve de rueda acumulativa y virtualización conservada; respeta animaciones del sistema.
+- F2 edita el nombre sobre la tarjeta sin extensión: Enter confirma, Esc cancela y arriba/abajo guardan antes de editar la imagen vecina. Errores junto al campo.
+- El renombrado conserva la colección y su posición, actualiza rutas del visor y evita reordenar durante la secuencia.
+
+
+### Zoom de reducción
+- Ctrl + rueda permite reducir hasta el 10% del tamaño ajustado y ampliar hasta 8 veces. Las acciones Ampliar/Reducir comparten los mismos límites.
+
+
+### Porcentaje de zoom
+- Footer con porcentaje de zoom real, actualizado al ampliar, reducir y redimensionar. 100% representa un píxel de imagen por píxel físico de pantalla, considerando DPI.
+
+
+### Barra estable y delgada en galería
+- Galería y Capturas reservan permanentemente el ancho del scrollbar para evitar ciclos de aparición/desaparición con tarjetas proporcionales.
+- Indicador visible de 3 px, con zona de interacción de 10 px; se oculta por opacidad cuando no hay desplazamiento, sin cambiar el layout.
+- Carril transparente e indicador gris semitransparente, con mayor opacidad en hover y arrastre.
+
+
+### Escalas por modo de ventana
+- Alt + 1/2/3 (50%, 100%, 150%) cambia solo el zoom en modo normal, conservando tamaño, posición y estado de ventana.
+- En modo zen mantiene el ajuste de la ventana a la proporción y escala de la imagen.
+
+
+### Restablecer zoom con clic central
+- Un clic central con zoom aumentado o reducido vuelve a Contain y centra la imagen. Sin zoom personalizado mantiene la alternancia Contain/Cover anclada al cursor.
+- Arrastrar con el botón central conserva el desplazamiento de la imagen ampliada y no restablece el zoom al soltar.
+
+
+### Panel de acciones y atajos
+- Atajos agrupados en tarjetas con encabezados e iconos Fluent; teclas en cajas y descripciones alineadas.
+- Una columna en ventanas estrechas y dos en amplias, con scroll y ventana redimensionable.
+- Filas ejecutables, estados habilitados según contexto y atajo de captura real; se incluyen texto, blur, mano alzada y restablecer zoom.
+
+
+### Apertura prioritaria desde el Explorador
+- Decodificación fuera del hilo de interfaz y presentación de la imagen antes de enumerar la carpeta o leer metadatos.
+- Enumeración y metadatos posteriores en segundo plano; versiones de solicitud evitan aplicar resultados antiguos al abrir varias imágenes.
+- En arranque visible, bandeja y configuración del cursor se inicializan después de mostrar la ventana. Inicio en bandeja conserva sus servicios inmediatos.
+- Tiempos de decodificación, presentación y detalles registrados en salida Debug para comparar equipos y formatos.
+- Validación local con imágenes sintéticas: retorno al hilo UI 6,4 ms e imagen lista ~56 ms; verificados resultados más recientes y SVG en worker. Estas cifras no representan el arranque completo desde el Explorador.
+
+
+### Recorte directo en el visor
+- Tras capturar se muestran ocho tiradores para recortar sin modal; las herramientas de marcación siguen disponibles hasta arrastrar un tirador.
+- Icono Recortar activa/desactiva el modo en cualquier imagen; Enter o check aplica, Esc o cancelar descarta el marco. Ctrl+S aplica un recorte pendiente antes de guardar.
+- Se conserva Recortar y enderezar en el menú para el editor avanzado. El recorte integra anotaciones y queda pendiente de guardar.
+
+
+### Recorte inmediato en memoria
+- Soltar un tirador aplica el recorte sin Enter ni confirmación y deja los tiradores activos para seguir ajustando.
+- Ctrl+C copia la imagen ya recortada sin guardar; Ctrl+S sigue siendo la acción que escribe el archivo. Se retiran los botones de confirmar/cancelar.
+- Escape durante el arrastre cancela el ajuste sin aplicarlo.
+
+
+### Atajo para flecha curva
+- Ctrl + Shift + arrastre izquierdo crea una flecha curva directamente y conserva el tirador de curvatura al terminar. La forma queda fijada al iniciar el gesto, aunque se suelten los modificadores antes del mouse.
+- Alt + arrastrar mantiene la forma elegida en el selector, que no se modifica por el atajo temporal. Tooltip y panel de atajos actualizados.

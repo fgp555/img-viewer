@@ -1,18 +1,24 @@
-﻿<Window x:Class="IMGViewer.MainWindow"
+<Window x:Class="IMGViewer.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
-        Title="IMG Viewer" Height="450" Width="800" MinWidth="240" MinHeight="160"
-        WindowStyle="None" ResizeMode="CanResize"
+        Title="IMG Viewer" Height="450" Width="800" MinWidth="360" MinHeight="240"
+        WindowStyle="None" ResizeMode="CanResize" AllowsTransparency="False" Background="#202324"
         AllowDrop="True" DragOver="Window_DragOver" Drop="Window_Drop"
         PreviewKeyDown="Window_PreviewKeyDown" PreviewMouseWheel="Window_PreviewMouseWheel">
+    <Window.Template>
+        <ControlTemplate TargetType="Window">
+            <AdornerDecorator><ContentPresenter/></AdornerDecorator>
+        </ControlTemplate>
+    </Window.Template>
     <WindowChrome.WindowChrome>
-        <WindowChrome CaptionHeight="0" ResizeBorderThickness="6" GlassFrameThickness="0,0,0,1" UseAeroCaptionButtons="False" />
+        <WindowChrome CaptionHeight="0" CornerRadius="0" ResizeBorderThickness="6" GlassFrameThickness="0" UseAeroCaptionButtons="False" />
     </WindowChrome.WindowChrome>
 
-    <Window.Resources>
+    <Window.Resources><ResourceDictionary><ResourceDictionary.MergedDictionaries><ResourceDictionary Source="DialogTheme.xaml"/></ResourceDictionary.MergedDictionaries>
         <SolidColorBrush x:Key="ActionRed" Color="#FFBD2638" />
-        <SolidColorBrush x:Key="ViewerBackground" Color="#141820" />
+
+        <SolidColorBrush x:Key="ViewerBackground" Color="#191B1C" />
         <DrawingBrush x:Key="TransparencyBackground"
                       TileMode="Tile" Viewport="0,0,24,24" ViewportUnits="Absolute"
                       Viewbox="0,0,24,24" ViewboxUnits="Absolute">
@@ -28,15 +34,15 @@
         <Style x:Key="FloatingButton" TargetType="Button">
             <Setter Property="Width" Value="36" />
             <Setter Property="Height" Value="36" />
-            <Setter Property="Background" Value="#DD202632" />
-            <Setter Property="Foreground" Value="White" />
-            <Setter Property="BorderBrush" Value="#99FFFFFF" />
-            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="#D4D4D4" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}" CornerRadius="5"
+                        <Border Background="{TemplateBinding Background}" CornerRadius="4"
                                 BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
                                 SnapsToDevicePixels="True">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
@@ -45,60 +51,60 @@
                 </Setter.Value>
             </Setter>
             <Style.Triggers>
+                <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.35"/></Trigger>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#FF414D60" />
+                    <Setter Property="Background" Value="#343739" />
                 </Trigger>
                 <Trigger Property="IsKeyboardFocused" Value="True">
-                    <Setter Property="Background" Value="#FF414D60" />
+                    <Setter Property="Background" Value="#343739" />
                 </Trigger>
             </Style.Triggers>
         </Style>
 
-        <Geometry x:Key="PlayIcon">M 4,2 L 15,9 L 4,16 Z</Geometry>
-        <Geometry x:Key="PauseIcon">M 6,2 V 16 M 12,2 V 16</Geometry>
+<Geometry x:Key="PauseIcon">M 6,2 V 16 M 12,2 V 16</Geometry>
 
-        <Style x:Key="FloatingIcon" TargetType="Path">
-            <Setter Property="Width" Value="18" />
-            <Setter Property="Height" Value="18" />
-            <Setter Property="Stretch" Value="Uniform" />
-            <Setter Property="Stroke" Value="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
-            <Setter Property="StrokeThickness" Value="1.6" />
-            <Setter Property="StrokeLineJoin" Value="Round" />
-            <Setter Property="StrokeStartLineCap" Value="Round" />
-            <Setter Property="StrokeEndLineCap" Value="Round" />
+        <Style x:Key="FluentSelectionCheck" TargetType="CheckBox"><Setter Property="Template"><Setter.Value><ControlTemplate TargetType="CheckBox"><StackPanel Orientation="Horizontal"><TextBlock x:Name="CheckGlyph" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" Text="&#xE739;" FontSize="16" Foreground="{TemplateBinding Foreground}" VerticalAlignment="Center"/><ContentPresenter Margin="6,0,0,0" VerticalAlignment="Center"/></StackPanel><ControlTemplate.Triggers><Trigger Property="IsChecked" Value="True"><Setter TargetName="CheckGlyph" Property="Text" Value="&#xE73A;"/></Trigger><Trigger Property="IsChecked" Value="{x:Null}"><Setter TargetName="CheckGlyph" Property="Text" Value="&#xE73C;"/></Trigger><Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="CheckGlyph" Property="Foreground" Value="#79C8FF"/></Trigger><Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.4"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter></Style>
+<Style x:Key="GallerySearchBox" TargetType="TextBox"><Setter Property="Template"><Setter.Value><ControlTemplate TargetType="TextBox"><Border x:Name="SearchBorder" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="6"><ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}"/></Border><ControlTemplate.Triggers><Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="SearchBorder" Property="BorderBrush" Value="#777777"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter></Style>
+<Style x:Key="FluentIcon" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="Segoe Fluent Icons, Segoe MDL2 Assets"/>
+            <Setter Property="FontSize" Value="16"/><Setter Property="FontWeight" Value="Normal"/>
+            <Setter Property="Width" Value="20"/><Setter Property="Height" Value="20"/>
+            <Setter Property="TextAlignment" Value="Center"/><Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="Foreground" Value="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
+            <Setter Property="IsHitTestVisible" Value="False"/><Setter Property="Focusable" Value="False"/>
         </Style>
 
-        <Style x:Key="SavePendingButton" TargetType="Button" BasedOn="{StaticResource FloatingButton}">
-            <Setter Property="Background" Value="#FF955300" />
-            <Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#FFB26500" />
-                </Trigger>
-            </Style.Triggers>
-        </Style>
-
-        <Style x:Key="CloseButton" TargetType="Button" BasedOn="{StaticResource FloatingButton}">
+<Style x:Key="CloseButton" TargetType="Button" BasedOn="{StaticResource FloatingButton}">
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
                     <Setter Property="Background" Value="{StaticResource ActionRed}" />
                 </Trigger>
             </Style.Triggers>
         </Style>
-        <Geometry x:Key="SquareLayoutIcon">M 1,1 H 7 V 7 H 1 Z M 11,1 H 17 V 7 H 11 Z M 1,11 H 7 V 17 H 1 Z M 11,11 H 17 V 17 H 11 Z</Geometry>
-        <Geometry x:Key="MasonryLayoutIcon">M 1,1 H 7 V 10 H 1 Z M 11,1 H 17 V 6 H 11 Z M 1,13 H 7 V 17 H 1 Z M 11,9 H 17 V 17 H 11 Z</Geometry>
-        <Geometry x:Key="PhotoViewIcon">M 2,3 H 16 V 15 H 2 Z M 2,13 L 6,9 L 9,12 L 12,8 L 16,12 M 7,6 A 1,1 0 1 1 5,6 A 1,1 0 1 1 7,6 Z</Geometry>
-        <DataTemplate x:Key="GridTile">
+
+
+<Style x:Key="MarkerToolRow" TargetType="RadioButton"><Setter Property="Foreground" Value="#D4D4D4"/><Setter Property="Margin" Value="0,2"/><Setter Property="Padding" Value="10,8"/><Setter Property="HorizontalContentAlignment" Value="Stretch"/><Setter Property="Template"><Setter.Value><ControlTemplate TargetType="RadioButton"><Border x:Name="Row" Background="Transparent" CornerRadius="6" Padding="{TemplateBinding Padding}"><ContentPresenter/></Border><ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Row" Property="Background" Value="#292C2D"/></Trigger><Trigger Property="IsChecked" Value="True"><Setter TargetName="Row" Property="Background" Value="#343637"/><Setter Property="Foreground" Value="#FFFFFF"/></Trigger><Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Row" Property="BorderBrush" Value="#9A9D9F"/><Setter TargetName="Row" Property="BorderThickness" Value="1"/></Trigger><Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.4"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter></Style>
+<Style x:Key="MarkerSlider" TargetType="Slider"><Setter Property="Foreground" Value="#B9BFC2"/><Setter Property="Height" Value="28"/><Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Slider"><Grid Background="Transparent"><Track x:Name="PART_Track" Minimum="{TemplateBinding Minimum}" Maximum="{TemplateBinding Maximum}" Value="{TemplateBinding Value}" IsDirectionReversed="{TemplateBinding IsDirectionReversed}" VerticalAlignment="Center"><Track.DecreaseRepeatButton><RepeatButton Command="Slider.DecreaseLarge" Focusable="False"><RepeatButton.Template><ControlTemplate TargetType="RepeatButton"><Border Background="#A5ACB0" Height="3" CornerRadius="1.5"/></ControlTemplate></RepeatButton.Template></RepeatButton></Track.DecreaseRepeatButton><Track.Thumb><Thumb Width="12" Height="12"><Thumb.Template><ControlTemplate TargetType="Thumb"><Ellipse x:Name="Knob" Fill="#DDDDDD" Stroke="#1B1D1E" StrokeThickness="1"/><ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Knob" Property="Fill" Value="White"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Thumb.Template></Thumb></Track.Thumb><Track.IncreaseRepeatButton><RepeatButton Command="Slider.IncreaseLarge" Focusable="False"><RepeatButton.Template><ControlTemplate TargetType="RepeatButton"><Border Background="#414547" Height="3" CornerRadius="1.5"/></ControlTemplate></RepeatButton.Template></RepeatButton></Track.IncreaseRepeatButton></Track></Grid><ControlTemplate.Triggers><Trigger Property="IsKeyboardFocused" Value="True"><Setter Property="Foreground" Value="White"/><Setter Property="Opacity" Value="0.8"/></Trigger><Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.4"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter></Style>
+<Style x:Key="StableGalleryScrollBar" TargetType="ScrollBar" BasedOn="{StaticResource {x:Type ScrollBar}}"><Setter Property="Width" Value="10"/><Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ScrollBar"><Grid Background="Transparent"><Track x:Name="PART_Track" Orientation="Vertical" IsDirectionReversed="True"><Track.DecreaseRepeatButton><RepeatButton Command="ScrollBar.PageUpCommand" Opacity="0" Focusable="False"/></Track.DecreaseRepeatButton><Track.Thumb><Thumb MinHeight="24"><Thumb.Template><ControlTemplate TargetType="Thumb"><Border x:Name="ThumbBody" Width="3" HorizontalAlignment="Center" Background="#66808080" CornerRadius="1.5"/><ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="ThumbBody" Property="Background" Value="#99808080"/></Trigger><Trigger Property="IsDragging" Value="True"><Setter TargetName="ThumbBody" Property="Background" Value="#BB909090"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Thumb.Template></Thumb></Track.Thumb><Track.IncreaseRepeatButton><RepeatButton Command="ScrollBar.PageDownCommand" Opacity="0" Focusable="False"/></Track.IncreaseRepeatButton></Track></Grid><ControlTemplate.Triggers><Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0"/><Setter Property="IsHitTestVisible" Value="False"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter></Style>
+<Style x:Key="GalleryTab" TargetType="Button"><Setter Property="Foreground" Value="#A5A9AB"/><Setter Property="Background" Value="Transparent"/><Setter Property="Padding" Value="10,10,10,8"/><Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button"><Border x:Name="TabSurface" Background="{TemplateBinding Background}"><Grid><ContentPresenter Margin="{TemplateBinding Padding}" HorizontalAlignment="Center"/><Border x:Name="Underline" Height="2" Background="#DDDDDD" VerticalAlignment="Bottom" Visibility="Collapsed"/></Grid></Border><ControlTemplate.Triggers><Trigger Property="Tag" Value="active"><Setter Property="Foreground" Value="#EEEEEE"/><Setter TargetName="Underline" Property="Visibility" Value="Visible"/></Trigger><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="TabSurface" Property="Background" Value="#292C2D"/></Trigger><Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="TabSurface" Property="Background" Value="#343637"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter></Style>
+<Style x:Key="GalleryFolderSelect" TargetType="ComboBox"><Setter Property="Foreground" Value="#EEEEEE"/><Setter Property="FontSize" Value="14"/><Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ComboBox"><Grid><ToggleButton Focusable="False" IsChecked="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"><ToggleButton.Template><ControlTemplate TargetType="ToggleButton"><Border x:Name="SelectSurface" Background="Transparent" CornerRadius="6"><TextBlock FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="10" Text="&#xE70D;" Foreground="#A5A9AB" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="8"/></Border><ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="SelectSurface" Property="Background" Value="#303334"/></Trigger><Trigger Property="IsChecked" Value="True"><Setter TargetName="SelectSurface" Property="Background" Value="#303334"/></Trigger></ControlTemplate.Triggers></ControlTemplate></ToggleButton.Template></ToggleButton><ContentPresenter Margin="8,7,28,7" VerticalAlignment="Center" IsHitTestVisible="False" Content="{TemplateBinding SelectionBoxItem}" ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"/><Popup x:Name="PART_Popup" IsOpen="{TemplateBinding IsDropDownOpen}" Placement="Bottom" AllowsTransparency="True" Focusable="False"><Border Background="#292929" BorderBrush="#3E3E3E" BorderThickness="1" CornerRadius="8" Padding="5" MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}"><ScrollViewer MaxHeight="260" HorizontalScrollBarVisibility="Disabled"><ItemsPresenter KeyboardNavigation.DirectionalNavigation="Contained"/></ScrollViewer></Border></Popup></Grid><ControlTemplate.Triggers><Trigger Property="IsKeyboardFocusWithin" Value="True"><Setter Property="Background" Value="#303334"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter><Setter Property="ItemContainerStyle"><Setter.Value><Style TargetType="ComboBoxItem"><Setter Property="Foreground" Value="#EEEEEE"/><Setter Property="Padding" Value="8,9"/><Setter Property="HorizontalContentAlignment" Value="Stretch"/><Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ComboBoxItem"><Border x:Name="Choice" CornerRadius="5" Background="Transparent" Padding="{TemplateBinding Padding}"><Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="24"/></Grid.ColumnDefinitions><ContentPresenter/><TextBlock x:Name="Check" Grid.Column="1" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" Text="&#xE73E;" FontSize="12" VerticalAlignment="Center" HorizontalAlignment="Right" Visibility="Hidden"/></Grid></Border><ControlTemplate.Triggers><Trigger Property="IsSelected" Value="True"><Setter TargetName="Check" Property="Visibility" Value="Visible"/></Trigger><Trigger Property="IsHighlighted" Value="True"><Setter TargetName="Choice" Property="Background" Value="#3A3A3A"/></Trigger><Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.4"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter></Style></Setter.Value></Setter></Style>
+<Geometry x:Key="MasonryLayoutIcon">M 1,1 H 7 V 10 H 1 Z M 11,1 H 17 V 6 H 11 Z M 1,13 H 7 V 17 H 1 Z M 11,9 H 17 V 17 H 11 Z</Geometry>
+<DataTemplate x:Key="GridTile">
             <Button ToolTip="{Binding Name}" AutomationProperties.Name="{Binding Name}"
                     Click="GridPhoto_Click" MouseDoubleClick="GridPhoto_MouseDoubleClick" Cursor="Hand">
                 <Button.Template>
                     <ControlTemplate TargetType="Button">
                         <Border x:Name="Tile" Margin="2" BorderThickness="2"
-                                BorderBrush="Transparent" Background="#262C36">
+                                BorderBrush="Transparent" Background="#242627">
                             <Grid ClipToBounds="True">
+                                <CheckBox Panel.ZIndex="2" IsChecked="{Binding IsSelected, Mode=OneWay}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="8" Width="24" Height="24" Click="GridSelectionCheck_Click" AutomationProperties.Name="Seleccionar imagen" ToolTip="Seleccionar imagen para acciones múltiples">
+                                    <CheckBox.Template><ControlTemplate TargetType="CheckBox"><Border Background="#DC202020" CornerRadius="3" Padding="3"><TextBlock x:Name="Mark" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" Text="&#xE739;" Foreground="#EEEEEE" FontSize="18"/></Border><ControlTemplate.Triggers><Trigger Property="IsChecked" Value="True"><Setter TargetName="Mark" Property="Text" Value="&#xE73A;"/></Trigger><Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Mark" Property="Foreground" Value="#79C8FF"/></Trigger></ControlTemplate.Triggers></ControlTemplate></CheckBox.Template>
+                                </CheckBox>
                                 <Image x:Name="Thumbnail" Stretch="UniformToFill"
                                        Loaded="GridThumbnail_Loaded" Unloaded="GridThumbnail_Unloaded"
                                        DataContextChanged="GridThumbnail_Changed" IsVisibleChanged="GridThumbnail_Changed" />
-                                <TextBlock Text="{Binding Name}" Foreground="#D3D9E3" Margin="6"
+                                <TextBlock Text="{Binding Name}" Foreground="#D4D4D4" Margin="6"
                                            HorizontalAlignment="Center" VerticalAlignment="Center"
                                            TextTrimming="CharacterEllipsis">
                                     <TextBlock.Style>
@@ -133,9 +139,230 @@
                 </Button.Template>
             </Button>
         </DataTemplate>
-    </Window.Resources>
 
-    <Grid x:Name="PhotoViewport" Background="{StaticResource ViewerBackground}" ClipToBounds="True" SizeChanged="PhotoViewport_SizeChanged">
+        <Style TargetType="MenuItem">
+            <Setter Property="Padding" Value="10,6" />
+            <Setter Property="Foreground" Value="#EDF1F7" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="MenuItem">
+                        <Grid>
+                            <Border x:Name="MenuBackground" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}" CornerRadius="4">
+                                <Grid>
+                                    <Grid.ColumnDefinitions><ColumnDefinition x:Name="MenuCheckColumn" Width="18"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                    <TextBlock x:Name="CheckMark" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" Text="&#xE73E;" Visibility="Collapsed" />
+                                    <ContentPresenter Grid.Column="1" ContentSource="Header" RecognizesAccessKey="True" />
+                                    <TextBlock x:Name="MenuShortcut" Grid.Column="2" Text="{TemplateBinding InputGestureText}" Margin="20,0,0,0" Opacity="0.65" />
+                                </Grid>
+                            </Border>
+                            <Popup x:Name="PART_Popup" Placement="Bottom" IsOpen="{Binding IsSubmenuOpen, RelativeSource={RelativeSource TemplatedParent}}" AllowsTransparency="True" Focusable="False" PopupAnimation="Fade">
+                                <Border Background="#202020" BorderBrush="#343434" BorderThickness="1" CornerRadius="8" Padding="6" MinWidth="220">
+                                    <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Cycle" />
+                                </Border>
+                            </Popup>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsHighlighted" Value="True"><Setter TargetName="MenuBackground" Property="Background" Value="#343739"/></Trigger>
+                            <Trigger Property="Role" Value="TopLevelHeader"><Setter TargetName="MenuCheckColumn" Property="Width" Value="0"/><Setter TargetName="MenuShortcut" Property="Margin" Value="0"/></Trigger>
+                            <Trigger Property="IsChecked" Value="True"><Setter TargetName="CheckMark" Property="Visibility" Value="Visible"/></Trigger>
+                            <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.4"/></Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style TargetType="ContextMenu">
+            <Setter Property="Background" Value="#202020"/><Setter Property="Foreground" Value="#EEEEEE"/>
+            <Setter Property="BorderBrush" Value="#343434"/><Setter Property="Padding" Value="6"/><Setter Property="HasDropShadow" Value="True"/>
+            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ContextMenu"><Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="{TemplateBinding Padding}"><StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Cycle"/></Border></ControlTemplate></Setter.Value></Setter>
+        </Style>
+        <Style x:Key="PanelButton" TargetType="Button" BasedOn="{StaticResource FloatingButton}">
+            <Setter Property="Width" Value="Auto"/><Setter Property="MinWidth" Value="36"/>
+            <Setter Property="Padding" Value="10,4"/><Setter Property="Margin" Value="0,0,6,0"/>
+        </Style>
+
+        <Style x:Key="CaptionButton" TargetType="Button" BasedOn="{StaticResource FloatingButton}">
+            <Setter Property="Width" Value="46"/><Setter Property="Height" Value="40"/><Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button"><Border Background="{TemplateBinding Background}"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border></ControlTemplate></Setter.Value></Setter>
+        </Style>
+        <Style x:Key="CaptionCloseButton" TargetType="Button" BasedOn="{StaticResource CaptionButton}">
+            <Style.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="#C42B1C"/><Setter Property="Foreground" Value="White"/></Trigger></Style.Triggers>
+        </Style>
+    </ResourceDictionary></Window.Resources>
+
+
+    <Border x:Name="MainWindowFrame" SizeChanged="MainWindowFrame_SizeChanged" BorderBrush="#3E3E3E" BorderThickness="0" CornerRadius="0" Background="#202324">
+    <Grid x:Name="Workspace" SizeChanged="Workspace_SizeChanged" Background="#191B1C" Margin="1">
+        <Grid.ContextMenu>
+            <ContextMenu Opened="WorkspaceContext_Opened">
+                <MenuItem Header="Modo zen" Tag="zen" IsCheckable="True" InputGestureText="Tab" Click="WorkspaceAction_Click"/>
+                <Separator/>
+                <MenuItem Header="Copiar" Tag="copy" InputGestureText="Ctrl+C" Click="WorkspaceAction_Click"/>
+                <MenuItem Header="Cerrar ventana" Tag="close" Click="WorkspaceAction_Click"/>
+                <MenuItem Header="Convertir formato…" Tag="convert" Click="WorkspaceAction_Click"/>
+                <MenuItem Header="Guardar" Tag="save" InputGestureText="Ctrl+S" Click="WorkspaceAction_Click"/>
+                <MenuItem Header="Guardar copia…" Tag="savecopy" Click="WorkspaceAction_Click"/>
+                <Separator/>
+                <MenuItem Header="Abrir imagen…" Tag="open" Click="WorkspaceAction_Click"/>
+                <MenuItem Header="Abrir carpeta…" Tag="folder" Click="WorkspaceAction_Click"/>
+                <MenuItem Header="Galería lateral" Tag="gallery" IsCheckable="True" Click="WorkspaceAction_Click"/>
+                <MenuItem Header="Herramientas de marcación" Tag="tools" IsCheckable="True" Click="WorkspaceAction_Click"/>
+                <MenuItem Header="Enviar a la Papelera" Tag="delete" Click="WorkspaceAction_Click"/>
+                <MenuItem Header="Salir de IMG Viewer" Tag="exit" Click="WorkspaceAction_Click"/>
+            </ContextMenu>
+        </Grid.ContextMenu>
+        <Grid.RowDefinitions><RowDefinition x:Name="MenuRow" Height="Auto"/><RowDefinition x:Name="ActionsRow" Height="Auto"/><RowDefinition Height="*"/><RowDefinition x:Name="StatusRow" Height="Auto"/></Grid.RowDefinitions>
+        <Grid.ColumnDefinitions><ColumnDefinition x:Name="GalleryColumn" Width="0"/><ColumnDefinition x:Name="GallerySplitterColumn" Width="0"/><ColumnDefinition Width="*"/><ColumnDefinition x:Name="ToolsSplitterColumn" Width="0"/><ColumnDefinition x:Name="ToolsColumn" Width="0"/></Grid.ColumnDefinitions>
+        <Grid x:Name="TitleBar" Grid.ColumnSpan="5" Background="#202324" MinHeight="40" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+            <DockPanel VerticalAlignment="Center">
+                <TextBlock FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" Text="&#xE8B9;" Foreground="#D4D4D4" FontSize="18" Margin="12,0,10,0" VerticalAlignment="Center" AutomationProperties.Name="IMG Viewer"/>
+                <Button Style="{StaticResource FloatingButton}" Width="28" Height="32" ToolTip="Imagen anterior" AutomationProperties.Name="Imagen anterior" Tag="previous" Click="WorkspaceAction_Click"><TextBlock Style="{StaticResource FluentIcon}" Height="Auto" Width="Auto" FontSize="12" Text="&#xE72B;"/></Button>
+                <Button Style="{StaticResource FloatingButton}" Width="28" Height="32" Margin="0,0,4,0" ToolTip="Imagen siguiente" AutomationProperties.Name="Imagen siguiente" Tag="next" Click="WorkspaceAction_Click"><TextBlock Style="{StaticResource FluentIcon}" Height="Auto" Width="Auto" FontSize="12" Text="&#xE72A;"/></Button>
+            <Button x:Name="CompactMenuButton" Style="{StaticResource FloatingButton}" Width="32" Visibility="Collapsed" Click="CompactMenu_Click" ToolTip="Menús" AutomationProperties.Name="Menús"><TextBlock Style="{StaticResource FluentIcon}" Text="&#xE700;"/></Button>
+            <Menu x:Name="MainMenu" Background="Transparent" VerticalAlignment="Center" MenuItem.SubmenuOpened="Menus_Opened">
+                <MenuItem Header="_Archivo">
+                    <MenuItem Header="Abrir imagen…" Tag="open" InputGestureText="Ctrl+O" Click="WorkspaceAction_Click"/>
+                    <MenuItem Header="Abrir carpeta…" Tag="folder" InputGestureText="Ctrl+Shift+O" Click="WorkspaceAction_Click"/>
+                    <Separator/>
+                    <MenuItem Header="Guardar" Tag="save" InputGestureText="Ctrl+S" Click="WorkspaceAction_Click"/>
+                    <MenuItem Header="Guardar copia…" Tag="savecopy" InputGestureText="Ctrl+Shift+S" Click="WorkspaceAction_Click"/>
+                    <MenuItem x:Name="CaptureMenuItem" Header="Capturar pantalla" Tag="capture" InputGestureText="Ctrl + Impr Pant" Click="WorkspaceAction_Click"/>
+                    <Separator/>
+                    <MenuItem Header="Cerrar imagen" Tag="clear" Click="WorkspaceAction_Click"/>
+                    <MenuItem Header="Ocultar / cerrar ventana" Tag="close" Click="WorkspaceAction_Click"/>
+                    <MenuItem Header="Salir de IMG Viewer" Tag="exit" Click="WorkspaceAction_Click"/>
+                </MenuItem>
+                <MenuItem Header="_Editar">
+                    <MenuItem Header="Deshacer marca" Tag="undo" InputGestureText="Ctrl+Z" Click="WorkspaceAction_Click"/>
+                    <MenuItem Header="Copiar" Tag="copy" InputGestureText="Ctrl+C" Click="WorkspaceAction_Click"/>
+                    <MenuItem Header="Renombrar…" Tag="rename" InputGestureText="F2" Click="WorkspaceAction_Click"/>
+                    <MenuItem Header="Girar a la derecha" Tag="rotate" InputGestureText="R" Click="WorkspaceAction_Click"/>
+                    <MenuItem Header="Girar a la izquierda" Tag="rotateback" InputGestureText="Shift+R" Click="WorkspaceAction_Click"/>
+                    <MenuItem Header="Activar / desactivar recorte directo" Tag="inlinecrop" Click="WorkspaceAction_Click"/><MenuItem Header="Recortar y enderezar…" Tag="crop" Click="WorkspaceAction_Click"/>
+                    <MenuItem Header="Redimensionar…" Tag="resize" Click="WorkspaceAction_Click"/>
+                    <MenuItem Header="Convertir formato…" Tag="convert" Click="WorkspaceAction_Click"/>
+                    <Separator/><MenuItem Header="Enviar a la Papelera" Tag="delete" InputGestureText="Supr" Click="WorkspaceAction_Click"/>
+                </MenuItem>
+                <MenuItem Header="_Ver">
+                    <MenuItem Header="Galería lateral" Tag="gallery" IsCheckable="True" Click="WorkspaceAction_Click"/>
+                    <MenuItem Header="Herramientas de marcación" Tag="tools" IsCheckable="True" Click="WorkspaceAction_Click"/>
+                    <MenuItem Header="Cuadrícula / imagen" Tag="grid" InputGestureText="G" Click="WorkspaceAction_Click"/>
+                    <MenuItem Header="Pantalla completa" Tag="fullscreen" Click="WorkspaceAction_Click"/>
+                    <MenuItem Header="Modo zen" Tag="zen" IsCheckable="True" InputGestureText="Tab" Click="WorkspaceAction_Click"/>
+                    <MenuItem Header="Cambiar fondo" Tag="background" InputGestureText="T" Click="WorkspaceAction_Click"/>
+                    <Separator/><MenuItem Header="Configuración…" Tag="settings" Click="WorkspaceAction_Click"/>
+                </MenuItem>
+                <MenuItem Header="A_yuda">
+                    <MenuItem Header="Atajos de teclado" Tag="shortcuts" Click="WorkspaceAction_Click"/>
+                    <MenuItem Header="Página de la app" Tag="website" Click="WorkspaceAction_Click"/>
+                    <MenuItem Header="Acerca de IMG Viewer" Tag="about" Click="WorkspaceAction_Click"/>
+                </MenuItem>
+            </Menu>
+            </DockPanel>
+            <TextBlock Grid.Column="1" Text="IMG Viewer" Foreground="#A5A9AB" HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False" Margin="8,0" TextTrimming="CharacterEllipsis"/>
+            <StackPanel Grid.Column="2" Orientation="Horizontal">
+                <Button Style="{StaticResource CaptionButton}" ToolTip="Minimizar" AutomationProperties.Name="Minimizar" Click="MinimizeButton_Click"><TextBlock Style="{StaticResource FluentIcon}" Height="Auto" Width="Auto" FontSize="10" Text="&#xE921;"/></Button>
+                <Button x:Name="MaximizeCaption" Style="{StaticResource CaptionButton}" ToolTip="Maximizar / restaurar" AutomationProperties.Name="Maximizar o restaurar" Click="MaximizeWorkspace_Click"><TextBlock x:Name="MaximizeCaptionIcon" Style="{StaticResource FluentIcon}" Height="Auto" Width="Auto" FontSize="10" Text="&#xE922;"/></Button>
+                <Button Style="{StaticResource CaptionCloseButton}" ToolTip="Cerrar · Shift + clic para salir" AutomationProperties.Name="Cerrar" Click="CloseButton_Click"><TextBlock Style="{StaticResource FluentIcon}" Height="Auto" Width="Auto" FontSize="10" Text="&#xE8BB;"/></Button>
+            </StackPanel>
+        </Grid>
+        <Grid x:Name="ActionBar" Grid.Row="1" Grid.ColumnSpan="5" Background="#202324">
+            <Grid x:Name="DesktopActions">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+            <StackPanel Orientation="Horizontal" Margin="6,4,0,4" VerticalAlignment="Top">
+                <Button Style="{StaticResource FloatingButton}" Margin="0,0,6,0" ToolTip="Galería lateral" AutomationProperties.Name="Mostrar u ocultar galería" Click="GalleryToggle_Click"><TextBlock Style="{StaticResource FluentIcon}" Text="&#xE90C;"/></Button>
+                <Button Style="{StaticResource FloatingButton}" ToolTip="Abrir imagen · Ctrl + O" AutomationProperties.Name="Abrir imagen" Tag="open" Click="WorkspaceAction_Click"><TextBlock Style="{StaticResource FluentIcon}" Text="&#xE8E5;"/></Button>
+            </StackPanel>
+        <Grid x:Name="ToolbarArea" Grid.Column="1" HorizontalAlignment="Left" VerticalAlignment="Center">
+<WrapPanel x:Name="FloatingControls" Orientation="Horizontal"
+                       HorizontalAlignment="Left" Margin="4,4,4,4">
+<StackPanel x:Name="GridActions" Orientation="Horizontal"
+                            Margin="0,0,8,0" Visibility="Collapsed">
+                    
+                </StackPanel>
+                <Button x:Name="ViewModeButton" Style="{StaticResource FloatingButton}" Margin="0,0,8,0"
+                        ToolTip="Abrir cuadrícula · G" AutomationProperties.Name="Abrir cuadrícula"
+                        Click="FolderGridButton_Click">
+                    <TextBlock x:Name="ViewModeIcon" Style="{StaticResource FluentIcon}" Text="&#xF0E2;"/>
+                </Button>
+                <Button x:Name="GridLayoutButton" Style="{StaticResource FloatingButton}" Margin="0,0,8,0"
+                        Visibility="{Binding Visibility, ElementName=FolderGrid}" ToolTip="Cambiar a cuadrado"
+                        AutomationProperties.Name="Cambiar a cuadrado" Click="GridLayoutButton_Click">
+                    <TextBlock x:Name="GridLayoutIcon" Style="{StaticResource FluentIcon}" Text="&#xF0E2;"/>
+                </Button>
+                <Button x:Name="SlideShowButton" Style="{StaticResource FloatingButton}" Margin="0,0,8,0"
+                        Visibility="Collapsed" ToolTip="Reproducir presentación"
+                        AutomationProperties.Name="Reproducir presentación" Click="SlideShowButton_Click">
+                    <TextBlock x:Name="SlideShowIcon" Style="{StaticResource FluentIcon}" Text="&#xE768;"/>
+                </Button>
+<Button x:Name="CropButton" Style="{StaticResource FloatingButton}" Margin="0,0,8,0"
+                        Visibility="Collapsed" ToolTip="Activar / desactivar recorte directo · Se aplica al soltar"
+                        AutomationProperties.Name="Activar o desactivar recorte directo" Click="CropButton_Click">
+                    <TextBlock Style="{StaticResource FluentIcon}" Text="&#xE7A8;"/>
+                </Button>
+                
+                <Button Style="{StaticResource FloatingButton}" ToolTip="Cambiar fondo: sólido / cuadrícula · T" AutomationProperties.Name="Cambiar fondo" Tag="background" Click="WorkspaceAction_Click"><TextBlock Style="{StaticResource FluentIcon}" Text="&#xE739;"/></Button>
+                <Button Style="{StaticResource FloatingButton}" ToolTip="Pantalla completa" AutomationProperties.Name="Pantalla completa" Tag="fullscreen" Click="WorkspaceAction_Click"><TextBlock Style="{StaticResource FluentIcon}" Text="&#xE740;"/></Button>
+                <Button Style="{StaticResource FloatingButton}" ToolTip="Modo zen · Tab" AutomationProperties.Name="Modo zen" Tag="zen" Click="WorkspaceAction_Click"><TextBlock Style="{StaticResource FluentIcon}" Text="&#xE890;"/></Button>
+                <Button Style="{StaticResource FloatingButton}" ToolTip="Todas las acciones y atajos" AutomationProperties.Name="Todas las acciones y atajos" Tag="shortcuts" Click="WorkspaceAction_Click"><TextBlock Style="{StaticResource FluentIcon}" Text="&#xE712;"/></Button>
+                <CheckBox x:Name="SelectAllImages" Content="Todas" Style="{StaticResource FluentSelectionCheck}" Foreground="#D4D4D4" VerticalAlignment="Center" Margin="6,0" IsThreeState="True" Visibility="{Binding Visibility, ElementName=FolderGrid}" Click="SelectAllImages_Click" ToolTip="Seleccionar todas las imágenes · Ctrl + A" AutomationProperties.Name="Seleccionar todas las imágenes"/>
+</WrapPanel>
+        </Grid>
+
+            <WrapPanel Grid.Column="2" VerticalAlignment="Top" Margin="4,4,6,4">
+                <Button Style="{StaticResource FloatingButton}" x:Name="CaptureToolbarButton" ToolTip="Capturar pantalla · Ctrl + Impr Pant" AutomationProperties.Name="Capturar pantalla" Tag="capture" Click="WorkspaceAction_Click"><TextBlock Style="{StaticResource FluentIcon}" Text="&#xE722;"/></Button>
+                <Button x:Name="CopyPhotoButton" Style="{StaticResource FloatingButton}" ToolTip="Copiar · Ctrl + C" AutomationProperties.Name="Copiar" Tag="copy" Click="WorkspaceAction_Click"><TextBlock Style="{StaticResource FluentIcon}" Text="&#xE8C8;"/></Button>
+                <Button x:Name="RestorePhotoButton" Style="{StaticResource FloatingButton}" ToolTipService.ShowDuration="5000" AutomationProperties.Name="Deshacer" MouseEnter="RestorePhotoButton_MouseEnter" MouseLeave="RestorePhotoButton_MouseLeave" Click="RestorePhotoButton_Click">
+                    <Button.ToolTip><ToolTip Padding="10,6" Content="Deshacer · Ctrl + Z"/></Button.ToolTip>
+                    <TextBlock Style="{StaticResource FluentIcon}" Text="&#xE7A7;"/>
+                </Button>
+                <Button x:Name="SavePendingButton" Style="{StaticResource FloatingButton}" ToolTip="Guardar · Ctrl + S" AutomationProperties.Name="Guardar imagen" Click="SavePendingButton_Click"><TextBlock Style="{StaticResource FluentIcon}" Text="&#xE74E;"/></Button>
+
+                <Button x:Name="DeletePhotoButton" Style="{StaticResource CloseButton}" ToolTip="Enviar a la Papelera · Supr" AutomationProperties.Name="Enviar a la Papelera" Tag="delete" Click="WorkspaceAction_Click"><TextBlock Style="{StaticResource FluentIcon}" Text="&#xE74D;"/></Button>
+                <Button Style="{StaticResource FloatingButton}" ToolTip="Herramientas de marcación" AutomationProperties.Name="Mostrar u ocultar herramientas de marcación" Click="ToolsToggle_Click"><TextBlock Style="{StaticResource FluentIcon}" Text="&#xE70F;"/></Button>
+            </WrapPanel>
+            </Grid>
+            <StackPanel x:Name="CompactActions" Visibility="Collapsed" Orientation="Horizontal" Margin="6,4">
+                <Button Style="{StaticResource FloatingButton}" Click="GalleryToggle_Click" ToolTip="Galería" AutomationProperties.Name="Galería"><TextBlock Style="{StaticResource FluentIcon}" Text="&#xE90C;"/></Button>
+                <Button Style="{StaticResource FloatingButton}" Click="FolderGridButton_Click" ToolTip="Cuadrícula / imagen · G" AutomationProperties.Name="Cambiar vista"><TextBlock Style="{StaticResource FluentIcon}" Text="&#xF0E2;"/></Button>
+                <Button Style="{StaticResource FloatingButton}" Tag="capture" Click="WorkspaceAction_Click" ToolTip="{Binding ToolTip, ElementName=CaptureToolbarButton}" AutomationProperties.Name="Capturar pantalla"><TextBlock Style="{StaticResource FluentIcon}" Text="&#xE722;"/></Button>
+                <Button Style="{StaticResource FloatingButton}" IsEnabled="{Binding IsEnabled, ElementName=CopyPhotoButton}" Tag="copy" Click="WorkspaceAction_Click" ToolTip="Copiar" AutomationProperties.Name="Copiar"><TextBlock Style="{StaticResource FluentIcon}" Text="&#xE8C8;"/></Button>
+                <Button Style="{StaticResource FloatingButton}" IsEnabled="{Binding IsEnabled, ElementName=RestorePhotoButton}" Tag="undo" Click="WorkspaceAction_Click" ToolTip="Deshacer" AutomationProperties.Name="Deshacer"><TextBlock Style="{StaticResource FluentIcon}" Text="&#xE7A7;"/></Button>
+                <Button Style="{StaticResource FloatingButton}" Click="ToolsToggle_Click" ToolTip="Marcación" AutomationProperties.Name="Marcación"><TextBlock Style="{StaticResource FluentIcon}" Text="&#xE70F;"/></Button>
+                <Button Style="{StaticResource FloatingButton}" Tag="shortcuts" Click="WorkspaceAction_Click" ToolTip="Más acciones" AutomationProperties.Name="Más acciones"><TextBlock Style="{StaticResource FluentIcon}" Text="&#xE712;"/></Button>
+            </StackPanel>
+        </Grid>
+        <Border x:Name="GalleryPanel" Grid.Row="2" Background="#1B1D1E" ClipToBounds="True">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="8,0,8,0"><Button x:Name="GalleryFolderTab" Content="Carpeta" Style="{StaticResource GalleryTab}" Tag="active" Click="GalleryMode_Click"/><Button x:Name="GalleryCapturesTab" Content="Capturas" Style="{StaticResource GalleryTab}" Click="GalleryMode_Click"/></StackPanel>
+                <StackPanel x:Name="GalleryFolderControls" DockPanel.Dock="Top" Margin="12,8,12,12">
+                    <DockPanel Margin="0,0,0,8"><Button DockPanel.Dock="Right" Style="{StaticResource FloatingButton}" Width="28" Height="32" ToolTip="Añadir carpeta a la galería" AutomationProperties.Name="Añadir carpeta a la galería" Click="AddGalleryFolder_Click"><TextBlock Style="{StaticResource FluentIcon}" Text="&#xE710;"/></Button><ComboBox x:Name="GalleryFolderPicker" Style="{StaticResource GalleryFolderSelect}" DisplayMemberPath="Name" SelectedValuePath="Path" SelectionChanged="GalleryFolderPicker_SelectionChanged" AutomationProperties.Name="Carpeta de la galería" ToolTip="{Binding SelectedValue, RelativeSource={RelativeSource Self}}"/></DockPanel>
+                    <TextBlock x:Name="GalleryFolder" Visibility="Collapsed"/>
+                    <Grid><TextBlock FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" Text="&#xE721;" Foreground="#AAAAAA" Margin="12,0,0,0" VerticalAlignment="Center" Panel.ZIndex="1" IsHitTestVisible="False"/><TextBox x:Name="GallerySearch" Style="{StaticResource GallerySearchBox}" Height="36" Background="#2B2D2D" Foreground="#DDDDDD" CaretBrush="White" BorderBrush="#343636" BorderThickness="1" Padding="32,8,10,8" TextChanged="GallerySearch_TextChanged" AutomationProperties.Name="Buscar en carpeta y subcarpetas"/>
+                        <TextBlock Text="Buscar en esta carpeta…" Foreground="#AAAAAA" Margin="32,0,10,0" VerticalAlignment="Center" IsHitTestVisible="False" FontSize="12"><TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding Text, ElementName=GallerySearch}" Value=""><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></TextBlock.Style></TextBlock>
+                    </Grid>
+                </StackPanel>
+                <TextBlock x:Name="GalleryMessage" DockPanel.Dock="Bottom" Foreground="#A5A9AB" TextWrapping="Wrap" Margin="12"/>
+                <Grid>
+                <DockPanel x:Name="CaptureHistoryPanel" Visibility="Collapsed">
+                    <Button DockPanel.Dock="Top" Content="Limpiar todo" Click="ClearCaptureHistory_Click" Margin="10" ToolTip="Descartar el historial de esta sesión sin guardar ni eliminar archivos"/>
+                    <ListBox x:Name="CaptureHistoryList" ScrollViewer.CanContentScroll="True" VirtualizingPanel.ScrollUnit="Pixel" PreviewMouseWheel="Gallery_PreviewMouseWheel" PreviewMouseLeftButtonDown="GalleryDrag_MouseDown" PreviewMouseMove="GalleryDrag_MouseMove" PreviewMouseLeftButtonUp="GalleryDrag_MouseUp" LostMouseCapture="GalleryDrag_LostMouseCapture" Background="Transparent" BorderThickness="0" HorizontalContentAlignment="Stretch" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Visible" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling" AutomationProperties.Name="Capturas de esta sesión"><ListBox.Resources><Style TargetType="ScrollBar" BasedOn="{StaticResource StableGalleryScrollBar}"/></ListBox.Resources><ListBox.ItemTemplate><DataTemplate><Grid Margin="2,6"><Button Click="CaptureHistory_Click" Background="Transparent" BorderThickness="0" Padding="0" HorizontalContentAlignment="Stretch"><Grid Background="#26292B" SizeChanged="GalleryCard_SizeChanged" ToolTip="{Binding Name}"><Image Source="{Binding Preview}" Stretch="UniformToFill" IsHitTestVisible="False"/><Border Height="64" VerticalAlignment="Bottom" IsHitTestVisible="False"><Border.Background><LinearGradientBrush StartPoint="0,0" EndPoint="0,1"><GradientStop Color="#00000000" Offset="0"/><GradientStop Color="#99000000" Offset="0.65"/><GradientStop Color="#DC000000" Offset="1"/></LinearGradientBrush></Border.Background></Border><TextBlock Text="{Binding Name}" Foreground="White" FontWeight="SemiBold" FontSize="12" VerticalAlignment="Bottom" Margin="10,0,10,10" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" IsHitTestVisible="False"/></Grid></Button><Button HorizontalAlignment="Right" VerticalAlignment="Top" Style="{StaticResource FloatingButton}" Width="26" Height="26" Click="RemoveCapture_Click" ToolTip="Quitar del historial sin guardar" AutomationProperties.Name="Quitar captura"><TextBlock Style="{StaticResource FluentIcon}" Text="&#xE711;"/></Button></Grid></DataTemplate></ListBox.ItemTemplate></ListBox>
+                </DockPanel>
+                <ListBox x:Name="GalleryList" ScrollViewer.CanContentScroll="True" VirtualizingPanel.ScrollUnit="Pixel" PreviewMouseWheel="Gallery_PreviewMouseWheel" PreviewMouseLeftButtonDown="GalleryDrag_MouseDown" PreviewMouseMove="GalleryDrag_MouseMove" PreviewMouseLeftButtonUp="GalleryDrag_MouseUp" LostMouseCapture="GalleryDrag_LostMouseCapture" Background="Transparent" BorderThickness="0" Foreground="White" SelectionChanged="GalleryList_SelectionChanged" HorizontalContentAlignment="Stretch" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Visible" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling" AutomationProperties.Name="Galería de la carpeta actual"><ListBox.Resources><Style TargetType="ScrollBar" BasedOn="{StaticResource StableGalleryScrollBar}"/></ListBox.Resources>
+                    <ListBox.ItemContainerStyle><Style TargetType="ListBoxItem"><Setter Property="Padding" Value="2"/><Setter Property="Margin" Value="6,2,6,2"/><Setter Property="HorizontalContentAlignment" Value="Stretch"/><Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ListBoxItem"><Border x:Name="Tile" BorderBrush="Transparent" BorderThickness="2" CornerRadius="10" Padding="{TemplateBinding Padding}"><ContentPresenter HorizontalAlignment="Stretch"/></Border><ControlTemplate.Triggers><Trigger Property="IsSelected" Value="True"><Setter TargetName="Tile" Property="BorderBrush" Value="#42A5FF"/></Trigger><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Tile" Property="Background" Value="#303334"/></Trigger><Trigger Property="IsKeyboardFocusWithin" Value="True"><Setter TargetName="Tile" Property="BorderBrush" Value="#D4D4D4"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter></Style></ListBox.ItemContainerStyle>
+                    <ListBox.ItemTemplate><DataTemplate><Grid Background="#26292B" SizeChanged="GalleryCard_SizeChanged" ToolTip="{Binding Name}"><Image Loaded="GalleryThumbnail_Loaded" Unloaded="GalleryThumbnail_Unloaded" DataContextChanged="GalleryThumbnail_Changed" Stretch="UniformToFill" IsHitTestVisible="False"/><Border Height="64" VerticalAlignment="Bottom" IsHitTestVisible="False"><Border.Background><LinearGradientBrush StartPoint="0,0" EndPoint="0,1"><GradientStop Color="#00000000" Offset="0"/><GradientStop Color="#99000000" Offset="0.65"/><GradientStop Color="#DC000000" Offset="1"/></LinearGradientBrush></Border.Background></Border><Grid VerticalAlignment="Bottom" Margin="10,0,10,10"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><Grid><TextBlock Text="{Binding DisplayName}" Foreground="White" FontWeight="SemiBold" FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/><TextBox x:Name="GalleryRenameEditor" Visibility="Collapsed" VerticalAlignment="Bottom" MinHeight="24" Padding="3,2" FontSize="12" Background="#25282A" Foreground="White" BorderBrush="#8CBCE8" BorderThickness="1" IsHitTestVisible="True" LostKeyboardFocus="GalleryRename_LostKeyboardFocus" AutomationProperties.Name="Renombrar imagen"/><Border x:Name="GalleryRenameError" Visibility="Collapsed" Background="#EC302426" VerticalAlignment="Bottom" Margin="0,0,0,30" Padding="5" IsHitTestVisible="False"><TextBlock x:Name="GalleryRenameErrorText" Foreground="#FFCDD2" TextWrapping="Wrap" FontSize="11" AutomationProperties.LiveSetting="Polite"/></Border></Grid><Border Grid.Column="1" Margin="6,0,0,0" Background="#70000000" CornerRadius="3" Padding="4,2"><TextBlock Text="{Binding Format}" Foreground="#EEEEEE" FontWeight="SemiBold" FontSize="10"/></Border></Grid></Grid></DataTemplate></ListBox.ItemTemplate>
+                </ListBox>
+                </Grid>
+            </DockPanel>
+        </Border>
+        <GridSplitter Grid.Row="2" Grid.Column="1" HorizontalAlignment="Stretch" Background="#303436" ResizeDirection="Columns" ResizeBehavior="PreviousAndNext" DragCompleted="Sidebar_DragCompleted"/>
+        <GridSplitter Grid.Row="2" Grid.Column="3" HorizontalAlignment="Stretch" Background="#303436" ResizeDirection="Columns" ResizeBehavior="PreviousAndNext" DragCompleted="Sidebar_DragCompleted"/>
+        <Border x:Name="ToolsPanel" Grid.Row="2" Grid.Column="4" Background="#1B1D1E" ClipToBounds="True">
+<ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"><StackPanel Margin="12"><TextBlock Text="Marcación" Foreground="#EEEEEE" FontWeight="SemiBold" Margin="6,4,0,10"/><RadioButton x:Name="MoveTool" Style="{StaticResource MarkerToolRow}" GroupName="MarkerTool" IsChecked="True" Checked="MarkerTool_Checked" Tag="move" ToolTip="Mover ventana · V" AutomationProperties.Name="Mover ventana"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="26"/><ColumnDefinition/></Grid.ColumnDefinitions><TextBlock Style="{StaticResource FluentIcon}" Foreground="#D4D4D4" Text="&#xE7C2;" FontSize="16"/><TextBlock Grid.Column="1" Text="Mover ventana" VerticalAlignment="Center" Margin="0,-2,0,0"/></Grid></RadioButton><RadioButton x:Name="ArrowTool" Style="{StaticResource MarkerToolRow}" GroupName="MarkerTool"  Checked="MarkerTool_Checked" Tag="arrow" ToolTip="Flecha · Alt + arrastrar&#10;Flecha curva · Ctrl + Shift + arrastrar" AutomationProperties.Name="Flecha"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="26"/><ColumnDefinition/></Grid.ColumnDefinitions><TextBlock Style="{StaticResource FluentIcon}" Foreground="#D4D4D4" Text="&#xE72A;" FontSize="16"/><TextBlock Grid.Column="1" Text="Flecha" VerticalAlignment="Center" Margin="0,-2,0,0"/></Grid></RadioButton><RadioButton x:Name="RectangleTool" Style="{StaticResource MarkerToolRow}" GroupName="MarkerTool"  Checked="MarkerTool_Checked" Tag="rectangle" ToolTip="Rectángulo · Shift + arrastrar" AutomationProperties.Name="Rectángulo"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="26"/><ColumnDefinition/></Grid.ColumnDefinitions><TextBlock Style="{StaticResource FluentIcon}" Foreground="#D4D4D4" Text="&#xE739;" FontSize="16"/><TextBlock Grid.Column="1" Text="Rectángulo" VerticalAlignment="Center" Margin="0,-2,0,0"/></Grid></RadioButton><RadioButton x:Name="FreehandTool" Style="{StaticResource MarkerToolRow}" GroupName="MarkerTool"  Checked="MarkerTool_Checked" Tag="freehand" ToolTip="Mano alzada · Alt + Shift + arrastrar" AutomationProperties.Name="Mano alzada"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="26"/><ColumnDefinition/></Grid.ColumnDefinitions><TextBlock Style="{StaticResource FluentIcon}" Foreground="#D4D4D4" Text="&#xED63;" FontSize="16"/><TextBlock Grid.Column="1" Text="Mano alzada" VerticalAlignment="Center" Margin="0,-2,0,0"/></Grid></RadioButton><RadioButton x:Name="TextTool" Style="{StaticResource MarkerToolRow}" GroupName="MarkerTool"  Checked="MarkerTool_Checked" Tag="text" ToolTip="Texto · Ctrl + T" AutomationProperties.Name="Texto"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="26"/><ColumnDefinition/></Grid.ColumnDefinitions><TextBlock Style="{StaticResource FluentIcon}" Foreground="#D4D4D4" Text="&#xE8D2;" FontSize="16"/><TextBlock Grid.Column="1" Text="Texto" VerticalAlignment="Center" Margin="0,-2,0,0"/></Grid></RadioButton><RadioButton x:Name="BlurTool" Style="{StaticResource MarkerToolRow}" GroupName="MarkerTool"  Checked="MarkerTool_Checked" Tag="blur" ToolTip="Blur · Ctrl + B" AutomationProperties.Name="Blur"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="26"/><ColumnDefinition/></Grid.ColumnDefinitions><TextBlock Style="{StaticResource FluentIcon}" Foreground="#D4D4D4" Text="&#xE7B3;" FontSize="16"/><TextBlock Grid.Column="1" Text="Blur" VerticalAlignment="Center" Margin="0,-2,0,0"/></Grid></RadioButton><StackPanel x:Name="MarkerProperties"><StackPanel.Style><Style TargetType="StackPanel"><Setter Property="Visibility" Value="Visible"/><Style.Triggers><DataTrigger Binding="{Binding IsChecked, ElementName=MoveTool}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></StackPanel.Style><Separator Margin="0,14,0,0" Background="#343637"/><StackPanel x:Name="ArrowProperties" Margin="0,12,0,0"><StackPanel.Style><Style TargetType="StackPanel"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding IsChecked, ElementName=ArrowTool}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></StackPanel.Style><TextBlock Text="Forma" Foreground="#A5A9AB" Margin="0,0,0,4"/><ComboBox x:Name="ArrowFormPicker" Style="{StaticResource GalleryFolderSelect}" SelectedIndex="1" Margin="0,0,0,8" AutomationProperties.Name="Forma"><ComboBoxItem Content="Clásica"/><ComboBoxItem Content="Estilizada"/><ComboBoxItem Content="Curva"/></ComboBox></StackPanel><StackPanel x:Name="FreehandProperties" Margin="0,12,0,0"><StackPanel.Style><Style TargetType="StackPanel"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding IsChecked, ElementName=FreehandTool}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></StackPanel.Style><TextBlock Text="Trazo" Foreground="#A5A9AB" Margin="0,0,0,4"/><ComboBox x:Name="FreehandFinishPicker" Style="{StaticResource GalleryFolderSelect}" SelectedIndex="0" Margin="0,0,0,8" AutomationProperties.Name="Trazo"><ComboBoxItem Content="Uniforme"/><ComboBoxItem Content="Brush"/></ComboBox><DockPanel Margin="0,8,0,2"><TextBlock DockPanel.Dock="Right" Text="{Binding Value, ElementName=FreehandStabilizerSlider, StringFormat={}{0:0} px}" Foreground="#D4D4D4"/><TextBlock Text="Estabilizador" Foreground="#A5A9AB"/></DockPanel><Slider x:Name="FreehandStabilizerSlider" Style="{StaticResource MarkerSlider}" Minimum="0" Maximum="30" Value="12" TickFrequency="1" IsSnapToTickEnabled="True" Margin="0,2,0,8" AutomationProperties.Name="Estabilizador" ToolTip="Suaviza el movimiento del mouse. 0 desactiva el estabilizador."/></StackPanel><StackPanel x:Name="TextProperties" Margin="0,12,0,0"><StackPanel.Style><Style TargetType="StackPanel"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding IsChecked, ElementName=TextTool}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></StackPanel.Style><DockPanel Margin="0,8,0,2"><TextBlock DockPanel.Dock="Right" Text="{Binding Value, ElementName=TextSizeSlider, StringFormat={}{0:0} px}" Foreground="#D4D4D4"/><TextBlock Text="Tamaño de texto" Foreground="#A5A9AB"/></DockPanel><Slider x:Name="TextSizeSlider" Style="{StaticResource MarkerSlider}" Minimum="12" Maximum="120" Value="32" TickFrequency="1" IsSnapToTickEnabled="True" Margin="0,2,0,8" AutomationProperties.Name="Tamaño de texto" ToolTip="Clic para ancho libre; arrastra para ancho fijo. Ctrl + Enter confirma; Esc cancela."/></StackPanel><StackPanel x:Name="BlurProperties" Margin="0,12,0,0"><StackPanel.Style><Style TargetType="StackPanel"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding IsChecked, ElementName=BlurTool}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></StackPanel.Style><TextBlock Text="Arrastra sobre el área que quieres desenfocar." Foreground="#A5A9AB" TextWrapping="Wrap" Margin="0,0,0,8"/></StackPanel><StackPanel><StackPanel.Style><Style TargetType="StackPanel"><Style.Triggers><DataTrigger Binding="{Binding IsChecked, ElementName=BlurTool}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></StackPanel.Style><StackPanel Margin="0,12,0,0"><StackPanel.Style><Style TargetType="StackPanel"><Style.Triggers><DataTrigger Binding="{Binding IsChecked, ElementName=TextTool}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></StackPanel.Style><TextBlock Text="Estilo" Foreground="#A5A9AB" Margin="0,0,0,4"/><ComboBox x:Name="MarkerStylePicker" Style="{StaticResource GalleryFolderSelect}" SelectedIndex="0" Margin="0,0,0,8" AutomationProperties.Name="Estilo"><ComboBoxItem Content="Limpio"/><ComboBoxItem Content="Contraste"/></ComboBox></StackPanel><TextBlock Text="Color" Foreground="#A5A9AB" Margin="0,12,0,8"/><WrapPanel x:Name="MarkerColors"><Button Background="#F24F57" Width="28" Height="28" Padding="0" BorderThickness="0" Margin="0,0,8,4" Tag="#F24F57" Click="MarkerColor_Click" ToolTip="Rojo suave" AutomationProperties.Name="Color Rojo suave"><Button.Template><ControlTemplate TargetType="Button"><Border x:Name="Swatch" Background="{TemplateBinding Background}" CornerRadius="6" BorderBrush="#B0B0B0" BorderThickness="1"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border><ControlTemplate.Triggers><Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Swatch" Property="BorderThickness" Value="2"/></Trigger><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Swatch" Property="Opacity" Value="0.8"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Button.Template></Button><Button Background="#FACC15" Width="28" Height="28" Padding="0" BorderThickness="0" Margin="0,0,8,4" Tag="#FACC15" Click="MarkerColor_Click" ToolTip="Amarillo" AutomationProperties.Name="Color Amarillo"><Button.Template><ControlTemplate TargetType="Button"><Border x:Name="Swatch" Background="{TemplateBinding Background}" CornerRadius="6" BorderBrush="#B0B0B0" BorderThickness="1"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border><ControlTemplate.Triggers><Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Swatch" Property="BorderThickness" Value="2"/></Trigger><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Swatch" Property="Opacity" Value="0.8"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Button.Template></Button><Button Background="#38BDF8" Width="28" Height="28" Padding="0" BorderThickness="0" Margin="0,0,8,4" Tag="#38BDF8" Click="MarkerColor_Click" ToolTip="Azul" AutomationProperties.Name="Color Azul"><Button.Template><ControlTemplate TargetType="Button"><Border x:Name="Swatch" Background="{TemplateBinding Background}" CornerRadius="6" BorderBrush="#B0B0B0" BorderThickness="1"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border><ControlTemplate.Triggers><Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Swatch" Property="BorderThickness" Value="2"/></Trigger><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Swatch" Property="Opacity" Value="0.8"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Button.Template></Button><Button Background="#FFFFFF" Width="28" Height="28" Padding="0" BorderThickness="0" Margin="0,0,8,4" Tag="#FFFFFF" Click="MarkerColor_Click" ToolTip="Blanco" AutomationProperties.Name="Color Blanco"><Button.Template><ControlTemplate TargetType="Button"><Border x:Name="Swatch" Background="{TemplateBinding Background}" CornerRadius="6" BorderBrush="#B0B0B0" BorderThickness="1"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border><ControlTemplate.Triggers><Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Swatch" Property="BorderThickness" Value="2"/></Trigger><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Swatch" Property="Opacity" Value="0.8"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Button.Template></Button></WrapPanel><TextBlock x:Name="MarkerColorLabel" Visibility="Collapsed"/><StackPanel Margin="0,8,0,0"><StackPanel.Style><Style TargetType="StackPanel"><Style.Triggers><DataTrigger Binding="{Binding IsChecked, ElementName=TextTool}" Value="True"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></StackPanel.Style><DockPanel Margin="0,8,0,2"><TextBlock DockPanel.Dock="Right" Text="{Binding Value, ElementName=MarkerWidthSlider, StringFormat={}{0:0}%}" Foreground="#D4D4D4"/><TextBlock Text="Grosor" Foreground="#A5A9AB"/></DockPanel><Slider x:Name="MarkerWidthSlider" Style="{StaticResource MarkerSlider}" Minimum="0" Maximum="100" Value="30" TickFrequency="1" IsSnapToTickEnabled="True" Margin="0,2,0,8" AutomationProperties.Name="Grosor" ToolTip="Grosor"/></StackPanel></StackPanel></StackPanel></StackPanel></ScrollViewer>
+        </Border>
+    <Grid x:Name="PhotoViewport" Grid.Row="2" Grid.Column="2" Background="{StaticResource ViewerBackground}" ClipToBounds="True" SizeChanged="PhotoViewport_SizeChanged">
         <Image x:Name="Photo" Stretch="Uniform" RenderTransformOrigin="0.5,0.5"
                HorizontalAlignment="Center" VerticalAlignment="Center"
                MouseLeftButtonDown="Photo_MouseLeftButtonDown" SizeChanged="Photo_SizeChanged">
@@ -150,6 +377,10 @@
                HorizontalAlignment="Center" VerticalAlignment="Center"
                RenderTransformOrigin="{Binding RenderTransformOrigin, ElementName=Photo}"
                RenderTransform="{Binding RenderTransform, ElementName=Photo}" />
+        <Canvas x:Name="InlineTextCanvas" Width="{Binding ActualWidth, ElementName=Photo}" Height="{Binding ActualHeight, ElementName=Photo}" HorizontalAlignment="Center" VerticalAlignment="Center" RenderTransformOrigin="0.5,0.5" RenderTransform="{Binding RenderTransform, ElementName=Photo}"/>
+        <Canvas x:Name="InlineCropCanvas" Background="{x:Null}" Visibility="Collapsed" Panel.ZIndex="5" ClipToBounds="False"/>
+        <Canvas IsHitTestVisible="True" Background="{x:Null}"><Thumb x:Name="CurveHandle" Width="14" Height="14" Visibility="Collapsed" Cursor="SizeAll" DragDelta="CurveHandle_DragDelta" ToolTip="Ajustar la curvatura" AutomationProperties.Name="Ajustar la curvatura de la última flecha"><Thumb.Template><ControlTemplate TargetType="Thumb"><Ellipse Fill="#FFFFFF" Stroke="#168EEA" StrokeThickness="2"/></ControlTemplate></Thumb.Template></Thumb></Canvas>
+
         <Canvas IsHitTestVisible="False">
             <Border x:Name="CaptureFrame" Visibility="Collapsed" Opacity="0.85"
                     BorderThickness="2" CornerRadius="3" ClipToBounds="True" SnapsToDevicePixels="True">
@@ -172,19 +403,17 @@
         <StackPanel x:Name="EmptyState" HorizontalAlignment="Center" VerticalAlignment="Center">
             <TextBlock Text="Arrastra una imagen aquí" Foreground="White"
                        HorizontalAlignment="Center" FontSize="24" />
-            <TextBlock Text="JPG, PNG o BMP" Foreground="#CED5E2"
+            <TextBlock Text="JPG, PNG, BMP, SVG o WebP" Foreground="#CED5E2"
                        HorizontalAlignment="Center" Margin="0,8,0,0" />
         </StackPanel>
 
-        <Grid x:Name="FolderGrid" Visibility="Collapsed" Background="#141820">
+        <Grid x:Name="FolderGrid" Visibility="Collapsed" Background="#191B1C">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
-            <Border x:Name="GridDragHeader" Background="Transparent" MinHeight="54" Padding="0,12,0,6">
-                <Border Height="{Binding ActualHeight, ElementName=FloatingControls}" IsHitTestVisible="False" />
-            </Border>
+            <Border x:Name="GridDragHeader" Height="0" />
             <Grid x:Name="GridScrollArea" Grid.Row="1" Margin="10,0" Background="Transparent"
                   PreviewMouseLeftButtonDown="GridScrollArea_MouseDown" PreviewMouseMove="GridScrollArea_MouseMove"
                   PreviewMouseLeftButtonUp="GridScrollArea_MouseUp" LostMouseCapture="GridScrollArea_LostMouseCapture">
@@ -209,7 +438,7 @@
                             <Setter Property="Template">
                                 <Setter.Value>
                                     <ControlTemplate TargetType="ListBoxItem">
-                                        <ContentPresenter />
+                                        <ContentPresenter ContentSource="Content" HorizontalAlignment="Stretch" />
                                     </ControlTemplate>
                                 </Setter.Value>
                             </Setter>
@@ -246,190 +475,30 @@
             <TextBlock x:Name="GridMessage" Grid.Row="1" Foreground="White" TextWrapping="Wrap"
                        HorizontalAlignment="Center" VerticalAlignment="Center" Margin="12"
                        IsHitTestVisible="False" AutomationProperties.LiveSetting="Polite" />
-            <Border Grid.Row="2" Padding="12,5" Background="#202632"
-                    BorderBrush="#454C58" BorderThickness="0,1,0,0">
-                <StackPanel VerticalAlignment="Center">
-                    <TextBlock x:Name="GridFolderPath" Foreground="#D3D9E3"
-                               TextTrimming="CharacterEllipsis" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}" />
-                    <TextBlock x:Name="GridSelectionInfo" Foreground="White" TextWrapping="Wrap"
-                               TextTrimming="CharacterEllipsis" MaxHeight="64"
-                               Visibility="{Binding Visibility, ElementName=GridActions}"
-                               AutomationProperties.LiveSetting="Polite" />
-                    <TextBlock x:Name="GridOperationStatus" Foreground="White" TextWrapping="Wrap"
-                               Visibility="Collapsed" AutomationProperties.LiveSetting="Polite" />
-                </StackPanel>
-            </Border>
+
         </Grid>
-        <DockPanel x:Name="ImageFooter" VerticalAlignment="Bottom">
-            <Border x:Name="MetadataFooter" DockPanel.Dock="Bottom"
-                    Background="#F2202632" BorderBrush="#686868" BorderThickness="0,1,0,0"
-                    Padding="12,8">
-                <TextBlock x:Name="ImageInfo" Foreground="White" TextWrapping="Wrap"
-                           AutomationProperties.LiveSetting="Polite" />
-            </Border>
-            <Grid>
-                <TextBlock x:Name="StatusText" VerticalAlignment="Bottom" HorizontalAlignment="Center"
-                           Margin="16,8" Foreground="White" Background="#EF202632"
-                           TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
 
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"
-                            VerticalAlignment="Bottom" Margin="12">
-                    <Button x:Name="RestorePhotoButton" Style="{StaticResource FloatingButton}" Background="{StaticResource ActionRed}"
-                            Visibility="Collapsed" ToolTipService.ShowDuration="5000"
-                            AutomationProperties.Name="Restaurar la última imagen enviada a la Papelera"
-                            MouseEnter="RestorePhotoButton_MouseEnter" MouseLeave="RestorePhotoButton_MouseLeave"
-                            Click="RestorePhotoButton_Click">
-                        <Button.ToolTip>
-                            <ToolTip Padding="10,6" Content="Restaurar la última imagen · Shift + Supr" />
-                        </Button.ToolTip>
-                        <Path>
-                            <Path.Style>
-                                <Style TargetType="Path" BasedOn="{StaticResource FloatingIcon}">
-                                    <Setter Property="Data" Value="M 2,5 H 16 M 6,5 V 2 H 12 V 5 M 4,5 L 5,16 H 13 L 14,5 M 7,8 V 13 M 11,8 V 13" />
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=Button}}" Value="True">
-                                            <Setter Property="Data" Value="M 7,3 L 2,8 L 7,13 M 2,8 H 11 C 15,8 17,10 17,14 V 16" />
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Path.Style>
-                        </Path>
-                    </Button>
 
-                    <Button x:Name="SavePendingButton" Style="{StaticResource SavePendingButton}"
-                            Margin="8,0,0,0"
-                            Visibility="Collapsed" ToolTip="Cambios sin guardar · Ctrl + S"
-                            AutomationProperties.Name="Guardar cambios en el archivo original"
-                            Click="SavePendingButton_Click">
-                        <Path Style="{StaticResource FloatingIcon}"
-                              Data="M 2,2 H 13 L 16,5 V 16 H 2 Z M 5,2 V 7 H 12 V 2 M 5,16 V 10 H 13 V 16" />
-                    </Button>
-                </StackPanel>
-            </Grid>
-        </DockPanel>
 
-        <Grid x:Name="ToolbarArea" HorizontalAlignment="Right" VerticalAlignment="Top">
-            <Grid.Style>
-                <Style TargetType="Grid">
-                    <Style.Triggers>
-                        <DataTrigger Binding="{Binding Visibility, ElementName=FolderGrid}" Value="Collapsed">
-                            <Setter Property="Background" Value="Transparent" />
-                        </DataTrigger>
-                    </Style.Triggers>
-                </Style>
-            </Grid.Style>
-            <WrapPanel x:Name="FloatingControls" Orientation="Horizontal"
-                       HorizontalAlignment="Right" Margin="12,12,12,0">
-                <WrapPanel.Style>
-                    <Style TargetType="WrapPanel">
-                        <Setter Property="Opacity" Value="0" />
-                        <Setter Property="IsEnabled" Value="False" />
-                        <Style.Triggers>
-                            <DataTrigger Binding="{Binding IsMouseOver, ElementName=ToolbarArea}" Value="True">
-                                <Setter Property="Opacity" Value="1" />
-                                <Setter Property="IsEnabled" Value="True" />
-                            </DataTrigger>
-                            <DataTrigger Binding="{Binding Visibility, ElementName=MetadataFooter}" Value="Visible">
-                                <Setter Property="Opacity" Value="1" />
-                                <Setter Property="IsEnabled" Value="True" />
-                            </DataTrigger>
-                            <DataTrigger Binding="{Binding Visibility, ElementName=FolderGrid}" Value="Visible">
-                                <Setter Property="Opacity" Value="1" />
-                                <Setter Property="IsEnabled" Value="True" />
-                            </DataTrigger>
-                        </Style.Triggers>
-                    </Style>
-                </WrapPanel.Style>
-                <StackPanel x:Name="GridActions" Orientation="Horizontal"
-                            Margin="0,0,8,0" Visibility="Collapsed">
-                    <Button Style="{StaticResource FloatingButton}" Margin="0,0,6,0"
-                            ToolTip="Copiar archivos · Ctrl + C" AutomationProperties.Name="Copiar archivos"
-                            Click="GridCopy_Click">
-                        <Path Style="{StaticResource FloatingIcon}"
-                              Data="M 6,6 H 16 V 16 H 6 Z M 2,12 V 2 H 12" />
-                    </Button>
-                    <Button Style="{StaticResource FloatingButton}" Margin="0,0,6,0"
-                            ToolTip="Redimensionar y guardar copias"
-                            AutomationProperties.Name="Redimensionar y guardar copias" Click="GridResize_Click">
-                        <Path Style="{StaticResource FloatingIcon}"
-                              Data="M 7,2 H 2 V 7 M 2,2 L 7,7 M 11,16 H 16 V 11 M 16,16 L 11,11 M 10,2 H 16 V 8 M 2,10 V 16 H 8" />
-                    </Button>
-                    <Button Style="{StaticResource CloseButton}" ToolTip="Enviar a la Papelera · Supr"
-                            AutomationProperties.Name="Enviar a la Papelera" Click="GridDelete_Click">
-                        <Path Style="{StaticResource FloatingIcon}"
-                              Data="M 2,5 H 16 M 6,5 V 2 H 12 V 5 M 4,5 L 5,16 H 13 L 14,5 M 7,8 V 13 M 11,8 V 13" />
-                    </Button>
-                </StackPanel>
-                <Button x:Name="ViewModeButton" Style="{StaticResource FloatingButton}" Margin="0,0,8,0"
-                        ToolTip="Abrir cuadrícula · G" AutomationProperties.Name="Abrir cuadrícula"
-                        Click="FolderGridButton_Click">
-                    <Path x:Name="ViewModeIcon" Style="{StaticResource FloatingIcon}" Data="{StaticResource SquareLayoutIcon}" />
-                </Button>
-                <Button x:Name="GridLayoutButton" Style="{StaticResource FloatingButton}" Margin="0,0,8,0"
-                        Visibility="{Binding Visibility, ElementName=FolderGrid}" ToolTip="Cambiar a cuadrado"
-                        AutomationProperties.Name="Cambiar a cuadrado" Click="GridLayoutButton_Click">
-                    <Path x:Name="GridLayoutIcon" Style="{StaticResource FloatingIcon}" Data="{StaticResource SquareLayoutIcon}" />
-                </Button>
-                <Button x:Name="SlideShowButton" Style="{StaticResource FloatingButton}" Margin="0,0,8,0"
-                        Visibility="Collapsed" ToolTip="Reproducir presentación"
-                        AutomationProperties.Name="Reproducir presentación" Click="SlideShowButton_Click">
-                    <Path x:Name="SlideShowIcon" Style="{StaticResource FloatingIcon}" Data="{StaticResource PlayIcon}" />
-                </Button>
-                <Button Style="{StaticResource FloatingButton}" Margin="0,0,8,0"
-                        Cursor="SizeAll" Focusable="False" ToolTip="Mover ventana"
-                        AutomationProperties.Name="Mover ventana"
-                        PreviewMouseLeftButtonDown="MoveButton_PreviewMouseLeftButtonDown">
-                    <Path Style="{StaticResource FloatingIcon}"
-                          Data="M 9,1 V 17 M 1,9 H 17 M 6,4 L 9,1 L 12,4 M 6,14 L 9,17 L 12,14 M 4,6 L 1,9 L 4,12 M 14,6 L 17,9 L 14,12" />
-                </Button>
-                <Button x:Name="CropButton" Style="{StaticResource FloatingButton}" Margin="0,0,8,0"
-                        Visibility="Collapsed" ToolTip="Recortar y enderezar"
-                        AutomationProperties.Name="Recortar y enderezar" Click="CropButton_Click">
-                    <Path Style="{StaticResource FloatingIcon}"
-                          Data="M 5,1 V 13 H 17 M 1,5 H 13 V 17" />
-                </Button>
-                <Button Style="{StaticResource FloatingButton}" Margin="0,0,8,0"
-                        Visibility="{Binding Visibility, ElementName=CropButton}"
-                        ToolTip="Redimensionar imagen" AutomationProperties.Name="Redimensionar imagen"
-                        Click="ResizeImageButton_Click">
-                    <Path Style="{StaticResource FloatingIcon}"
-                          Data="M 7,2 H 2 V 7 M 2,2 L 7,7 M 11,16 H 16 V 11 M 16,16 L 11,11 M 10,2 H 16 V 8 M 2,10 V 16 H 8" />
-                </Button>
-                <Button x:Name="InfoButton" Style="{StaticResource FloatingButton}" Margin="0,0,8,0"
-                        AutomationProperties.Name="Información de la imagen"
-                        ToolTip="Mostrar u ocultar metadatos" Click="InfoButton_Click">
-                    <Path Style="{StaticResource FloatingIcon}"
-                          Data="M 9,1 A 8,8 0 1 1 9,17 A 8,8 0 1 1 9,1 Z M 9,8 V 13 M 9,5 V 5.3" />
-                </Button>
-                <Button Style="{StaticResource FloatingButton}" Margin="0,0,8,0"
-                        ToolTip="Configuración" AutomationProperties.Name="Configuración"
-                        Click="CaptureSettingsButton_Click">
-                    <Path Style="{StaticResource FloatingIcon}"
-                          Data="M 7,1 H 11 L 12,4 L 14,4 L 16,3 L 18,7 L 16,9 L 16,11 L 18,13 L 16,17 L 13,16 L 12,17 L 11,19 H 7 L 6,17 L 5,16 L 2,17 L 0,13 L 2,11 V 9 L 0,7 L 2,3 L 4,4 H 6 Z M 12,10 A 3,3 0 1 1 6,10 A 3,3 0 1 1 12,10 Z" />
-                </Button>
-                <Button Style="{StaticResource FloatingButton}" Margin="0,0,8,0" ToolTip="Minimizar"
-                        AutomationProperties.Name="Minimizar ventana" Click="MinimizeButton_Click">
-                    <Path Style="{StaticResource FloatingIcon}" Width="13" Height="13" Data="M 1,6 H 12" />
-                </Button>
-                <Button Style="{StaticResource CloseButton}" ToolTip="Cerrar"
-                        AutomationProperties.Name="Cerrar ventana" Click="CloseButton_Click">
-                    <Path Style="{StaticResource FloatingIcon}" Width="13" Height="13"
-                          Data="M 1,1 L 12,12 M 12,1 L 1,12" />
-                </Button>
-            </WrapPanel>
-        </Grid>
-        <Border BorderBrush="#686868" BorderThickness="1"
-                IsHitTestVisible="False" SnapsToDevicePixels="True">
-            <Border.Style>
-                <Style TargetType="Border">
-                    <Style.Triggers>
-                        <DataTrigger Binding="{Binding Path=(shell:WindowChrome.WindowChrome), RelativeSource={RelativeSource AncestorType=Window}}"
-                                     Value="{x:Null}">
-                            <Setter Property="Visibility" Value="Collapsed" />
-                        </DataTrigger>
-                    </Style.Triggers>
-                </Style>
-            </Border.Style>
-        </Border>
     </Grid>
+        <Border x:Name="ImageFooter" Grid.Row="3" Grid.ColumnSpan="5" Height="28" Background="#202324" BorderBrush="#34383A" BorderThickness="0,1,0,0" Padding="10,0">
+            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                <Border x:Name="MetadataFooter" VerticalAlignment="Center"><TextBlock x:Name="ImageInfo" Foreground="#CCCCCC" FontSize="12" TextTrimming="CharacterEllipsis" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}" AutomationProperties.LiveSetting="Polite"/></Border>
+                <TextBlock x:Name="ZoomFooterText" Grid.Column="1" VerticalAlignment="Center" Margin="12,0,0,0" Foreground="#CCCCCC" FontSize="12" Visibility="Collapsed" ToolTip="Zoom real: 100% equivale a un píxel de imagen por píxel de pantalla" AutomationProperties.Name="Porcentaje de zoom"/><TextBlock x:Name="StatusText" Grid.Column="2" VerticalAlignment="Center" Margin="16,0,8,0" Foreground="#CCCCCC" FontSize="12" MaxWidth="300" TextTrimming="CharacterEllipsis" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}" AutomationProperties.LiveSetting="Polite"/>
+
+                <Button x:Name="CaptureDestinationButton" Grid.Column="3" Background="Transparent" BorderThickness="0" Padding="4,0" Height="24" HorizontalContentAlignment="Right" VerticalAlignment="Center" Cursor="Hand" Click="CaptureDestination_Click" AutomationProperties.Name="Abrir ubicación de guardado">
+                    <TextBlock x:Name="CaptureDestinationText" Foreground="#CCCCCC" FontSize="12" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                </Button>
+            </Grid>
+        </Border>
+        <Border x:Name="GridFooter" Grid.Row="3" Grid.ColumnSpan="5" Height="28" Background="#202324" BorderBrush="#34383A" BorderThickness="0,1,0,0" Padding="10,0" Visibility="Collapsed">
+            <Grid VerticalAlignment="Center"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <TextBlock x:Name="GridFolderPath" Foreground="#CCCCCC" FontSize="12" TextTrimming="CharacterEllipsis" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"/>
+                <TextBlock x:Name="GridSelectionInfo" Grid.Column="1" Margin="16,0,0,0" Foreground="#CCCCCC" FontSize="12" MaxWidth="500" TextTrimming="CharacterEllipsis" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}" Visibility="{Binding Visibility, ElementName=GridActions}" AutomationProperties.LiveSetting="Polite"/>
+                <TextBlock x:Name="GridOperationStatus" Grid.Column="2" Margin="16,0,0,0" Foreground="#CCCCCC" FontSize="12" MaxWidth="300" TextTrimming="CharacterEllipsis" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}" Visibility="Collapsed" AutomationProperties.LiveSetting="Polite"/>
+            </Grid>
+        </Border>
+
+    </Grid>
+    </Border>
 </Window>

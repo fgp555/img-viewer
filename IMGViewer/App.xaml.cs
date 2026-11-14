@@ -33,7 +33,7 @@ public partial class App : Application
         {
             if (!startInTray && !instance.Forward(path))
             {
-                MessageBox.Show("No se pudo contactar con IMG Viewer. Inténtalo de nuevo.", "IMG Viewer");
+                ViewerDialog.Show("No se pudo contactar con IMG Viewer. Inténtalo de nuevo.", "IMG Viewer");
             }
 
             Shutdown();
@@ -43,6 +43,17 @@ public partial class App : Application
         var window = new MainWindow();
         MainWindow = window;
         instance.Listen(path => Dispatcher.InvokeAsync(() => ShowViewer(path)));
+        if (!startInTray)
+        {
+            ShowViewer(path);
+            Dispatcher.InvokeAsync(() => InitializeBackgroundServices(window), System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+        }
+        else InitializeBackgroundServices(window);
+    }
+
+    private void InitializeBackgroundServices(MainWindow window)
+    {
+        if (exitRequested) return;
         CreateTray(window);
         nint handle = new WindowInteropHelper(window).EnsureHandle();
         idleCursor = new IdleCursor(HwndSource.FromHwnd(handle));
@@ -54,10 +65,6 @@ public partial class App : Application
                 "El cursor solo se puede ocultar dentro de IMG Viewer en este equipo.", Forms.ToolTipIcon.Info);
         }
 
-        if (!startInTray)
-        {
-            ShowViewer(path);
-        }
     }
 
     internal bool RefreshCursorSettings() =>
@@ -67,19 +74,43 @@ public partial class App : Application
     private void CreateTray(MainWindow window)
     {
         trayIcon = Environment.ProcessPath is string executable ? Drawing.Icon.ExtractAssociatedIcon(executable) : null;
-        trayMenu = new Forms.ContextMenuStrip();
+        trayMenu = new TrayContextMenu
+        {
+            Renderer = new TrayMenuRenderer(),
+            BackColor = Drawing.Color.FromArgb(32, 32, 32),
+            ForeColor = Drawing.Color.FromArgb(238, 238, 238),
+            ShowImageMargin = false,
+            Padding = new Forms.Padding(6),
+            Font = new Drawing.Font("Segoe UI", 9.5F)
+        };
+        trayMenu.ItemAdded += (_, e) =>
+        {
+            if (e.Item is { } item) { item.ForeColor = trayMenu.ForeColor; item.Padding = new Forms.Padding(12, 7, 12, 7); }
+        };
         trayMenu.Items.Add("Abrir IMG Viewer", null, (_, _) => ShowViewer());
         trayMenu.Items.Add("Capturar pantalla", null, (_, _) =>
         {
             // Let the native tray menu close before taking the desktop snapshot.
             Dispatcher.InvokeAsync(window.CaptureScreen, System.Windows.Threading.DispatcherPriority.Background);
         });
-        trayMenu.Items.Add(new Forms.ToolStripSeparator());
-        trayMenu.Items.Add("Salir", null, (_, _) =>
+        trayMenu.Items.Add("Abrir carpeta…", null, (_, _) => Dispatcher.InvokeAsync(() =>
         {
-            exitRequested = true;
-            Shutdown();
-        });
+            ShowViewer();
+            window.OpenFolderFromTray();
+        }));
+        trayMenu.Items.Add(new Forms.ToolStripSeparator());
+        trayMenu.Items.Add("Configuración…", null, (_, _) => Dispatcher.InvokeAsync(() =>
+        {
+            ShowViewer();
+            window.OpenSettingsFromTray();
+        }));
+        trayMenu.Items.Add("Acerca de IMG Viewer", null, (_, _) => Dispatcher.InvokeAsync(() =>
+        {
+            ShowViewer();
+            ViewerDialog.Show(window, "IMG Viewer\nVersión 2026.11.1\nVisor, capturas y marcación de imágenes.\nfrankgp.com/img-viewer", "Acerca de IMG Viewer");
+        }));
+        trayMenu.Items.Add(new Forms.ToolStripSeparator());
+        trayMenu.Items.Add("Salir", null, (_, _) => ExitViewer());
 
         tray = new Forms.NotifyIcon
         {
@@ -100,7 +131,7 @@ public partial class App : Application
 
         if (path.Length > 0)
         {
-            window.OpenImage(path);
+            window.OpenExplorerImage(path);
         }
 
         if (!window.IsVisible)
@@ -114,6 +145,12 @@ public partial class App : Application
         }
 
         window.Activate();
+    }
+
+    internal void ExitViewer()
+    {
+        exitRequested = true;
+        Shutdown();
     }
 
     internal bool TryHideViewer(MainWindow window)

@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.IO;
 using System.Runtime.InteropServices;
 
@@ -8,7 +8,23 @@ internal static class CapturePreferences
 {
     private static readonly string SettingsPath = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "IMGViewer", "capture-folder.txt");
+        "IMGViewer", "capture-folder-v2.txt");
+
+    internal static bool AutoSave
+    {
+        get { using var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(@"Software\IMGViewer"); return key?.GetValue("AutoSaveCaptures") is 1; }
+        set { using var key = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(@"Software\IMGViewer"); key.SetValue("AutoSaveCaptures", value ? 1 : 0); }
+    }
+    internal static string FormatExtension
+    {
+        get
+        {
+            using var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(@"Software\IMGViewer");
+            string? ext = key?.GetValue("CaptureFormat") as string;
+            return ext is ".webp" or ".png" or ".jpg" or ".bmp" ? ext : ".webp";
+        }
+        set { using var key = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(@"Software\IMGViewer"); key.SetValue("CaptureFormat", value); }
+    }
 
     internal static string CaptureFolder
     {
@@ -25,7 +41,7 @@ internal static class CapturePreferences
             catch (IOException) { }
             catch (UnauthorizedAccessException) { }
 
-            return DownloadsFolder();
+            return Environment.GetFolderPath(Environment.SpecialFolder.MyPictures);
         }
     }
 
@@ -56,7 +72,7 @@ internal static class CapturePreferences
     }
 
     internal static string FileName(DateTime timestamp) =>
-        "screen-" + timestamp.ToString("yyMMdd-HHmmss", CultureInfo.InvariantCulture) + ".jpg";
+        "screen-" + timestamp.ToString("yyMMdd-HHmmss", CultureInfo.InvariantCulture) + FormatExtension;
 
     private static string DownloadsFolder()
     {

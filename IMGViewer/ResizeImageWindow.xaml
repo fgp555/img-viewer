@@ -3,7 +3,8 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Redimensionar imagen" Width="420" SizeToContent="Height" ResizeMode="NoResize"
         WindowStartupLocation="CenterOwner" ShowInTaskbar="False"
-        Background="#141820" Foreground="White">
+        Background="Transparent" Foreground="White">
+    <Window.Resources><ResourceDictionary><ResourceDictionary.MergedDictionaries><ResourceDictionary Source="DialogTheme.xaml"/></ResourceDictionary.MergedDictionaries></ResourceDictionary></Window.Resources><Window.Style><StaticResource ResourceKey="DialogWindow"/></Window.Style>
     <StackPanel Margin="18">
         <TextBlock Text="Tamaños rápidos" FontWeight="SemiBold" Margin="0,0,0,8" />
         <WrapPanel Margin="0,0,0,14">
@@ -25,6 +26,7 @@
 
         <TextBlock x:Name="SizePreview" Foreground="#D3D9E3" Margin="0,12,0,0"
                    TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
+        <Separator Margin="0,14,0,0"/>
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,14,0,0">
             <Button Content="Cancelar" IsCancel="True" Padding="12,5" Margin="0,0,8,0" />
             <Button x:Name="ApplyButton" Content="Aplicar" IsDefault="True" Padding="12,5" Click="Apply_Click" />

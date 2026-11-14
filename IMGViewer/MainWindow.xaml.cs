@@ -16,19 +16,19 @@ public partial class MainWindow : Window
 {
     private static readonly HashSet<string> SupportedExtensions = new(StringComparer.OrdinalIgnoreCase)
     {
-        ".jpg", ".jpeg", ".png", ".bmp"
+        ".jpg", ".jpeg", ".png", ".bmp", ".svg", ".webp"
     };
 
     private string[] folderImages = [];
     private int currentIndex = -1;
-    private RecycledPhoto? lastRecycledPhoto;
+    private readonly Stack<RecycledPhoto> recycledPhotos = new();
     private readonly DispatcherTimer recycleNoticeTimer = new() { Interval = TimeSpan.FromSeconds(5) };
     private readonly DispatcherTimer slideShowTimer = new() { Interval = TimeSpan.FromSeconds(3) };
     private BitmapSource? lastSavedPhoto;
     private BitmapSource? rotationBasePhoto;
     private int rotationDegrees;
     private bool hasPixelEdit;
-    private bool showTransparencyGrid;
+    private int viewerBackgroundMode;
     private bool coverPhoto;
     private double photoZoomMultiplier = 1;
 
@@ -39,6 +39,9 @@ public partial class MainWindow : Window
     private Point? viewerPressStart;
     private Point? windowDragOffset;
     private Point? photoDragPosition;
+    private bool middlePhotoDrag;
+    private Point? middlePressStart;
+    private bool middlePressMoved;
 
     // Both the cursor and the native window position use screen pixels, including across monitors.
     private const uint MoveWithoutResizing = 0x0001 | 0x0004 | 0x0010;
@@ -82,8 +85,9 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+
         UpdateMetadataFooter();
-        viewerClickTimer.Tick += (_, _) => ToggleMetadataFooter();
+        InitializeWorkspace();
         slideShowTimer.Tick += SlideShowTimer_Tick;
         recycleNoticeTimer.Tick += (_, _) => HideRecycleNotice();
     }
@@ -96,7 +100,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        if ((Keyboard.Modifiers & ModifierKeys.Control) != 0)
+        if ((Keyboard.Modifiers & ModifierKeys.Control) != 0 || panTool)
         {
             if (PhotoZoom.ScaleX > 1 && !windowDragOffset.HasValue && CaptureMouse())
             {
@@ -130,6 +134,7 @@ public partial class MainWindow : Window
             SetScreenBounds(handle, previous.Bounds);
             WindowState = previous.State;
             windowedMode = null;
+            UpdateNativeWindowFrame();
             UpdateSlideShowAvailability();
             return;
         }
@@ -154,11 +159,13 @@ public partial class MainWindow : Window
         ResizeMode = ResizeMode.NoResize;
         Topmost = true;
         SetScreenBounds(handle, info.Monitor);
+        UpdateNativeWindowFrame();
         UpdateSlideShowAvailability();
     }
 
     protected override void OnClosed(EventArgs e)
     {
+        imageOpenVersion++;
         viewerClickTimer.Stop();
         slideShowTimer.Stop();
         recycleNoticeTimer.Stop();
@@ -192,7 +199,7 @@ public partial class MainWindow : Window
             slideShowTimer.Stop();
         }
 
-        SlideShowIcon.Data = (Geometry)FindResource(playing ? "PauseIcon" : "PlayIcon");
+        SlideShowIcon.Text = playing ? "\uE769" : "\uE768";
         string label = playing ? "Pausar presentación" : "Reproducir presentación";
         SlideShowButton.ToolTip = label;
         System.Windows.Automation.AutomationProperties.SetName(SlideShowButton, label);
@@ -223,6 +230,8 @@ public partial class MainWindow : Window
     protected override void OnPreviewMouseDown(MouseButtonEventArgs e)
     {
         base.OnPreviewMouseDown(e);
+        if (CurveHandle.IsMouseOver || (InlineCropCanvas.IsVisible && GalleryAncestor<System.Windows.Controls.Primitives.Thumb>(e.OriginalSource as DependencyObject) is not null)) return;
+        if (e.ChangedButton == MouseButton.Left && !IsFolderGridOpen && IsViewerSurface(e)) Keyboard.Focus(this);
         viewerPressStart = null;
         if (markerDrag.HasValue || photoDragPosition.HasValue || windowDragOffset.HasValue)
         {
@@ -231,10 +240,20 @@ public partial class MainWindow : Window
 
         if (e.ChangedButton == MouseButton.Middle)
         {
-            ToggleFolderGrid();
+            if (!IsFolderGridOpen && Photo.Source is not null && PhotoViewport.IsMouseOver && CaptureMouse())
+            {
+                middlePhotoDrag = true;
+                middlePressStart = e.GetPosition(PhotoViewport);
+                middlePressMoved = false;
+                photoDragPosition = middlePressStart;
+                Cursor = Cursors.Hand;
+                ForceCursor = true;
+            }
             e.Handled = true;
             return;
         }
+
+        if (!zenMode && (activeMarkerTool is not null || panTool) && !IsFolderGridOpen && IsViewerSurface(e)) return;
 
         if (e.ChangedButton != MouseButton.Left || Keyboard.Modifiers != ModifierKeys.None ||
             !(IsFolderGridOpen ? e.OriginalSource == GridDragHeader : IsViewerSurface(e)))
@@ -248,10 +267,6 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (viewerClickTimer.IsEnabled)
-        {
-            ToggleMetadataFooter();
-        }
 
         viewerPressStart = e.GetPosition(this);
     }
@@ -268,13 +283,18 @@ public partial class MainWindow : Window
 
         if (photoDragPosition is Point previous)
         {
-            if (e.LeftButton != MouseButtonState.Pressed)
+            if ((middlePhotoDrag ? e.MiddleButton : e.LeftButton) != MouseButtonState.Pressed)
             {
                 ReleaseMouseCapture();
                 return;
             }
 
             Point position = e.GetPosition(PhotoViewport);
+            if (middlePhotoDrag && !middlePressMoved && middlePressStart is Point middleStart)
+            {
+                if (!MovedBeyondClickThreshold(middleStart, position)) { e.Handled = true; return; }
+                middlePressMoved = true;
+            }
             Vector movement = position - previous;
             photoDragPosition = position;
             SetPhotoPan(PhotoPan.X + movement.X, PhotoPan.Y + movement.Y);
@@ -329,6 +349,33 @@ public partial class MainWindow : Window
     protected override void OnPreviewMouseUp(MouseButtonEventArgs e)
     {
         base.OnPreviewMouseUp(e);
+        if (middlePhotoDrag && e.ChangedButton == MouseButton.Middle)
+        {
+            bool toggleFit = !middlePressMoved && middlePressStart is Point middleOrigin &&
+                !MovedBeyondClickThreshold(middleOrigin, e.GetPosition(PhotoViewport));
+            Point anchor = middlePressStart ?? e.GetPosition(PhotoViewport);
+            Point imageAnchor = PhotoViewport.TranslatePoint(anchor, Photo);
+            ReleaseMouseCapture();
+            if (toggleFit && Photo.Source is not null)
+            {
+                if (Math.Abs(photoZoomMultiplier - 1) > 0.0001)
+                {
+                    coverPhoto = false;
+                    ResetPhotoView();
+                }
+                else
+                {
+                    coverPhoto = !coverPhoto;
+                    UpdatePhotoZoom();
+                    Point movedAnchor = Photo.TranslatePoint(imageAnchor, PhotoViewport);
+                    SetPhotoPan(PhotoPan.X + anchor.X - movedAnchor.X,
+                        PhotoPan.Y + anchor.Y - movedAnchor.Y);
+                }
+            }
+            e.Handled = true;
+            return;
+        }
+        if (middlePhotoDrag) return;
         if (e.ChangedButton != MouseButton.Left)
         {
             return;
@@ -353,7 +400,7 @@ public partial class MainWindow : Window
         if (press is Point start && !IsFolderGridOpen && Keyboard.Modifiers == ModifierKeys.None && IsViewerSurface(e) &&
             !MovedBeyondClickThreshold(start, e.GetPosition(this)))
         {
-            viewerClickTimer.Start();
+            // A simple click leaves workspace controls unchanged.
             e.Handled = true;
         }
     }
@@ -374,6 +421,9 @@ public partial class MainWindow : Window
         {
             windowDragOffset = null;
             photoDragPosition = null;
+            middlePhotoDrag = false;
+            middlePressStart = null;
+            middlePressMoved = false;
             ClearValue(CursorProperty);
             ClearValue(ForceCursorProperty);
         }
@@ -395,36 +445,33 @@ public partial class MainWindow : Window
         Math.Abs(end.X - start.X) >= SystemParameters.MinimumHorizontalDragDistance ||
         Math.Abs(end.Y - start.Y) >= SystemParameters.MinimumVerticalDragDistance;
 
-    private void ToggleMetadataFooter()
-    {
-        viewerClickTimer.Stop();
-        MetadataFooter.Visibility = MetadataFooter.Visibility == Visibility.Visible
-            ? Visibility.Collapsed
-            : Visibility.Visible;
-        UpdateMetadataFooter();
-    }
-
     private void UpdateViewerToolbar()
     {
         bool inGrid = IsFolderGridOpen;
-        ViewModeIcon.Data = (Geometry)FindResource(inGrid ? "PhotoViewIcon" : "SquareLayoutIcon");
+        if (GridFooter is not null) GridFooter.Visibility = !zenMode && inGrid ? Visibility.Visible : Visibility.Collapsed;
+        ViewModeIcon.Text = inGrid ? "\uE8B9" : "\uF0E2";
+        UpdateToolbarActions();
         string label = inGrid ? "Volver a imagen" : "Abrir cuadrícula";
         ViewModeButton.ToolTip = $"{label} · G";
         System.Windows.Automation.AutomationProperties.SetName(ViewModeButton, label);
     }
 
-    private void InfoButton_Click(object sender, RoutedEventArgs e) => ToggleMetadataFooter();
-
     private void MinimizeButton_Click(object sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;
 
     private void CloseButton_Click(object sender, RoutedEventArgs e)
     {
+        if ((Keyboard.Modifiers & ModifierKeys.Shift) != 0 && Application.Current is App app)
+        {
+            app.ExitViewer();
+            return;
+        }
+
         Close();
     }
 
     private void Window_DragOver(object sender, DragEventArgs e)
     {
-        e.Effects = e.Data.GetDataPresent(DataFormats.FileDrop)
+        e.Effects = !galleryExternalDrag && e.Data.GetDataPresent(DataFormats.FileDrop)
             ? DragDropEffects.Copy
             : DragDropEffects.None;
         e.Handled = true;
@@ -432,6 +479,7 @@ public partial class MainWindow : Window
 
     private void Window_Drop(object sender, DragEventArgs e)
     {
+        if (galleryExternalDrag) { e.Handled = true; return; }
         e.Handled = true;
         if (e.Data.GetData(DataFormats.FileDrop) is not string[] { Length: > 0 } paths)
         {
@@ -441,18 +489,18 @@ public partial class MainWindow : Window
         string? path = paths.FirstOrDefault(IsSupportedImage);
         if (path is null)
         {
-            StatusText.Text = "Suelta un archivo JPG, PNG o BMP.";
+            StatusText.Text = "Suelta un archivo JPG, PNG, BMP, SVG o WebP.";
             return;
         }
 
         OpenImage(path);
     }
 
-    internal void OpenImage(string path)
+    internal void OpenImage(string path, bool resetMarkup = true)
     {
         if (!IsSupportedImage(path))
         {
-            StatusText.Text = "Selecciona un archivo JPG, PNG o BMP.";
+            StatusText.Text = "Selecciona un archivo JPG, PNG, BMP, SVG o WebP.";
             return;
         }
 
@@ -466,12 +514,27 @@ public partial class MainWindow : Window
             return;
         }
 
+        if (!switchingCapture) { RememberActiveCapture(); activeCapture = null; captureExportPath = null; }
         if (!TryLoadPhoto(path))
         {
             return;
         }
 
-        folderImages = GetFolderImages(path);
+        CompletePhotoOpen(path, resetMarkup, GetFolderImages(path));
+    }
+
+    private void CompletePhotoOpen(string path, bool resetMarkup, string[] images)
+    {
+        if (resetMarkup)
+        {
+            toolsOpen = false;
+            activeMarkerTool = null;
+            panTool = false;
+            MoveTool.IsChecked = true;
+            Photo.Cursor = null;
+            ApplyWorkspaceLayout();
+        }
+        folderImages = images;
         currentIndex = Array.FindIndex(folderImages, file =>
             StringComparer.OrdinalIgnoreCase.Equals(file, path));
         CloseFolderGrid();
@@ -482,6 +545,9 @@ public partial class MainWindow : Window
 
     private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
     {
+        if (HandleInlineCropKey(e)) return;
+        if (HandleGalleryInteractionKey(e)) return;
+        if (HandleWorkspaceKey(e)) return;
         if (markerDrag.HasValue)
         {
             if (e.Key == Key.Escape)
@@ -489,6 +555,13 @@ public partial class MainWindow : Window
                 ReleaseMouseCapture();
             }
 
+            e.Handled = true;
+            return;
+        }
+
+        if (e.Key == Key.Z && Keyboard.Modifiers == ModifierKeys.Control && (IsFolderGridOpen || markers.Count == 0) && recycledPhotos.Count > 0)
+        {
+            if (!e.IsRepeat) RestorePhoto();
             e.Handled = true;
             return;
         }
@@ -544,7 +617,25 @@ public partial class MainWindow : Window
         }
 
         ModifierKeys modifiers = Keyboard.Modifiers;
-        if (e.Key == Key.C && modifiers == ModifierKeys.None && Photo.Source is not null)
+        Key pressedKey = e.Key == Key.System ? e.SystemKey : e.Key;
+        if (modifiers == ModifierKeys.Alt && Photo.Source is not null &&
+            pressedKey is Key.D1 or Key.D2 or Key.D3)
+        {
+            if (!e.IsRepeat)
+            {
+                SetPhotoPixelScale(pressedKey switch
+                {
+                    Key.D1 => 0.5,
+                    Key.D2 => 1,
+                    _ => 1.5
+                });
+            }
+
+            e.Handled = true;
+            return;
+        }
+
+        if (e.Key == Key.Z && modifiers == ModifierKeys.None && Photo.Source is not null)
         {
             if (!e.IsRepeat)
             {
@@ -576,6 +667,7 @@ public partial class MainWindow : Window
                 {
                     Clipboard.SetImage(FlattenMarkers(bitmap));
                     StatusText.Text = "Imagen copiada al portapapeles.";
+                    MinimizeAfterSuccessfulCopy();
                 }
                 catch (ExternalException)
                 {
@@ -609,9 +701,7 @@ public partial class MainWindow : Window
         {
             if (!e.IsRepeat)
             {
-                showTransparencyGrid = !showTransparencyGrid;
-                PhotoViewport.Background = (Brush)FindResource(
-                    showTransparencyGrid ? "TransparencyBackground" : "ViewerBackground");
+                ToggleViewerBackground();
             }
 
             e.Handled = true;
@@ -659,6 +749,7 @@ public partial class MainWindow : Window
 
     private void RenameCurrentPhoto()
     {
+        if (TryBeginGalleryRename()) return;
         SetSlideShowPlaying(false);
         var dialog = new RenameWindow(folderImages[currentIndex]) { Owner = this };
         if (dialog.ShowDialog() != true || dialog.RenamedPath is not { } path)
@@ -666,6 +757,7 @@ public partial class MainWindow : Window
             return;
         }
 
+        gallerySignature = null;
         folderImages = GetFolderImages(path);
         currentIndex = Array.FindIndex(folderImages, file => StringComparer.OrdinalIgnoreCase.Equals(file, path));
         Title = $"IMG Viewer — {Path.GetFileName(path)}";
@@ -679,7 +771,7 @@ public partial class MainWindow : Window
         string path = folderImages[currentIndex];
         try
         {
-            lastRecycledPhoto = RecycledPhoto.Recycle(path, new WindowInteropHelper(this).Handle);
+            recycledPhotos.Push(RecycledPhoto.Recycle(path, new WindowInteropHelper(this).Handle));
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or COMException or OperationCanceledException)
         {
@@ -694,6 +786,7 @@ public partial class MainWindow : Window
 
     private void RefreshViewerAfterRecycling(HashSet<string> removed)
     {
+        gallerySignature = null;
         if (currentIndex < 0)
         {
             return;
@@ -732,46 +825,15 @@ public partial class MainWindow : Window
         UpdateSlideShowAvailability();
     }
 
-    private void ShowRecycleNotice()
-    {
-        recycleNoticeTimer.Stop();
-        RestorePhotoButton.Visibility = Visibility.Visible;
-        UpdateRecycleNoticeAnimation();
-        recycleNoticeTimer.Start();
-    }
-
-    private void RestorePhotoButton_MouseEnter(object sender, MouseEventArgs e) => UpdateRecycleNoticeAnimation();
-
-    private void RestorePhotoButton_MouseLeave(object sender, MouseEventArgs e) => UpdateRecycleNoticeAnimation();
-
-    private void UpdateRecycleNoticeAnimation()
-    {
-        if (RestorePhotoButton.IsVisible && !RestorePhotoButton.IsMouseOver && SystemParameters.ClientAreaAnimation)
-        {
-            RestorePhotoButton.BeginAnimation(OpacityProperty, new DoubleAnimation(1, 0.4, TimeSpan.FromMilliseconds(400))
-            {
-                AutoReverse = true,
-                RepeatBehavior = RepeatBehavior.Forever
-            });
-        }
-        else
-        {
-            RestorePhotoButton.BeginAnimation(OpacityProperty, null);
-        }
-    }
-
-    private void HideRecycleNotice()
-    {
-        recycleNoticeTimer.Stop();
-        RestorePhotoButton.BeginAnimation(OpacityProperty, null);
-        RestorePhotoButton.Visibility = Visibility.Collapsed;
-    }
-
-    private void RestorePhotoButton_Click(object sender, RoutedEventArgs e) => RestorePhoto();
+    private void ShowRecycleNotice() => UpdateToolbarActions();
+    private void RestorePhotoButton_MouseEnter(object sender, MouseEventArgs e) { }
+    private void RestorePhotoButton_MouseLeave(object sender, MouseEventArgs e) { }
+    private void HideRecycleNotice() => UpdateToolbarActions();
+    private void RestorePhotoButton_Click(object sender, RoutedEventArgs e) => UndoWorkspace();
 
     private void RestorePhoto()
     {
-        if (lastRecycledPhoto is not { } photo)
+        if (!recycledPhotos.TryPeek(out var photo))
         {
             StatusText.Text = "No hay una imagen que recuperar en esta sesión.";
             return;
@@ -786,9 +848,13 @@ public partial class MainWindow : Window
         try
         {
             photo.Restore(new WindowInteropHelper(this).Handle);
-            lastRecycledPhoto = null;
+            recycledPhotos.Pop();
             HideRecycleNotice();
-            OpenImage(photo.OriginalPath);
+            bool wasGrid = IsFolderGridOpen;
+            string folder = GridFolderPath.Text;
+            OpenImage(photo.OriginalPath, resetMarkup: false);
+            if (wasGrid) { ToggleFolderGrid(); LoadFolderGrid(folder); }
+            if (recycledPhotos.Count > 0) ShowRecycleNotice();
             if (StatusText.Text.Length == 0)
             {
                 StatusText.Text = "Imagen recuperada.";
@@ -800,7 +866,7 @@ public partial class MainWindow : Window
         }
     }
 
-    private void CropButton_Click(object sender, RoutedEventArgs e)
+    private void OpenCropEditor(object sender, RoutedEventArgs e)
     {
         if (Photo.Source is not BitmapSource bitmap)
         {
@@ -928,9 +994,7 @@ public partial class MainWindow : Window
 
     private void UpdatePendingSaveIndicator()
     {
-        SavePendingButton.Visibility = HasPendingChanges || HasUnsavedCapture
-            ? Visibility.Visible
-            : Visibility.Collapsed;
+        UpdateToolbarActions();
     }
 
     private void SavePendingButton_Click(object sender, RoutedEventArgs e)
@@ -940,6 +1004,8 @@ public partial class MainWindow : Window
 
     private void SavePhoto(bool saveCopy)
     {
+        EndInlineText(true);
+        if (inlineCropPending) { ApplyInlineCrop(); if (inlineCropPending) return; }
         if (Photo.Source is not BitmapSource bitmap)
         {
             return;
@@ -947,18 +1013,19 @@ public partial class MainWindow : Window
 
         string? originalPath = currentIndex >= 0 ? folderImages[currentIndex] : null;
         string destination;
-        bool chooseDestination = saveCopy || originalPath is null;
+        bool chooseDestination = saveCopy || originalPath is null || IsSvg(originalPath);
         if (chooseDestination)
         {
             var dialog = new SaveFileDialog
             {
                 Title = saveCopy ? "Guardar copia" : "Guardar captura",
-                InitialDirectory = originalPath is null ? string.Empty : Path.GetDirectoryName(originalPath),
+                InitialDirectory = originalPath is null ? CapturePreferences.CaptureFolder : Path.GetDirectoryName(originalPath),
                 FileName = originalPath is null
                     ? CapturePreferences.FileName(DateTime.Now)
                     : Path.GetFileNameWithoutExtension(originalPath) + " - copia",
-                DefaultExt = originalPath is null ? ".jpg" : Path.GetExtension(originalPath),
-                Filter = "Imágenes JPG, PNG y BMP|*.jpg;*.jpeg;*.png;*.bmp",
+                DefaultExt = originalPath is null ? CapturePreferences.FormatExtension : IsSvg(originalPath) ? ".png" : Path.GetExtension(originalPath),
+                Filter = "PNG|*.png|JPG|*.jpg;*.jpeg|WebP|*.webp|BMP|*.bmp",
+                FilterIndex = originalPath is null ? CapturePreferences.FormatExtension switch { ".png" => 1, ".webp" => 3, ".bmp" => 4, _ => 2 } : IsWebP(originalPath) ? 3 : IsSvg(originalPath) ? 1 : 2,
                 AddExtension = true
             };
 
@@ -968,9 +1035,9 @@ public partial class MainWindow : Window
             }
 
             destination = dialog.FileName;
-            if (!IsSupportedImage(destination) || StringComparer.OrdinalIgnoreCase.Equals(destination, originalPath))
+            if (!SupportedExtensions.Contains(Path.GetExtension(destination)) || IsSvg(destination) || StringComparer.OrdinalIgnoreCase.Equals(destination, originalPath))
             {
-                StatusText.Text = "Elige otro archivo con extensión JPG, PNG o BMP.";
+                StatusText.Text = "Elige otro archivo con extensión JPG, PNG, BMP, SVG o WebP.";
                 return;
             }
         }
@@ -996,7 +1063,7 @@ public partial class MainWindow : Window
                 lastSavedPhoto = bitmap;
                 rotationBasePhoto = bitmap;
                 hasPixelEdit = false;
-                if (originalPath is null)
+                if (originalPath is null || IsSvg(originalPath))
                 {
                     folderImages = GetFolderImages(destination);
                     currentIndex = Array.FindIndex(folderImages, file =>
@@ -1009,6 +1076,9 @@ public partial class MainWindow : Window
                 UpdateMetadataFooter();
             }
 
+            if (activeCapture is not null || originalPath is null) captureExportPath = destination;
+            RememberActiveCapture();
+            UpdateCaptureDestination();
             StatusText.Text = saveCopy ? "Copia guardada." : "Cambios guardados.";
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or NotSupportedException or InvalidOperationException)
@@ -1019,13 +1089,15 @@ public partial class MainWindow : Window
 
     private static void WritePhoto(BitmapSource bitmap, string destination, bool writeNewDestination, bool overwrite = true)
     {
-        BitmapEncoder encoder = Path.GetExtension(destination).ToLowerInvariant() switch
+        bool webp = IsWebP(destination);
+        BitmapEncoder? encoder = webp ? null : Path.GetExtension(destination).ToLowerInvariant() switch
         {
             ".png" => new PngBitmapEncoder(),
             ".bmp" => new BmpBitmapEncoder(),
-            _ => new JpegBitmapEncoder { QualityLevel = 95 }
+            ".jpg" or ".jpeg" => new JpegBitmapEncoder { QualityLevel = 95 },
+            _ => throw new NotSupportedException("Formato de guardado no disponible.")
         };
-        encoder.Frames.Add(BitmapFrame.Create(bitmap));
+        encoder?.Frames.Add(BitmapFrame.Create(bitmap));
 
         // Encode beside the destination before replacing any existing file.
         string temporaryPath = Path.Combine(Path.GetDirectoryName(destination)!, Path.GetRandomFileName());
@@ -1034,7 +1106,14 @@ public partial class MainWindow : Window
         {
             using (stream)
             {
-                encoder.Save(stream);
+                if (webp)
+                {
+                    EncodeWebP(bitmap, stream);
+                }
+                else
+                {
+                    encoder!.Save(stream);
+                }
             }
 
             if (writeNewDestination)
@@ -1073,6 +1152,7 @@ public partial class MainWindow : Window
         double scale = fitScale * photoZoomMultiplier;
         PhotoZoom.ScaleX = scale;
         PhotoZoom.ScaleY = scale;
+        UpdateZoomFooter();
         SetPhotoPan(PhotoPan.X, PhotoPan.Y);
     }
 
@@ -1088,11 +1168,20 @@ public partial class MainWindow : Window
         PhotoPan.X = Math.Clamp(x, -maxX, maxX);
         PhotoPan.Y = Math.Clamp(y, -maxY, maxY);
         UpdateCaptureFrame();
+        UpdateCurveHandle();
+        UpdateInlineCropAdorners();
     }
 
     private void Window_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
     {
-        if (IsFolderGridOpen || markerDrag.HasValue || windowDragOffset.HasValue || photoDragPosition.HasValue || e.Delta == 0 || Photo.Source is null)
+        if (!PhotoViewport.IsMouseOver) return;
+        if (IsFolderGridOpen)
+        {
+            StopGridSelectionScroll();
+            return;
+        }
+
+        if (markerDrag.HasValue || windowDragOffset.HasValue || photoDragPosition.HasValue || e.Delta == 0 || Photo.Source is null)
         {
             return;
         }
@@ -1101,7 +1190,7 @@ public partial class MainWindow : Window
         if ((Keyboard.Modifiers & ModifierKeys.Control) != 0)
         {
             double factor = Math.Pow(1.2, e.Delta / 120.0);
-            photoZoomMultiplier = Math.Clamp(photoZoomMultiplier * factor, 1, 8);
+            photoZoomMultiplier = Math.Clamp(photoZoomMultiplier * factor, 0.1, 8);
             UpdatePhotoZoom();
             return;
         }
@@ -1144,7 +1233,7 @@ public partial class MainWindow : Window
     }
 
     private static bool IsSupportedImage(string path) =>
-        SupportedExtensions.Contains(Path.GetExtension(path));
+        SupportedExtensions.Contains(Path.GetExtension(path)) && ViewerPreferences.EnabledExtensions.Contains(Path.GetExtension(path));
 
     private static string[] GetFolderImages(string path)
     {
@@ -1165,6 +1254,8 @@ public partial class MainWindow : Window
 
     private static BitmapSource ReadPhotoBitmap(string path, int decodeWidth = 0)
     {
+        if (IsWebP(path)) return ReadWebPBitmap(path, decodeWidth);
+        if (IsSvg(path)) return ReadSvgBitmap(path, decodeWidth);
         using var stream = File.OpenRead(path);
         var bitmap = new BitmapImage();
         bitmap.BeginInit();
@@ -1176,24 +1267,31 @@ public partial class MainWindow : Window
         return bitmap;
     }
 
+    private void ApplyDecodedPhoto(string path, BitmapSource bitmap)
+    {
+        StopGridPhotoAnimation();
+        HideCaptureFrame();
+
+        ClearMarkers();
+        lastSavedPhoto = bitmap;
+        rotationBasePhoto = bitmap;
+        hasPixelEdit = false;
+        SetRotationDegrees(0);
+        CropButton.Visibility = Visibility.Visible;
+        Photo.Source = bitmap;
+        ResetPhotoView();
+        EmptyState.Visibility = Visibility.Collapsed;
+        Title = $"IMG Viewer — {Path.GetFileName(path)}";
+    }
+
     private bool TryLoadPhoto(string path)
     {
+        imageOpenVersion++;
+        deferImageDetails = false;
         try
         {
             BitmapSource bitmap = ReadPhotoBitmap(path);
-            StopGridPhotoAnimation();
-            HideCaptureFrame();
-
-            ClearMarkers();
-            lastSavedPhoto = bitmap;
-            rotationBasePhoto = bitmap;
-            hasPixelEdit = false;
-            SetRotationDegrees(0);
-            CropButton.Visibility = Visibility.Visible;
-            Photo.Source = bitmap;
-            ResetPhotoView();
-            EmptyState.Visibility = Visibility.Collapsed;
-            Title = $"IMG Viewer — {Path.GetFileName(path)}";
+            ApplyDecodedPhoto(path, bitmap);
             return true;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or NotSupportedException or ArgumentException or FormatException)
@@ -1211,6 +1309,16 @@ public partial class MainWindow : Window
 
     private void UpdateMetadataFooter()
     {
+        UpdateZoomFooter();
+        if (deferImageDetails)
+        {
+            if (Photo.Source is BitmapSource pending) ImageInfo.Text = $"{Path.GetFileName(CurrentGridImage)} · {pending.PixelWidth} × {pending.PixelHeight} px";
+            UpdateToolbarActions();
+            return;
+        }
+        RefreshGallery();
+        UpdateToolbarActions();
+        UpdateCaptureDestination();
         if (MetadataFooter.Visibility != Visibility.Visible)
         {
             return;
@@ -1224,7 +1332,7 @@ public partial class MainWindow : Window
 
         if (HasUnsavedCapture)
         {
-            ImageInfo.Text = $"Captura de pantalla · {bitmap.PixelWidth} × {bitmap.PixelHeight} px · Sin archivo";
+            ImageInfo.Text = $"Captura de pantalla · {bitmap.PixelWidth} × {bitmap.PixelHeight} px · Sin guardar";
             return;
         }
 
@@ -1257,6 +1365,17 @@ public partial class MainWindow : Window
         {
             using var stream = File.OpenRead(path);
             fields.Add(FormatFileSize(stream.Length));
+            if (IsSvg(path) || IsWebP(path))
+            {
+                if (displayed is null)
+                {
+                    BitmapSource svg = ReadPhotoBitmap(path);
+                    fields.Add($"{svg.PixelWidth} × {svg.PixelHeight} px");
+                }
+                fields.Add(IsSvg(path) ? "SVG" : "WebP");
+                return string.Join("  ·  ", fields);
+            }
+
             BitmapFrame frame = BitmapDecoder.Create(stream, BitmapCreateOptions.DelayCreation, BitmapCacheOption.None).Frames[0];
             if (displayed is null)
             {

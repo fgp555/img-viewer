@@ -22,6 +22,49 @@ public partial class MainWindow
         BottomRight
     }
 
+    private void SetPhotoPixelScale(double factor)
+    {
+        if (Photo.Source is not BitmapSource bitmap)
+        {
+            return;
+        }
+
+        StopGridPhotoAnimation();
+        coverPhoto = false;
+        var dpi = VisualTreeHelper.GetDpi(Photo);
+        if (zenMode)
+        {
+            if (windowedMode.HasValue)
+            {
+                ToggleFullScreen();
+            }
+    
+            WindowState = WindowState.Normal;
+            dpi = VisualTreeHelper.GetDpi(this);
+            UpdateLayout();
+            double chromeWidth = Math.Max(0, ActualWidth - PhotoViewport.ActualWidth) * dpi.DpiScaleX;
+            double chromeHeight = Math.Max(0, ActualHeight - PhotoViewport.ActualHeight) * dpi.DpiScaleY;
+            double ratio = (double)bitmap.PixelWidth / bitmap.PixelHeight;
+            double height = Math.Max(bitmap.PixelHeight * factor,
+                Math.Max(Math.Max(1, MinHeight * dpi.DpiScaleY - chromeHeight), Math.Max(1, MinWidth * dpi.DpiScaleX - chromeWidth) / ratio));
+            int pixelHeight = (int)Math.Ceiling(height + chromeHeight);
+            int pixelWidth = (int)Math.Ceiling(height * ratio + chromeWidth);
+            nint handle = new System.Windows.Interop.WindowInteropHelper(this).Handle;
+            const uint keepPositionOrderAndFocus = 0x0002 | 0x0004 | 0x0010;
+            SetWindowPos(handle, 0, 0, 0, pixelWidth, pixelHeight, keepPositionOrderAndFocus);
+    
+        }
+
+        PhotoViewport.UpdateLayout();
+        dpi = VisualTreeHelper.GetDpi(Photo);
+        if (Photo.ActualWidth > 0)
+        {
+            photoZoomMultiplier = bitmap.PixelWidth * factor / (Photo.ActualWidth * dpi.DpiScaleX);
+            UpdatePhotoZoom();
+            SetPhotoPan(0, 0);
+        }
+    }
+
     private bool TryResizeToPhoto(nint edge, nint bounds)
     {
         if (bounds == 0 || GetKeyState(ControlKey) >= 0 || IsFolderGridOpen ||
@@ -34,15 +77,19 @@ public partial class MainWindow
         var rect = Marshal.PtrToStructure<ScreenRect>(bounds);
         var size = new Size(Math.Ceiling(MinWidth * dpi.DpiScaleX), Math.Ceiling(MinHeight * dpi.DpiScaleY));
         double ratio = (double)photo.PixelWidth / photo.PixelHeight;
-        rect = ConstrainResize(rect, (SizingEdge)(int)edge, ratio, size);
+        var chrome = new Size(Math.Max(0, ActualWidth - PhotoViewport.ActualWidth) * dpi.DpiScaleX,
+            Math.Max(0, ActualHeight - PhotoViewport.ActualHeight) * dpi.DpiScaleY);
+        rect = ConstrainResize(rect, (SizingEdge)(int)edge, ratio, size, chrome);
         Marshal.StructureToPtr(rect, bounds, false);
         return true;
     }
 
-    private static ScreenRect ConstrainResize(ScreenRect rect, SizingEdge edge, double ratio, Size minimum)
+    private static ScreenRect ConstrainResize(ScreenRect rect, SizingEdge edge, double ratio, Size minimum, Size chrome)
     {
-        double width = rect.Right - rect.Left;
-        double height = rect.Bottom - rect.Top;
+        double fullWidth = rect.Right - rect.Left;
+        double fullHeight = rect.Bottom - rect.Top;
+        double width = Math.Max(1, fullWidth - chrome.Width);
+        double height = Math.Max(1, fullHeight - chrome.Height);
         double desiredHeight = edge switch
         {
             SizingEdge.Left or SizingEdge.Right => width / ratio,
@@ -51,13 +98,13 @@ public partial class MainWindow
             _ => (width * ratio + height) / (ratio * ratio + 1)
         };
 
-        desiredHeight = Math.Max(desiredHeight, Math.Max(minimum.Height, minimum.Width / ratio));
-        int targetWidth = (int)Math.Round(desiredHeight * ratio);
-        int targetHeight = (int)Math.Round(desiredHeight);
+        desiredHeight = Math.Max(desiredHeight, Math.Max(Math.Max(1, minimum.Height - chrome.Height), Math.Max(1, minimum.Width - chrome.Width) / ratio));
+        int targetWidth = (int)Math.Round(desiredHeight * ratio + chrome.Width);
+        int targetHeight = (int)Math.Round(desiredHeight + chrome.Height);
 
         if (edge is SizingEdge.Top or SizingEdge.Bottom)
         {
-            rect.Left -= (targetWidth - (int)width) / 2;
+            rect.Left -= (targetWidth - (int)fullWidth) / 2;
             rect.Right = rect.Left + targetWidth;
         }
         else if (edge is SizingEdge.Left or SizingEdge.TopLeft or SizingEdge.BottomLeft)
@@ -71,7 +118,7 @@ public partial class MainWindow
 
         if (edge is SizingEdge.Left or SizingEdge.Right)
         {
-            rect.Top -= (targetHeight - (int)height) / 2;
+            rect.Top -= (targetHeight - (int)fullHeight) / 2;
             rect.Bottom = rect.Top + targetHeight;
         }
         else if (edge is SizingEdge.Top or SizingEdge.TopLeft or SizingEdge.TopRight)

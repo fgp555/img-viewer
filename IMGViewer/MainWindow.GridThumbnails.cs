@@ -100,27 +100,37 @@ public partial class MainWindow
             }
         }
 
+        BitmapSource bitmap;
+        if (IsSvg(path) || IsWebP(path))
+        {
+            bitmap = ReadPhotoBitmap(path, 384);
+        }
+        else
+        {
         using var stream = File.OpenRead(path);
         BitmapFrame header = BitmapDecoder.Create(stream, BitmapCreateOptions.DelayCreation, BitmapCacheOption.None).Frames[0];
         bool portrait = header.PixelHeight > header.PixelWidth;
         stream.Position = 0;
 
-        var bitmap = new BitmapImage();
-        bitmap.BeginInit();
-        bitmap.CacheOption = BitmapCacheOption.OnLoad;
+        var raster = new BitmapImage();
+        raster.BeginInit();
+        raster.CacheOption = BitmapCacheOption.OnLoad;
         if (portrait)
         {
-            bitmap.DecodePixelHeight = 384;
+            raster.DecodePixelHeight = 384;
         }
         else
         {
-            bitmap.DecodePixelWidth = 384;
+            raster.DecodePixelWidth = 384;
         }
 
-        bitmap.StreamSource = stream;
-        bitmap.EndInit();
-        bitmap.Freeze();
+        raster.StreamSource = stream;
+        raster.EndInit();
+        raster.Freeze();
+        bitmap = raster;
 
+
+        }
         token.ThrowIfCancellationRequested();
         long bytes = (long)bitmap.PixelWidth * bitmap.PixelHeight * Math.Max(4, (bitmap.Format.BitsPerPixel + 7) / 8);
         lock (thumbnailCache)

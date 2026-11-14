@@ -3,7 +3,8 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Renombrar imagen" Width="460" SizeToContent="Height" ResizeMode="NoResize"
         WindowStartupLocation="CenterOwner" ShowInTaskbar="False"
-        Background="#141820" Foreground="White">
+        Background="Transparent" Foreground="White">
+    <Window.Resources><ResourceDictionary><ResourceDictionary.MergedDictionaries><ResourceDictionary Source="DialogTheme.xaml"/></ResourceDictionary.MergedDictionaries></ResourceDictionary></Window.Resources><Window.Style><StaticResource ResourceKey="DialogWindow"/></Window.Style>
     <StackPanel Margin="18">
         <Label Content="Nuevo nombre" Target="{Binding ElementName=FileName}" Foreground="White" Padding="0,0,0,8" />
         <DockPanel>
@@ -12,6 +13,7 @@
         </DockPanel>
         <TextBlock x:Name="ErrorText" Foreground="#FFC0A8" Margin="0,8,0,0" TextWrapping="Wrap"
                    AutomationProperties.LiveSetting="Polite" />
+        <Separator Margin="0,14,0,0"/>
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
             <Button Content="Cancelar" IsCancel="True" Padding="12,5" Margin="0,0,8,0" />
             <Button Content="Renombrar" IsDefault="True" Padding="12,5" Click="Rename_Click" />

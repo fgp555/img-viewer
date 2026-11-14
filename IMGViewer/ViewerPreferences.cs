@@ -8,8 +8,44 @@ internal static class ViewerPreferences
     private const string RunKey = @"Software\Microsoft\Windows\CurrentVersion\Run";
     private const string StartupValue = "IMGViewer";
 
+    internal static readonly string[] AvailableExtensions = [".jpg", ".jpeg", ".png", ".bmp", ".svg", ".webp"];
+    private static HashSet<string>? enabledExtensions;
+    internal static HashSet<string> EnabledExtensions
+    {
+        get
+        {
+            if (enabledExtensions is not null) return enabledExtensions;
+            using var settings = Registry.CurrentUser.OpenSubKey(SettingsKey);
+            var saved = settings?.GetValue("EnabledExtensions") as string[];
+            return enabledExtensions = new HashSet<string>((saved ?? AvailableExtensions).Where(ext => AvailableExtensions.Contains(ext, StringComparer.OrdinalIgnoreCase)), StringComparer.OrdinalIgnoreCase);
+        }
+    }
+    internal static void SetEnabledExtensions(IEnumerable<string> extensions)
+    {
+        string[] selected = extensions.Where(ext => AvailableExtensions.Contains(ext, StringComparer.OrdinalIgnoreCase)).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+        using var settings = Registry.CurrentUser.CreateSubKey(SettingsKey);
+        settings.SetValue("EnabledExtensions", selected, RegistryValueKind.MultiString);
+        enabledExtensions = new HashSet<string>(selected, StringComparer.OrdinalIgnoreCase);
+    }
+
     internal const int DefaultGridColumns = 3;
     internal const int MaximumGridColumns = 8;
+
+    internal static int BackgroundOpacityPercent
+    {
+        get
+        {
+            using RegistryKey? settings = Registry.CurrentUser.OpenSubKey(SettingsKey);
+            return settings?.GetValue(nameof(BackgroundOpacityPercent)) is int percent && percent is >= 1 and <= 100
+                ? percent
+                : 25;
+        }
+        set
+        {
+            using RegistryKey settings = Registry.CurrentUser.CreateSubKey(SettingsKey);
+            settings.SetValue(nameof(BackgroundOpacityPercent), Math.Clamp(value, 1, 100), RegistryValueKind.DWord);
+        }
+    }
 
     internal static int GridColumns
     {
@@ -72,6 +108,23 @@ internal static class ViewerPreferences
             using RegistryKey settings = Registry.CurrentUser.CreateSubKey(SettingsKey);
             settings.SetValue(nameof(CursorIdleSeconds), value, RegistryValueKind.DWord);
         }
+    }
+
+    internal static int WebPQuality
+    {
+        get { using var settings = Registry.CurrentUser.OpenSubKey(SettingsKey); return settings?.GetValue(nameof(WebPQuality)) is int quality ? Math.Clamp(quality, 1, 100) : 80; }
+        set { using var settings = Registry.CurrentUser.CreateSubKey(SettingsKey); settings.SetValue(nameof(WebPQuality), Math.Clamp(value, 1, 100), RegistryValueKind.DWord); }
+    }
+    internal static bool WebPLossless
+    {
+        get { using var settings = Registry.CurrentUser.OpenSubKey(SettingsKey); return settings?.GetValue(nameof(WebPLossless)) is 1; }
+        set { using var settings = Registry.CurrentUser.CreateSubKey(SettingsKey); settings.SetValue(nameof(WebPLossless), value ? 1 : 0, RegistryValueKind.DWord); }
+    }
+
+    internal static bool MinimizeAfterCopy
+    {
+        get { using var settings = Registry.CurrentUser.OpenSubKey(SettingsKey); return settings?.GetValue(nameof(MinimizeAfterCopy)) is 1; }
+        set { using var settings = Registry.CurrentUser.CreateSubKey(SettingsKey); settings.SetValue(nameof(MinimizeAfterCopy), value ? 1 : 0, RegistryValueKind.DWord); }
     }
 
     internal static bool CopyCapturesToClipboard

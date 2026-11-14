@@ -9,19 +9,39 @@ namespace IMGViewer;
 
 public partial class ScreenCaptureWindow : Window
 {
-    private readonly DesktopSnapshot snapshot;
+    private DesktopSnapshot snapshot;
     private Int32Rect monitor;
     private Point? dragStart;
     private bool draggingRegion;
+    private IReadOnlyDictionary<int, IReadOnlyList<Int32Rect>> regions;
+    private List<Int32Rect> candidates = [];
+    private int candidateIndex;
+    private Int32Rect selectedArea;
 
     internal BitmapSource? Result { get; private set; }
 
-    internal ScreenCaptureWindow(DesktopSnapshot snapshot)
+    internal ScreenCaptureWindow(DesktopSnapshot snapshot, IReadOnlyDictionary<int, IReadOnlyList<Int32Rect>> regions)
     {
         this.snapshot = snapshot;
+        this.regions = regions;
         monitor = snapshot.MonitorAt(DesktopSnapshot.CursorPosition());
         InitializeComponent();
         FrozenDesktop.Source = snapshot.Bitmap;
+        Loaded += (_, _) =>
+        {
+            Activate();
+            SelectionSurface.Focus();
+            Keyboard.Focus(SelectionSurface);
+        };
+    }
+
+    internal void UpdateDetectedAreas(DesktopSnapshot detectedSnapshot, IReadOnlyDictionary<int, IReadOnlyList<Int32Rect>> detectedRegions)
+    {
+        if (!IsVisible) return;
+        snapshot = detectedSnapshot;
+        regions = detectedRegions;
+        if (dragStart is null && Surface.ActualWidth > 0 && Surface.ActualHeight > 0)
+            UpdateCandidates(DesktopSnapshot.CursorPosition());
     }
 
     protected override void OnSourceInitialized(EventArgs e)
@@ -38,7 +58,7 @@ public partial class ScreenCaptureWindow : Window
         }
 
         PlaceToolbar();
-        ShowSelection(WindowAt(DesktopSnapshot.CursorPosition()));
+        UpdateCandidates(DesktopSnapshot.CursorPosition());
     }
 
     private void PlaceToolbar()
@@ -58,18 +78,53 @@ public partial class ScreenCaptureWindow : Window
         rect.Width * Surface.ActualWidth / snapshot.Bounds.Width,
         rect.Height * Surface.ActualHeight / snapshot.Bounds.Height);
 
-    private Int32Rect WindowAt(Point point)
+    private void UpdateCandidates(Point point)
     {
-        foreach (Int32Rect candidate in snapshot.Windows)
+        var next = new List<Int32Rect>();
+        for (int i = 0; i < snapshot.Windows.Count; i++)
         {
-            if (point.X >= candidate.X && point.X < candidate.X + candidate.Width &&
-                point.Y >= candidate.Y && point.Y < candidate.Y + candidate.Height)
-            {
-                return candidate;
-            }
+            Int32Rect window = snapshot.Windows[i];
+            if (!Contains(window, point)) continue;
+            if (regions.TryGetValue(i, out var areas))
+                next.AddRange(areas.Where(area => Contains(area, point)));
+            next.Add(window);
+            break; // Only the frontmost window under the pointer.
         }
+        next = next.Distinct().OrderBy(area => (long)area.Width * area.Height).ToList();
+        if (!next.SequenceEqual(candidates)) candidateIndex = 0;
+        candidates = next;
+        selectedArea = candidates.Count == 0 ? Int32Rect.Empty : candidates[candidateIndex];
+        ShowSelection(selectedArea);
+    }
 
-        return Int32Rect.Empty;
+    private static bool Contains(Int32Rect area, Point point) =>
+        point.X >= area.X && point.X < area.X + area.Width &&
+        point.Y >= area.Y && point.Y < area.Y + area.Height;
+
+    private void Selection_MouseWheel(object sender, MouseWheelEventArgs e)
+    {
+        if (dragStart is not null || candidates.Count == 0) return;
+        candidateIndex = (candidateIndex + (e.Delta < 0 ? 1 : -1) + candidates.Count) % candidates.Count;
+        selectedArea = candidates[candidateIndex];
+        ShowSelection(selectedArea);
+        e.Handled = true;
+    }
+
+    private void Selection_MouseLeave(object sender, MouseEventArgs e)
+    {
+        if (dragStart is not null) return;
+        HorizontalGuide.Visibility = VerticalGuide.Visibility = Visibility.Collapsed;
+    }
+
+    private void UpdateGuides(Point point)
+    {
+        HorizontalGuide.X1 = 0;
+        HorizontalGuide.X2 = Surface.ActualWidth;
+        HorizontalGuide.Y1 = HorizontalGuide.Y2 = point.Y;
+        VerticalGuide.Y1 = 0;
+        VerticalGuide.Y2 = Surface.ActualHeight;
+        VerticalGuide.X1 = VerticalGuide.X2 = point.X;
+        HorizontalGuide.Visibility = VerticalGuide.Visibility = Visibility.Visible;
     }
 
     private void ShowSelection(Int32Rect selected)
@@ -89,6 +144,7 @@ public partial class ScreenCaptureWindow : Window
 
     private void Selection_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
+        Keyboard.Focus(SelectionSurface);
         if (SelectionSurface.CaptureMouse())
         {
             dragStart = e.GetPosition(Surface);
@@ -100,6 +156,7 @@ public partial class ScreenCaptureWindow : Window
     private void Selection_MouseMove(object sender, MouseEventArgs e)
     {
         Point point = e.GetPosition(Surface);
+        UpdateGuides(point);
         Point screenPoint = ToScreenPixels(point);
         if (dragStart is { } start)
         {
@@ -108,6 +165,7 @@ public partial class ScreenCaptureWindow : Window
                               Math.Abs(movement.Y) >= SystemParameters.MinimumVerticalDragDistance;
             if (draggingRegion)
             {
+                Toolbar.Visibility = Visibility.Hidden;
                 ShowSelection(RegionBetween(start, point));
                 return;
             }
@@ -120,7 +178,7 @@ public partial class ScreenCaptureWindow : Window
             PlaceToolbar();
         }
 
-        ShowSelection(WindowAt(screenPoint));
+        UpdateCandidates(screenPoint);
     }
 
     private Int32Rect RegionBetween(Point start, Point end)
@@ -142,7 +200,7 @@ public partial class ScreenCaptureWindow : Window
         }
 
         Point point = e.GetPosition(Surface);
-        Int32Rect area = draggingRegion ? RegionBetween(start, point) : WindowAt(ToScreenPixels(point));
+        Int32Rect area = draggingRegion ? RegionBetween(start, point) : selectedArea;
         SelectionSurface.ReleaseMouseCapture();
         Complete(area);
         e.Handled = true;
@@ -152,6 +210,7 @@ public partial class ScreenCaptureWindow : Window
     {
         dragStart = null;
         draggingRegion = false;
+        Toolbar.Visibility = Visibility.Visible;
     }
 
     private void Complete(Int32Rect area)
@@ -169,8 +228,19 @@ public partial class ScreenCaptureWindow : Window
     {
         if (e.Key == Key.Escape)
         {
-            DialogResult = false;
             e.Handled = true;
+            if (dragStart is not null)
+            {
+                dragStart = null;
+                draggingRegion = false;
+                SelectionSurface.ReleaseMouseCapture();
+                Toolbar.Visibility = Visibility.Visible;
+                selectedArea = Int32Rect.Empty;
+                ShowSelection(selectedArea);
+                Keyboard.Focus(SelectionSurface);
+                return;
+            }
+            DialogResult = false;
         }
     }
 }

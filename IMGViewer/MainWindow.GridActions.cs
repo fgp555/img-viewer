@@ -1,4 +1,4 @@
-﻿using System.Collections.Specialized;
+using System.Collections.Specialized;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows;
@@ -29,6 +29,7 @@ public partial class MainWindow
             var files = new StringCollection();
             files.AddRange(paths);
             Clipboard.SetFileDropList(files);
+            MinimizeAfterSuccessfulCopy();
             SetGridStatus($"{paths.Length} archivo(s) copiado(s). Usa Ctrl + V en el Explorador.");
         }
         catch (Exception ex) when (ex is ExternalException or ArgumentException)
@@ -48,7 +49,7 @@ public partial class MainWindow
         }
 
         if (paths.Length > 1 &&
-            MessageBox.Show(this, $"¿Enviar {paths.Length} imágenes a la Papelera?", "IMG Viewer",
+            ViewerDialog.Show(this, $"¿Enviar {paths.Length} imágenes a la Papelera?", "IMG Viewer",
                 MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) != MessageBoxResult.Yes)
         {
             return;
@@ -60,7 +61,7 @@ public partial class MainWindow
         {
             try
             {
-                lastRecycledPhoto = RecycledPhoto.Recycle(path, owner);
+                recycledPhotos.Push(RecycledPhoto.Recycle(path, owner));
                 removed.Add(path);
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or COMException or OperationCanceledException)
@@ -72,6 +73,7 @@ public partial class MainWindow
         if (removed.Count > 0)
         {
             RefreshViewerAfterRecycling(removed);
+            ShowRecycleNotice();
             LoadFolderGrid(GridFolderPath.Text);
         }
 
@@ -105,6 +107,7 @@ public partial class MainWindow
 
         ImageResizeRequest request = editor.Request;
         gridBatchInProgress = true;
+        UpdateToolbarActions();
         GridActions.IsEnabled = false;
         GridScrollArea.IsEnabled = false;
         SetGridStatus("Redimensionando imágenes…");
@@ -132,6 +135,7 @@ public partial class MainWindow
         finally
         {
             gridBatchInProgress = false;
+            UpdateToolbarActions();
             GridScrollArea.IsEnabled = true;
             GridActions.IsEnabled = true;
         }
@@ -143,6 +147,11 @@ public partial class MainWindow
         {
             try
             {
+                if (IsSvg(path) || IsWebP(path))
+                {
+                    BitmapSource svg = ReadPhotoBitmap(path);
+                    return (svg.PixelWidth, svg.PixelHeight);
+                }
                 using var stream = File.OpenRead(path);
                 BitmapFrame frame = BitmapDecoder.Create(stream, BitmapCreateOptions.DelayCreation, BitmapCacheOption.None).Frames[0];
                 return (frame.PixelWidth, frame.PixelHeight);
@@ -177,7 +186,7 @@ public partial class MainWindow
 
                 BitmapSource result = ResizeBitmap(image, width, height);
                 string folder = Path.GetDirectoryName(path)!;
-                string name = $"{Path.GetFileNameWithoutExtension(path)}-{width}x{height}{Path.GetExtension(path)}";
+                string name = $"{Path.GetFileNameWithoutExtension(path)}-{width}x{height}{(IsSvg(path) ? ".png" : Path.GetExtension(path))}";
                 WriteUniquePhoto(result, folder, name);
                 saved++;
             }

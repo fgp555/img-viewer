@@ -19,12 +19,16 @@ public partial class MainWindow
     protected override void OnSourceInitialized(EventArgs e)
     {
         base.OnSourceInitialized(e);
+        RestoreStartupPlacement();
         nint handle = new WindowInteropHelper(this).Handle;
         const uint noRepeat = 0x4000;
-        const uint printScreen = 0x2C;
+
         windowSource = HwndSource.FromHwnd(handle);
         windowSource.AddHook(WindowMessageHook);
-        captureHotkeyRegistered = RegisterHotKey(handle, ScreenCaptureHotkey, noRepeat, printScreen);
+        UpdateNativeWindowFrame();
+        captureHotkey = CaptureShortcut.Load();
+        captureHotkeyRegistered = RegisterHotKey(handle, ScreenCaptureHotkey, noRepeat | captureHotkey.Modifiers, captureHotkey.VirtualKey);
+        UpdateCaptureShortcutLabels();
         const uint control = 0x0002;
         const uint f12 = 0x7B;
         topmostHotkeyRegistered = RegisterHotKey(handle, AlwaysOnTopHotkey, noRepeat | control, f12);
@@ -34,7 +38,7 @@ public partial class MainWindow
         }
         if (!captureHotkeyRegistered)
         {
-            string message = "Impr Pant no está disponible como atajo global.";
+            string message = $"{captureHotkey.Label} no está disponible. Cambia el atajo en Configuración > Capturas.";
             StatusText.Text = topmostHotkeyRegistered ? message : $"{StatusText.Text} {message}";
         }
     }
@@ -47,6 +51,7 @@ public partial class MainWindow
             return;
         }
 
+        SaveStartupPlacement();
         if (Application.Current is App app && app.TryHideViewer(this))
         {
             e.Cancel = true;
@@ -80,6 +85,12 @@ public partial class MainWindow
 
     private nint WindowMessageHook(nint window, int message, nint id, nint data, ref bool handled)
     {
+        if (message == 0x0024 && SetWorkspaceMaximizedBounds(window, data))
+        {
+            handled = true;
+            return 0;
+        }
+
         if (message == SizingMessage && TryResizeToPhoto(id, data))
         {
             handled = true;
@@ -89,7 +100,7 @@ public partial class MainWindow
         if (message == HotkeyMessage && id == ScreenCaptureHotkey)
         {
             handled = true;
-            Dispatcher.InvokeAsync(CaptureScreen);
+            Dispatcher.InvokeAsync(CaptureScreen, System.Windows.Threading.DispatcherPriority.Send);
         }
         else if (message == HotkeyMessage && id == AlwaysOnTopHotkey)
         {
@@ -109,14 +120,43 @@ public partial class MainWindow
         }
 
         captureInProgress = true;
+        bool restoreViewer = IsVisible;
+        WindowState previousState = WindowState;
+        bool captureCompleted = false;
         try
         {
-            DateTime timestamp = DateTime.Now;
-            DesktopSnapshot snapshot = DesktopSnapshot.Capture();
             SetSlideShowPlaying(false);
-            var selector = new ScreenCaptureWindow(snapshot);
+            if (IsVisible)
+            {
+                Hide();
+                // Give the desktop compositor time to present the windows behind the viewer.
+                DwmFlush();
+            }
+            DateTime timestamp = DateTime.Now;
+            var elapsed = System.Diagnostics.Stopwatch.StartNew();
+            DesktopSnapshot snapshot = DesktopSnapshot.Capture();
+            System.Diagnostics.Debug.WriteLine($"IMGViewer: píxeles capturados en {elapsed.ElapsedMilliseconds} ms");
+            var selector = new ScreenCaptureWindow(snapshot, new Dictionary<int, IReadOnlyList<Int32Rect>>());
+            selector.ContentRendered += (_, _) => System.Diagnostics.Debug.WriteLine($"IMGViewer: selector mostrado en {elapsed.ElapsedMilliseconds} ms");
+            selector.Loaded += async (_, _) =>
+            {
+                try
+                {
+                    // Use original HWNDs, never hit-test the overlay. Pixels are already frozen.
+                    var detected = await System.Threading.Tasks.Task.Run(snapshot.WithWindowBounds);
+                    if (!selector.IsVisible) return;
+                    selector.UpdateDetectedAreas(detected, new Dictionary<int, IReadOnlyList<Int32Rect>>());
+                    var areas = await CaptureAreaDetector.DetectAsync(detected);
+                    if (selector.IsVisible) selector.UpdateDetectedAreas(detected, areas);
+                }
+                catch (Exception ex) when (ex is Win32Exception or ExternalException or InvalidOperationException or ArgumentException)
+                {
+                    System.Diagnostics.Debug.WriteLine($"IMGViewer: detección de áreas no disponible: {ex.Message}");
+                }
+            };
             if (selector.ShowDialog() == true && selector.Result is { } bitmap)
             {
+                captureCompleted = true;
                 SaveAndOpenCapture(bitmap, timestamp);
                 if (ViewerPreferences.CopyCapturesToClipboard)
                 {
@@ -145,15 +185,37 @@ public partial class MainWindow
         }
         finally
         {
+            if (restoreViewer && !captureCompleted)
+            {
+                WindowState = previousState;
+                Show();
+                if (previousState != WindowState.Minimized) Activate();
+            }
+            else if (captureCompleted && Application.Current is not App)
+            {
+                Show();
+                Activate();
+            }
             captureInProgress = false;
         }
     }
+
+    [DllImport("dwmapi.dll")]
+    private static extern int DwmFlush();
 
     private void CaptureSettingsButton_Click(object sender, RoutedEventArgs e)
     {
         SetSlideShowPlaying(false);
         var settings = new CaptureSettingsWindow { Owner = this };
         settings.ShowDialog();
+        UpdateCaptureDestination();
+        gallerySignature = null;
+        RefreshGallery(true);
+        if (CurrentGridImage is { } current)
+        {
+            folderImages = GetFolderImages(current);
+            currentIndex = Array.FindIndex(folderImages, path => StringComparer.OrdinalIgnoreCase.Equals(path, current));
+        }
         if (IsFolderGridOpen)
         {
             LoadFolderGrid();
@@ -162,7 +224,14 @@ public partial class MainWindow
 
     private void SaveAndOpenCapture(BitmapSource bitmap, DateTime timestamp)
     {
-        try
+        RememberActiveCapture();
+        activeCapture = null;
+        captureExportPath = null;
+        if (!CapturePreferences.AutoSave)
+        {
+            OpenCapture(bitmap);
+        }
+        else try
         {
             string path = SaveCaptureFile(bitmap, CapturePreferences.CaptureFolder, timestamp);
             OpenImage(path);
@@ -179,7 +248,21 @@ public partial class MainWindow
             StatusText.Text = "No se pudo guardar la captura automáticamente. Usa Ctrl + S para elegir una ubicación.";
         }
 
-        ShowCaptureFrame();
+        AddCaptureToHistory(timestamp);
+        UpdateCaptureDestination();
+        HideCaptureFrame();
+        viewerBackgroundMode = 1;
+        PhotoViewport.Background = (System.Windows.Media.Brush)FindResource("TransparencyBackground");
+        SetZenMode(false);
+        toolsOpen = true;
+        ArrowFormPicker.SelectedIndex = 1;
+        MarkerWidthSlider.Value = 30;
+        ArrowTool.IsChecked = true;
+        activeMarkerTool = MarkerKind.Arrow;
+        panTool = false;
+        if (Width < 560 && WindowState == WindowState.Normal) Width = 760;
+        ApplyWorkspaceLayout();
+        EnableInlineCrop();
     }
 
     private static string SaveCaptureFile(BitmapSource bitmap, string folder, DateTime timestamp)
@@ -214,6 +297,8 @@ public partial class MainWindow
 
     private void OpenCapture(BitmapSource bitmap)
     {
+        imageOpenVersion++;
+        deferImageDetails = false;
         folderImages = [];
         currentIndex = -1;
         ClearMarkers();

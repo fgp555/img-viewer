@@ -21,15 +21,23 @@ public partial class MainWindow
 
     private void GridLayoutButton_Click(object sender, RoutedEventArgs e)
     {
+        StopGridSelectionScroll();
         double offset = ActiveGridScroller?.VerticalOffset ?? 0;
         masonryMode = !masonryMode;
         UpdateGridLayout();
-        ActiveGridScroller?.ScrollToVerticalOffset(offset);
+        Dispatcher.InvokeAsync(() =>
+        {
+            if (!IsFolderGridOpen) return;
+            UpdateGridThumbnailSize(loadedGridColumns > 0 ? loadedGridColumns : ViewerPreferences.GridColumns);
+            GridRows.UpdateLayout();
+            if (ActiveGridScroller is { } scroller)
+                scroller.ScrollToVerticalOffset(Math.Min(offset, scroller.ScrollableHeight));
+        }, System.Windows.Threading.DispatcherPriority.Loaded);
     }
 
     private void UpdateGridLayout()
     {
-        GridLayoutIcon.Data = (System.Windows.Media.Geometry)FindResource(masonryMode ? "SquareLayoutIcon" : "MasonryLayoutIcon");
+        GridLayoutIcon.Text = masonryMode ? "\uF0E2" : "\uECA5";
         string label = masonryMode ? "Cambiar a cuadrado" : "Cambiar a Masonry";
         GridLayoutButton.ToolTip = label;
         AutomationProperties.SetName(GridLayoutButton, label);
@@ -43,6 +51,8 @@ public partial class MainWindow
         else
         {
             ClearMasonryVisuals();
+            UpdateGridThumbnailSize(loadedGridColumns > 0 ? loadedGridColumns : ViewerPreferences.GridColumns);
+            GridRows.InvalidateMeasure();
         }
     }
 
@@ -179,6 +189,7 @@ public partial class MainWindow
 
     private void GridScrollArea_MouseDown(object sender, MouseButtonEventArgs e)
     {
+        StopGridSelectionScroll();
         if (e.StylusDevice is null && ActiveGridScroller is { } scroller)
         {
             gridDragStart = e.GetPosition(GridScrollArea);
