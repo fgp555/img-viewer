@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using IMGViewer.Services.Updates;
+using System.IO;
 using System.Windows;
 using System.Windows.Interop;
 using Forms = System.Windows.Forms;
@@ -9,6 +10,8 @@ namespace IMGViewer;
 public partial class App : Application
 {
     internal const string BackgroundArgument = "--tray";
+    private UpdateCoordinator? updates;
+    internal UpdateCoordinator Updates => updates ??= new();
     private ViewerInstance? instance;
     private IdleCursor? idleCursor;
     private Forms.NotifyIcon? tray;
@@ -17,9 +20,24 @@ public partial class App : Application
     private bool exitRequested;
     private bool trayTipShown;
 
-    protected override void OnStartup(StartupEventArgs e)
+    protected override async void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+        if (e.Args.Length > 0 && e.Args[0] == "--apply-update")
+        {
+            ShutdownMode = ShutdownMode.OnExplicitShutdown;
+            try
+            {
+                if (e.Args.Length != 2) throw new InvalidOperationException("Solicitud de actualización incompleta.");
+                await UpdateInstaller.Apply(e.Args[1]); Shutdown(0);
+            }
+            catch (Exception error)
+            {
+                ViewerDialog.Show("No se pudo completar la actualización. La versión anterior se conserva cuando es posible.\n\n" + error.Message, "IMG Viewer · Actualización");
+                Shutdown(1);
+            }
+            return;
+        }
         bool startInTray = e.Args.Length > 0 && e.Args[0] == BackgroundArgument;
         string path = !startInTray && e.Args.Length > 0 ? e.Args[0] : string.Empty;
         if (!string.IsNullOrEmpty(path))
@@ -46,7 +64,7 @@ public partial class App : Application
         if (!startInTray)
         {
             ShowViewer(path);
-            Dispatcher.InvokeAsync(() => InitializeBackgroundServices(window), System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+            _ = Dispatcher.InvokeAsync(() => InitializeBackgroundServices(window), System.Windows.Threading.DispatcherPriority.ApplicationIdle);
         }
         else InitializeBackgroundServices(window);
     }
@@ -55,6 +73,11 @@ public partial class App : Application
     {
         if (exitRequested) return;
         CreateTray(window);
+        window.BindUpdates(Updates);
+        if (Updates.Enabled) Dispatcher.InvokeAsync(async () => {
+            await Task.Run(UpdateInstaller.CleanupOldJobs);
+            if (!exitRequested) await Updates.Check();
+        }, System.Windows.Threading.DispatcherPriority.ApplicationIdle);
         nint handle = new WindowInteropHelper(window).EnsureHandle();
         idleCursor = new IdleCursor(HwndSource.FromHwnd(handle));
         Activated += (_, _) => idleCursor?.ResetLocal();
@@ -192,6 +215,7 @@ public partial class App : Application
     protected override void OnExit(ExitEventArgs e)
     {
         exitRequested = true;
+        updates?.Dispose();
         idleCursor?.Dispose();
         tray?.Dispose();
         trayMenu?.Dispose();

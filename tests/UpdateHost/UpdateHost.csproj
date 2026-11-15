@@ -1,0 +1,1 @@
+<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable><AssemblyName>IMGViewer</AssemblyName><Version>2026.11.1</Version><Product>IMGViewer updater test host</Product></PropertyGroup></Project>

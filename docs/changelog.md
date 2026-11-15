@@ -556,3 +556,64 @@ Añadir cada cambio visible para el usuario con su fecha, el comportamiento y el
 
 ### Icono de cuadrícula de fondo
 - Se usa GridViewSmall (F232) para diferenciar el fondo cuadriculado de la vista de galería.
+
+
+### Actualizaciones desde R2
+- Adaptado el actualizador de Call WPF: consulta, descarga verificada, progreso, reemplazo con respaldo y reinicio explícito.
+- Actualización de la edición Light single-file publicada; controles en Acerca de y aviso de versión en la barra.
+- Se conservan los archivos personales my-*; documentación y script de publicación corregidos para IMG Viewer, con manifiestos generados por edición. No se suben archivos a R2 automáticamente.
+- Manifiesto reutilizable latest.json para la única edición Light distribuida.
+- Rutas confirmadas: https://cdn.frankgp.com/img-viewer/latest.json y https://cdn.frankgp.com/img-viewer/IMGViewer.exe.
+- Publicación simplificada a Light únicamente: IMGViewer.exe y latest.json, sin sufijos de edición. Se excluye Full del actualizador para no cambiar su dependencia de runtime.
+
+
+### Comandos npm de publicación
+- npm run build genera Light y latest.json; npm run deploy valida y sube el par a R2 leyendo .env sin exponer credenciales.
+- Dry-run y pruebas con red simulada; subida del EXE antes del manifiesto y sin dependencias npm externas.
+
+
+### Build local y deploy automatico
+- Build solo compila para pruebas locales. Deploy consulta latest.json remoto, incrementa patch, empaqueta, genera hash/notas y publica EXE antes de JSON.
+- Notas predeterminadas: Mejoras y correcciones. Se retira la denominacion de edicion de los textos, scripts y documentacion.
+
+
+### Modulo release reutilizable
+- Publicacion centralizada en release/: configuracion, build, deploy, pruebas, documentacion y output ignorado por Git. Se conservan notas y archivos previos.
+- Rutas nuevas: /img-viewer/downloads/IMGViewer.exe y /img-viewer/downloads/latest.json. Bootstrap opcional del manifiesto anterior solo si la ruta nueva responde 404.
+- Configuracion central por proyecto sin rutas de producto en la logica de empaquetado/subida. Instalaciones antiguas necesitan version puente o instalacion manual para adoptar el nuevo feed.
+
+
+### Consulta de version publicada
+- npm run show muestra version remota, notas, descarga y SHA-256 sin credenciales ni modificaciones. Indica si se uso el manifiesto previo durante la migracion.
+
+
+### Build para probar la distribucion
+- npm run build reutiliza el mismo empaquetado de deploy y genera el EXE single-file en release/output, con la version local del csproj. No incrementa version ni publica.
+
+
+### Version 1.0.1
+- Numeracion inicial cambiada de 2026.11.1 a 1.0.1. Deploy incorpora migracion explicita desde la version remota anterior y continua incrementando patch tras ella.
+- Se conserva la comparacion de versiones del actualizador; instalaciones 2026.x requieren reinstalacion manual.
+
+
+### Primer deploy sin manifiesto
+- HTTP 404 permite publicar la version local del csproj sin incremento. Otros errores siguen deteniendo el deploy. La comprobacion previa al upload detecta publicaciones concurrentes y desaparicion del manifiesto.
+- npm run show informa cuando aun no existe una publicacion.
+
+
+### Limpieza del modulo release
+- Eliminadas URL fallback, bootstrap y migraciones de version, junto con sus pruebas y ejemplos heredados. Solo se consulta el feed configurado.
+- Documentacion reutilizable reescrita; notas personales y generador de icono preservados fuera del modulo, en docs/archive/release-notes.
+
+
+### Scripts del modulo release
+- Scripts agrupados en release/scripts; configuracion, README y output permanecen en la raiz del modulo. Comandos npm y resolucion de rutas actualizados.
+
+
+### Credenciales del modulo release
+- .env movido a release/.env sin modificar sus valores. Deploy lo lee desde la raiz del modulo; .env.example sin secretos y exclusiones de Git incluidas para reutilizar la carpeta.
+
+
+### Inicializador WPF reutilizable
+- npm run wpf:init detecta csproj WPF/AssemblyName, actualiza scripts npm y configuracion sin eliminar comandos ajenos. --project resuelve multiples proyectos.
+- PROJECT y STORAGE_PUBLIC_URL en release/.env generan nombre EXE, URLs downloads y prefijo R2; se preservan credenciales y URL existente.

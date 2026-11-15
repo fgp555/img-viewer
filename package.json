@@ -1,0 +1,15 @@
+{
+  "scripts": {
+    "build": "node release/scripts/build.mjs",
+    "deploy": "node release/scripts/deploy.mjs",
+    "test:deploy": "node --test release/scripts/*.test.mjs",
+    "show": "node release/scripts/show.mjs",
+    "wpf:init": "node release/scripts/init.mjs"
+  },
+  "name": "img-viewer",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  }
+}

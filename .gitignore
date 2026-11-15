@@ -9,3 +9,11 @@
 [Bb]in/
 [Oo]bj/
 [Tt]est[Rr]esults/
+
+# PublicaciÃ³n y manifiestos generados
+release/output/
+
+.env
+node_modules/
+.env.*
+!.env.example

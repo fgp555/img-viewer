@@ -8,7 +8,7 @@
     <UseWPF>true</UseWPF>
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
     <UseWindowsForms>true</UseWindowsForms>
-    <Version>2026.11.1</Version>
+    <Version>1.0.1</Version>
     <ApplicationIcon>Foto-en-foco.ico</ApplicationIcon>
   </PropertyGroup>
 
@@ -16,6 +16,8 @@
     <Using Remove="System.Windows.Forms" />
     <Using Remove="System.Drawing" />
     <Resource Include="Foto-en-foco.ico" />
+    <AssemblyMetadata Include="SingleFileUpdate" Value="$(PublishSingleFile)" />
+    <AssemblyMetadata Include="SelfContainedPackage" Value="$(SelfContained)" />
   </ItemGroup>
 
   <ItemGroup>

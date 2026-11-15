@@ -11,6 +11,8 @@ public partial class CaptureSettingsWindow : Window
     public CaptureSettingsWindow()
     {
         InitializeComponent();
+        UpdateOptions.DataContext = (Application.Current as App)?.Updates;
+        UpdateAvailabilityNote.Visibility = (Application.Current as App)?.Updates.Enabled == true ? Visibility.Collapsed : Visibility.Visible;
         Loaded += (_,_) =>
         {
             if (Owner is MainWindow viewer)
