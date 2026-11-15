@@ -541,3 +541,18 @@ Añadir cada cambio visible para el usuario con su fecha, el comportamiento y el
 ### Atajo para flecha curva
 - Ctrl + Shift + arrastre izquierdo crea una flecha curva directamente y conserva el tirador de curvatura al terminar. La forma queda fijada al iniciar el gesto, aunque se suelten los modificadores antes del mouse.
 - Alt + arrastrar mantiene la forma elegida en el selector, que no se modifica por el atajo temporal. Tooltip y panel de atajos actualizados.
+
+
+### Icono de cambio de fondo
+- Se reemplaza el cuadrado vacío por un icono dinámico de la misma familia: cuadrícula para pasar al damero y círculo sólido para volver al fondo sólido.
+- Tooltip, nombre accesible y menú describen la siguiente acción e incluyen el atajo T; estado sincronizado tras capturar.
+
+
+### Escape por modo
+- En zen, Escape restaura el modo normal sin minimizar.
+- En modo normal, dos pulsaciones de Escape en un máximo de 500 ms minimizan a la barra de tareas; se ignora la repetición por mantener la tecla pulsada.
+- Cancelar una edición, un recorte o salir de pantalla completa no cuenta como la primera pulsación para minimizar. Otra tecla, clic o pérdida de foco reinicia la secuencia. Ayuda de atajos actualizada.
+
+
+### Icono de cuadrícula de fondo
+- Se usa GridViewSmall (F232) para diferenciar el fondo cuadriculado de la vista de galería.

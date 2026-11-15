@@ -251,7 +251,7 @@
                     <MenuItem Header="Cuadrícula / imagen" Tag="grid" InputGestureText="G" Click="WorkspaceAction_Click"/>
                     <MenuItem Header="Pantalla completa" Tag="fullscreen" Click="WorkspaceAction_Click"/>
                     <MenuItem Header="Modo zen" Tag="zen" IsCheckable="True" InputGestureText="Tab" Click="WorkspaceAction_Click"/>
-                    <MenuItem Header="Cambiar fondo" Tag="background" InputGestureText="T" Click="WorkspaceAction_Click"/>
+                    <MenuItem x:Name="BackgroundMenuItem" Header="Cambiar a cuadrícula" Tag="background" InputGestureText="T" Click="WorkspaceAction_Click"/>
                     <Separator/><MenuItem Header="Configuración…" Tag="settings" Click="WorkspaceAction_Click"/>
                 </MenuItem>
                 <MenuItem Header="A_yuda">
@@ -303,7 +303,7 @@
                     <TextBlock Style="{StaticResource FluentIcon}" Text="&#xE7A8;"/>
                 </Button>
                 
-                <Button Style="{StaticResource FloatingButton}" ToolTip="Cambiar fondo: sólido / cuadrícula · T" AutomationProperties.Name="Cambiar fondo" Tag="background" Click="WorkspaceAction_Click"><TextBlock Style="{StaticResource FluentIcon}" Text="&#xE739;"/></Button>
+                <Button x:Name="BackgroundToggleButton" Style="{StaticResource FloatingButton}" ToolTip="Cambiar a cuadrícula · T" AutomationProperties.Name="Cambiar a cuadrícula" Tag="background" Click="WorkspaceAction_Click"><TextBlock x:Name="BackgroundToggleIcon" Style="{StaticResource FluentIcon}" Text="&#xF232;"/></Button>
                 <Button Style="{StaticResource FloatingButton}" ToolTip="Pantalla completa" AutomationProperties.Name="Pantalla completa" Tag="fullscreen" Click="WorkspaceAction_Click"><TextBlock Style="{StaticResource FluentIcon}" Text="&#xE740;"/></Button>
                 <Button Style="{StaticResource FloatingButton}" ToolTip="Modo zen · Tab" AutomationProperties.Name="Modo zen" Tag="zen" Click="WorkspaceAction_Click"><TextBlock Style="{StaticResource FluentIcon}" Text="&#xE890;"/></Button>
                 <Button Style="{StaticResource FloatingButton}" ToolTip="Todas las acciones y atajos" AutomationProperties.Name="Todas las acciones y atajos" Tag="shortcuts" Click="WorkspaceAction_Click"><TextBlock Style="{StaticResource FluentIcon}" Text="&#xE712;"/></Button>

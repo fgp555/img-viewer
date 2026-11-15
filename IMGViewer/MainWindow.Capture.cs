@@ -252,6 +252,7 @@ public partial class MainWindow
         UpdateCaptureDestination();
         HideCaptureFrame();
         viewerBackgroundMode = 1;
+        UpdateBackgroundToggle();
         PhotoViewport.Background = (System.Windows.Media.Brush)FindResource("TransparencyBackground");
         SetZenMode(false);
         toolsOpen = true;

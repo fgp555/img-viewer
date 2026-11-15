@@ -230,6 +230,7 @@ public partial class MainWindow : Window
     protected override void OnPreviewMouseDown(MouseButtonEventArgs e)
     {
         base.OnPreviewMouseDown(e);
+        lastMinimizeEscape = 0;
         if (CurveHandle.IsMouseOver || (InlineCropCanvas.IsVisible && GalleryAncestor<System.Windows.Controls.Primitives.Thumb>(e.OriginalSource as DependencyObject) is not null)) return;
         if (e.ChangedButton == MouseButton.Left && !IsFolderGridOpen && IsViewerSurface(e)) Keyboard.Focus(this);
         viewerPressStart = null;
@@ -545,13 +546,16 @@ public partial class MainWindow : Window
 
     private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
     {
-        if (HandleInlineCropKey(e)) return;
-        if (HandleGalleryInteractionKey(e)) return;
-        if (HandleWorkspaceKey(e)) return;
+        if (e.Key != Key.Escape) lastMinimizeEscape = 0;
+        if (TryExitZenWithEscape(e)) return;
+        if (HandleInlineCropKey(e)) { lastMinimizeEscape = 0; return; }
+        if (HandleGalleryInteractionKey(e)) { lastMinimizeEscape = 0; return; }
+        if (HandleWorkspaceKey(e)) { lastMinimizeEscape = 0; return; }
         if (markerDrag.HasValue)
         {
             if (e.Key == Key.Escape)
             {
+                lastMinimizeEscape = 0;
                 ReleaseMouseCapture();
             }
 
@@ -577,6 +581,24 @@ public partial class MainWindow : Window
             return;
         }
 
+        if (e.Key == Key.Escape && Keyboard.Modifiers == ModifierKeys.None)
+        {
+            e.Handled = true;
+            if (e.IsRepeat) return;
+            if (!IsFolderGridOpen && HasPendingChanges)
+            {
+                lastMinimizeEscape = 0;
+                DiscardPendingChanges();
+            }
+            else if (windowedMode.HasValue)
+            {
+                lastMinimizeEscape = 0;
+                ToggleFullScreen();
+            }
+            else MinimizeOnDoubleEscape();
+            return;
+        }
+
         if (IsFolderGridOpen)
         {
             HandleGridKey(e);
@@ -588,28 +610,6 @@ public partial class MainWindow : Window
             if (!e.IsRepeat)
             {
                 UndoMarker();
-            }
-
-            e.Handled = true;
-            return;
-        }
-
-        if (e.Key == Key.Escape)
-        {
-            if (!e.IsRepeat)
-            {
-                if (HasPendingChanges)
-                {
-                    DiscardPendingChanges();
-                }
-                else if (windowedMode.HasValue)
-                {
-                    ToggleFullScreen();
-                }
-                else
-                {
-                    Close();
-                }
             }
 
             e.Handled = true;

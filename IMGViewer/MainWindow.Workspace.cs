@@ -36,6 +36,7 @@ public partial class MainWindow
         if (settings?.GetValue("ToolsWidth") is int right) toolsWidth = Math.Clamp(right, 170, 360);
         gallerySearchTimer.Tick += (_, _) => { gallerySearchTimer.Stop(); RefreshGallery(true); };
         StateChanged += (_, _) => { UpdateCaptionIcon(); UpdateNativeWindowFrame(); };
+        Deactivated += (_, _) => lastMinimizeEscape = 0;
         LoadGalleryFolders();
         Loaded += (_, _) => UpdateMarkerColorChecks();
         Loaded += (_, _) => { ApplyWorkspaceLayout(); RefreshGallery(); };
@@ -264,6 +265,8 @@ public partial class MainWindow
             case "savecopy": SavePhoto(true); break;
             case "convert": if (IsFolderGridOpen) ConvertSelectedGridPhotos(); else SavePhoto(true); break;
             case "copy": CopyWorkspaceImage(); break;
+            case "minimize": WindowState = WindowState.Minimized; break;
+            case "normalmode": SetZenMode(false); break;
             case "close": Close(); break;
             case "exit": if (Application.Current is App app) app.ExitViewer(); break;
             case "clear": ClearWorkspaceImage(); break;

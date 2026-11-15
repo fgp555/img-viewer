@@ -21,9 +21,21 @@ public partial class MainWindow
         UpdateNativeWindowFrame();
     }
     private void Workspace_SizeChanged(object sender, SizeChangedEventArgs e) => Workspace.Clip = null;
+    private void UpdateBackgroundToggle()
+    {
+        if (BackgroundToggleIcon is null) return;
+        bool solid = viewerBackgroundMode == 0;
+        BackgroundToggleIcon.Text = solid ? "\uF232" : "\uEA3B";
+        string label = solid ? "Cambiar a cuadrícula" : "Cambiar a fondo sólido";
+        BackgroundToggleButton.ToolTip = label + " · T";
+        System.Windows.Automation.AutomationProperties.SetName(BackgroundToggleButton, label);
+        BackgroundMenuItem.Header = label;
+    }
+
     private void ToggleViewerBackground()
     {
         viewerBackgroundMode = 1 - viewerBackgroundMode;
+        UpdateBackgroundToggle();
         PhotoViewport.Background = (Brush)FindResource(viewerBackgroundMode == 0 ? "ViewerBackground" : "TransparencyBackground");
     }
     private void LoadGalleryFolders()
@@ -126,7 +138,9 @@ public partial class MainWindow
             new("Capturas y ventana", "\uE722", "fullscreen", "Pantalla completa", "Doble clic"),
             new("Capturas y ventana", "\uE722", "zen", "Modo zen", "Tab"),
             new("Capturas y ventana", "\uE722", "topmost", "Siempre visible", "Ctrl + F12"),
-            new("Capturas y ventana", "\uE722", "close", "Ocultar / cerrar sin cambios", "Esc"),
+            new("Capturas y ventana", "\uE722", "normalmode", "Salir del modo zen", "Esc"),
+            new("Capturas y ventana", "\uE722", "minimize", "Minimizar ventana", "Esc + Esc"),
+            new("Capturas y ventana", "\uE722", "close", "Ocultar / cerrar ventana", ""),
             new("Capturas y ventana", "\uE722", "exit", "Salir completamente", "Shift + cerrar"),
             new("Capturas y ventana", "\uE722", "settings", "Configuración", "")
         };
@@ -140,6 +154,7 @@ public partial class MainWindow
                 "rename" => currentIndex >= 0,
                 "previous" or "next" => currentIndex >= 0 && folderImages.Length > 1,
                 "save" or "savecopy" or "rotate" or "rotateback" or "scale50" or "scale100" or "scale150" or "zoomin" or "zoomout" or "cover" or "fit" or "pan" or "arrowtool" or "curvedarrowtool" or "rectangletool" or "freehandtool" or "texttool" or "blurtool" or "movetool" or "inlinecrop" or "crop" => image,
+                "normalmode" => zenMode,
                 "discard" => HasPendingChanges,
                 "undo" => markers.Count > 0 || recycledPhotos.Count > 0,
                 _ => true };
