@@ -44,6 +44,7 @@ public partial class MainWindow
         captureHistory.Insert(0, activeCapture);
         RememberActiveCapture();
         CaptureHistoryList.ItemsSource = captureHistory;
+        cloudView=false;
         historyView = true;
         galleryOpen = true;
         UpdateHistoryView();
@@ -121,17 +122,21 @@ public partial class MainWindow
     }
     private void GalleryMode_Click(object sender, RoutedEventArgs e)
     {
+        cloudView=false;
         historyView = ReferenceEquals(sender, GalleryCapturesTab);
         UpdateHistoryView();
+        if(!historyView)RefreshGallery();
     }
     private void UpdateHistoryView()
     {
         if (CaptureHistoryPanel is null) return;
-        GalleryFolderTab.Tag = historyView ? null : "active";
-        GalleryCapturesTab.Tag = historyView ? "active" : null;
-        CaptureHistoryPanel.Visibility = historyView ? Visibility.Visible : Visibility.Collapsed;
-        GalleryList.Visibility = historyView ? Visibility.Collapsed : Visibility.Visible;
-        GalleryFolderControls.Visibility = historyView ? Visibility.Collapsed : Visibility.Visible;
-        GalleryMessage.Visibility = historyView ? Visibility.Collapsed : Visibility.Visible;
+        GalleryCloudTab.Tag=cloudView?"active":null;
+        CloudPanel.Visibility=cloudView?Visibility.Visible:Visibility.Collapsed;
+        GalleryFolderTab.Tag = historyView || cloudView ? null : "active";
+        GalleryCapturesTab.Tag = historyView && !cloudView ? "active" : null;
+        CaptureHistoryPanel.Visibility = historyView && !cloudView ? Visibility.Visible : Visibility.Collapsed;
+        GalleryList.Visibility = historyView || cloudView ? Visibility.Collapsed : Visibility.Visible;
+        GalleryFolderControls.Visibility = historyView || cloudView ? Visibility.Collapsed : Visibility.Visible;
+        GalleryMessage.Visibility = historyView || cloudView ? Visibility.Collapsed : Visibility.Visible;
     }
 }

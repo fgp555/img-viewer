@@ -88,6 +88,7 @@ public partial class MainWindow : Window
 
         UpdateMetadataFooter();
         InitializeWorkspace();
+        InitializeCloud();
         draftSaveTimer.Tick+=(_,_)=>{draftSaveTimer.Stop();RememberActiveCapture();};
         slideShowTimer.Tick += SlideShowTimer_Tick;
         recycleNoticeTimer.Tick += (_, _) => HideRecycleNotice();
@@ -566,6 +567,7 @@ public partial class MainWindow : Window
         if (TryExitZenWithEscape(e)) return;
         if (HandleInlineCropKey(e)) { lastMinimizeEscape = 0; return; }
         if (HandleGalleryInteractionKey(e)) { lastMinimizeEscape = 0; return; }
+        if (HandleCloudKey(e)) { lastMinimizeEscape = 0; return; }
         if (HandleWorkspaceKey(e)) { lastMinimizeEscape = 0; return; }
         if (markerDrag.HasValue)
         {

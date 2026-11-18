@@ -240,10 +240,12 @@ public partial class MainWindow
             {
                 "save" or "savecopy" or "rotate" or "rotateback" or "crop" or "clear" => image,
                 "copy" or "resize" or "convert" or "delete" => IsFolderGridOpen ? SelectedGridPaths().Length > 0 : image,
+                "cloud" => cloudSettings.Enabled && !cloudBusy && (IsFolderGridOpen ? SelectedGridPaths().Length > 0 : image),
                 "rename" => image && currentIndex >= 0,
                 "undo" => image && (markers.Count > 0 || CanUndoCrop) || recycledPhotos.Count > 0,
                 _ => true
             };
+            if(action=="cloud")item.Visibility=cloudSettings.Enabled?Visibility.Visible:Visibility.Collapsed;
             if (item.IsCheckable) item.IsChecked = action switch
             {
                 "zen" => zenMode,
@@ -300,6 +302,7 @@ public partial class MainWindow
             case "fullscreen": ToggleFullScreen(); break;
 
             case "settings": CaptureSettingsButton_Click(sender, e); break;
+            case "cloud": CloudUpload_Click(sender,e); break;
             case "undo": UndoWorkspace(); break;
             case "rename": if (currentIndex >= 0) RenameCurrentPhoto(); break;
             case "rotate": RotatePhoto(90); break;
@@ -447,6 +450,7 @@ public partial class MainWindow
     private void UpdateToolbarActions()
     {
         if (CopyPhotoButton is null || SavePendingButton is null || DeletePhotoButton is null) return;
+        UpdateCloudActions();
         RestorePhotoButton.Visibility = Visibility.Visible;
         RestorePhotoButton.IsEnabled = (!IsFolderGridOpen && (markers.Count > 0 || CanUndoCrop)) || recycledPhotos.Count > 0;
         bool image = Photo.Source is BitmapSource;
@@ -527,7 +531,7 @@ public partial class MainWindow
 
     private async void RefreshGallery(bool force = false)
     {
-        if (deferImageDetails || GalleryList is null || !galleryOpen || !IsLoaded) return;
+        if (cloudView || deferImageDetails || GalleryList is null || !galleryOpen || !IsLoaded) return;
         string? current = CurrentGridImage;
         string folder = IsFolderGridOpen && !string.IsNullOrWhiteSpace(GridFolderPath.Text) ? GridFolderPath.Text :
             current is not null ? Path.GetDirectoryName(current)! : browsedFolder ?? CapturePreferences.CaptureFolder;

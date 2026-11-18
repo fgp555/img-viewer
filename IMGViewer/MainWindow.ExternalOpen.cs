@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.IO;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
@@ -49,13 +49,13 @@ public partial class MainWindow
             Debug.WriteLine($"IMGViewer open failed: {ex.Message}");
         }
     }
-    private static Task<BitmapSource> DecodeExplorerImage(string path)
+    private static Task<BitmapSource> DecodeExplorerImage(string path,int maximumSide=0)
     {
-        if(!IsSvg(path)) return Task.Run(() => ReadPhotoBitmap(path));
+        if(!IsSvg(path)) return Task.Run(() => ReadPhotoBitmap(path,maximumSide));
         // SVG rendering uses WPF visuals: keep it on a worker STA, then transfer a frozen bitmap.
         var result=new TaskCompletionSource<BitmapSource>(TaskCreationOptions.RunContinuationsAsynchronously);
         var worker=new Thread(() => {
-            try { result.SetResult(ReadPhotoBitmap(path)); }
+            try { result.SetResult(ReadPhotoBitmap(path,maximumSide)); }
             catch(Exception ex) { result.SetException(ex); }
         }) { IsBackground=true, Name="IMGViewer SVG decode" };
         worker.SetApartmentState(ApartmentState.STA); worker.Start();

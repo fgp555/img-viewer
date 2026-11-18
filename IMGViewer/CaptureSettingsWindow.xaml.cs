@@ -50,6 +50,7 @@ public partial class CaptureSettingsWindow : Window
         CloseToTray.IsChecked = ViewerPreferences.CloseToTray;
         StartWithWindows.IsChecked = ViewerPreferences.StartWithWindows;
         FolderPath.Text = CapturePreferences.CaptureFolder;
+        InitializeCloudSettings();
     }
 
     private void AutoSaveCaptures_Click(object sender, RoutedEventArgs e)
@@ -109,19 +110,20 @@ public partial class CaptureSettingsWindow : Window
         FormatSettings.Visibility = (string)item.Tag == "formats" ? Visibility.Visible : Visibility.Collapsed;
         CursorSettings.Visibility = (string)item.Tag == "cursor" ? Visibility.Visible : Visibility.Collapsed;
         AboutSettings.Visibility = (string)item.Tag == "about" ? Visibility.Visible : Visibility.Collapsed;
+        CloudSettings.Visibility = (string)item.Tag == "cloud" ? Visibility.Visible : Visibility.Collapsed;
         SettingsContentScroll.ScrollToTop();
     }
     private void SettingsSearch_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
     {
         if (SettingsNavigation is null || SettingsNoResults is null) return;
         string query = SettingsSearch.Text.Trim();
-        var keywords = new Dictionary<string,string> { ["general"]="General inicio Windows bandeja cerrar segundo plano minimizar copiar portapapeles", ["captures"]="Capturas carpeta guardar descargas portapapeles copiar atajo teclado Impr Pant", ["gallery"]="Galería columnas cuadrícula imágenes fila", ["formats"]="Formatos tipos archivos jpg jpeg png bmp svg webp predeterminado default Windows asociaciones", ["cursor"]="Cursor mouse ocultar inactividad segundos alcance", ["about"]="Acerca versión página web IMG Viewer" };
+        var keywords = new Dictionary<string,string> { ["general"]="General inicio Windows bandeja cerrar segundo plano minimizar copiar portapapeles", ["captures"]="Capturas carpeta guardar descargas portapapeles copiar atajo teclado Impr Pant", ["gallery"]="Galería columnas cuadrícula imágenes fila", ["cloud"]="Nube cloud R2 bucket subir conexión credenciales enlace remoto", ["formats"]="Formatos tipos archivos jpg jpeg png bmp svg webp predeterminado default Windows asociaciones", ["cursor"]="Cursor mouse ocultar inactividad segundos alcance", ["about"]="Acerca versión página web IMG Viewer" };
         foreach (var item in SettingsNavigation.Items.OfType<System.Windows.Controls.ListBoxItem>())
             item.Visibility = keywords[(string)item.Tag].Contains(query, StringComparison.OrdinalIgnoreCase) ? Visibility.Visible : Visibility.Collapsed;
         var visible = SettingsNavigation.Items.OfType<System.Windows.Controls.ListBoxItem>().Where(item => item.Visibility == Visibility.Visible).ToArray();
         SettingsNoResults.Visibility = visible.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
         if (visible.Length == 0)
-            GeneralSettings.Visibility = CaptureSettings.Visibility = GallerySettings.Visibility = FormatSettings.Visibility = CursorSettings.Visibility = AboutSettings.Visibility = Visibility.Collapsed;
+            GeneralSettings.Visibility = CaptureSettings.Visibility = GallerySettings.Visibility = FormatSettings.Visibility = CursorSettings.Visibility = AboutSettings.Visibility = CloudSettings.Visibility = Visibility.Collapsed;
         else if (SettingsNavigation.SelectedItem is not System.Windows.Controls.ListBoxItem selected || selected.Visibility != Visibility.Visible)
             SettingsNavigation.SelectedItem = visible[0];
         else SettingsNavigation_SelectionChanged(SettingsNavigation, null!);
@@ -273,6 +275,7 @@ public partial class CaptureSettingsWindow : Window
         {
             CapturePreferences.SetFolder(folder);
             FolderPath.Text = CapturePreferences.CaptureFolder;
+        InitializeCloudSettings();
             SettingsStatus.Text = string.Empty;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)

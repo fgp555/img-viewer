@@ -30,7 +30,7 @@ public partial class MainWindow
         widgetCapture=capture;
         captureWidget=new CaptureThumbnailWindow(bitmap,SaveCapture,()=> {
             ShowSessionCapture(capture);
-            historyView=true;galleryOpen=true;UpdateHistoryView();
+            cloudView=false;historyView=true;galleryOpen=true;UpdateHistoryView();
             viewerBackgroundMode=0;UpdateBackgroundToggle();
             PhotoViewport.Background=(System.Windows.Media.Brush)FindResource("ViewerBackground");
             SetZenMode(false);toolsOpen=true;ArrowTool.IsChecked=true;ApplyWorkspaceLayout();EnableInlineCrop();

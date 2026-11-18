@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
@@ -67,6 +67,7 @@ public partial class ScreenCaptureWindow : Window
         Rect target = ToView(monitor);
         Canvas.SetLeft(Toolbar, target.Left + Math.Max(0, (target.Width - Toolbar.ActualWidth) / 2));
         Canvas.SetTop(Toolbar, target.Top + 12);
+        RefreshMonitorPreview();
     }
 
     private Point ToScreenPixels(Point point) => new(
@@ -79,8 +80,30 @@ public partial class ScreenCaptureWindow : Window
         rect.Width * Surface.ActualWidth / snapshot.Bounds.Width,
         rect.Height * Surface.ActualHeight / snapshot.Bounds.Height);
 
+    private bool IsMonitorPreviewActive => Toolbar.IsMouseOver || Toolbar.IsKeyboardFocusWithin;
+
+    private void MonitorPreview_Changed(object sender, RoutedEventArgs e) => RefreshMonitorPreview();
+
+    private void RefreshMonitorPreview()
+    {
+        bool active = IsMonitorPreviewActive;
+        string description = $"Capturar este monitor · {monitor.Width} × {monitor.Height}";
+        MonitorPreviewLabel.Text = active ? description : "Pantalla completa";
+        Toolbar.ToolTip = description + " · Esc cancela";
+        System.Windows.Automation.AutomationProperties.SetName(Toolbar, description);
+        if (active)
+        {
+            HorizontalGuide.Visibility = VerticalGuide.Visibility = Visibility.Collapsed;
+            ShowSelection(monitor);
+        }
+        else ShowSelection(selectedArea);
+    }
+
     private void UpdateCandidates(Point point)
     {
+        // Neither pointer movement over the button nor late region detection may
+        // replace the selection that will be restored after the monitor preview.
+        if (IsMonitorPreviewActive) { RefreshMonitorPreview(); return; }
         var next = new List<Int32Rect>();
         for (int i = 0; i < snapshot.Windows.Count; i++)
         {
@@ -224,7 +247,12 @@ public partial class ScreenCaptureWindow : Window
         }
     }
 
-    private void CaptureMonitor_Click(object sender, RoutedEventArgs e) => Complete(monitor);
+    private void CaptureMonitor_Click(object sender, RoutedEventArgs e)
+    {
+        // Keep the displayed rectangle and the captured physical monitor identical.
+        ShowSelection(monitor);
+        Complete(monitor);
+    }
 
     private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
     {

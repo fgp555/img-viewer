@@ -698,3 +698,24 @@ Añadir cada cambio visible para el usuario con su fecha, el comportamiento y el
 ### Escape en capturas
 
 - Esc mantiene la cancelación/restauración de cambios. Cuando una captura ya no tiene cambios pendientes, activa Mover ventana igual que V y desactiva Flecha, sin minimizar ni cerrar. Se mantiene la prioridad de selección, edición de texto y menús.
+
+
+### Nube con R2 propio
+
+- Nueva sección Editar → Configuración → Nube, desactivada inicialmente. Cada usuario configura su endpoint S3, bucket, credenciales y carpeta remota, con prueba de conexión. Credenciales protegidas mediante DPAPI para su usuario de Windows, separadas de `release`.
+- Al activarla aparece la pestaña Nube junto a Carpeta y Capturas. Listado paginado, miniaturas virtualizadas y acciones de abrir, descargar, copiar enlace y eliminar con confirmación, conservando los archivos locales.
+- Subida manual desde la barra, Archivo o menú contextual, también para capturas sin guardar y selección múltiple del grid. Los originales sin cambios conservan su formato; las ediciones se suben como PNG. Incluye progreso, cancelación, nombres únicos y reintento de pendientes.
+- Enlaces privados firmados de una hora o enlaces permanentes si el usuario configura la URL pública de su bucket. No se modifica la privacidad del bucket.
+- Implementación con .NET y APIs de Windows, sin paquetes externos nuevos. Pasan 35 comprobaciones con HTTP simulado; revisión visual de Configuración y la pestaña con datos ficticios. No se probó contra un bucket real. Guía: `docs/cloud-r2.md`.
+
+
+### Vista previa de pantalla completa al capturar
+
+- Al pasar el cursor o enfocar con el teclado el botón Pantalla completa, se resalta todo el monitor que se capturará y se ocultan las guías. El botón muestra Capturar este monitor y sus dimensiones en píxeles.
+- Al salir del botón se recupera la selección anterior; la detección asíncrona no la sustituye mientras está activa la vista previa. El clic captura el mismo monitor resaltado.
+- Verificado con un escritorio sintético de 1280 × 720: marco completo y dimensiones visibles, restauración de selección, protección ante detección tardía y coincidencia con el resultado capturado. Revisión visual de ambos estados. No se verificaron varias escalas DPI entre monitores.
+
+
+### Ayudas en la conexión Nube
+
+- Placeholders en endpoint S3, bucket, Access Key ID, Secret Access Key, carpeta remota y URL pública. Los ejemplos desaparecen al introducir un valor, sin sustituir las etiquetas ni modificar los datos de conexión.
