@@ -1,4 +1,4 @@
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Windows;
@@ -19,8 +19,8 @@ public partial class MainWindow
         string displayFolder = defaultFolder ? "Imágenes" : destinationFolder;
         if (destinationFile is null)
         {
-            CaptureDestinationText.Text = $"Destino: {displayFolder} · {CapturePreferences.FormatExtension.TrimStart('.').ToUpperInvariant()}";
-            CaptureDestinationButton.ToolTip = $"{(defaultFolder ? "Carpeta predeterminada" : "Carpeta personalizada")}: {destinationFolder}\nFormato: {CapturePreferences.FormatExtension.TrimStart('.').ToUpperInvariant()}\nClic para abrir la carpeta. Guardar o Ctrl + S permite confirmar la ubicación.";
+            CaptureDestinationText.Text = $"{(activeCapture is not null ? "Borrador · sin guardar · " : "")}Destino: {displayFolder} · {CapturePreferences.FormatExtension.TrimStart('.').ToUpperInvariant()}";
+            CaptureDestinationButton.ToolTip = $"{(defaultFolder ? "Carpeta predeterminada" : "Carpeta personalizada")}: {destinationFolder}\nFormato: {CapturePreferences.FormatExtension.TrimStart('.').ToUpperInvariant()}\nClic para abrir la carpeta. Guardar o Ctrl + S guarda directamente en esta carpeta. Ctrl + Shift + S permite elegir otra ubicación.";
         }
         else
         {

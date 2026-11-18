@@ -1,4 +1,4 @@
-using Microsoft.Win32;
+﻿using Microsoft.Win32;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
@@ -93,7 +93,9 @@ public partial class MainWindow
     }
     private void UndoWorkspace()
     {
-        if (!IsFolderGridOpen && markers.Count > 0) UndoMarker(); else RestorePhoto();
+        if (!IsFolderGridOpen && markers.Count > 0) UndoMarker();
+        else if (!IsFolderGridOpen && CanUndoCrop) UndoCrop();
+        else RestorePhoto();
     }
     private void ShowActionButtons()
     {
@@ -156,7 +158,7 @@ public partial class MainWindow
                 "save" or "savecopy" or "rotate" or "rotateback" or "scale50" or "scale100" or "scale150" or "zoomin" or "zoomout" or "cover" or "fit" or "pan" or "arrowtool" or "curvedarrowtool" or "rectangletool" or "freehandtool" or "texttool" or "blurtool" or "movetool" or "inlinecrop" or "crop" => image,
                 "normalmode" => zenMode,
                 "discard" => HasPendingChanges,
-                "undo" => markers.Count > 0 || recycledPhotos.Count > 0,
+                "undo" => markers.Count > 0 || CanUndoCrop || recycledPhotos.Count > 0,
                 _ => true };
         var dialog = new ShortcutsWindow(commands, action => Dispatcher.InvokeAsync(() => {
             Activate(); WorkspaceAction_Click(new Button { Tag = action }, new RoutedEventArgs());

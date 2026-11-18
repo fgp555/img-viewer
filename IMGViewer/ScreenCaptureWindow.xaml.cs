@@ -19,6 +19,7 @@ public partial class ScreenCaptureWindow : Window
     private Int32Rect selectedArea;
 
     internal BitmapSource? Result { get; private set; }
+    internal Point CaptureOrigin { get; private set; }
 
     internal ScreenCaptureWindow(DesktopSnapshot snapshot, IReadOnlyDictionary<int, IReadOnlyList<Int32Rect>> regions)
     {
@@ -217,6 +218,7 @@ public partial class ScreenCaptureWindow : Window
     {
         if (area.Width > 0 && area.Height > 0)
         {
+            CaptureOrigin = new Point(area.X + area.Width / 2.0, area.Y + area.Height / 2.0);
             Result = snapshot.Crop(area);
             DialogResult = true;
         }

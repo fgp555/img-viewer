@@ -1,4 +1,4 @@
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Windows;
@@ -28,6 +28,10 @@ public partial class CaptureSettingsWindow : Window
             FileTypeOptions.Children.Add(option);
         }
         CaptureShortcutLabel.Text = (Owner as MainWindow)?.CaptureShortcutLabel ?? CaptureShortcut.Load().Label;
+        CaptureResultPicker.SelectedIndex = CapturePreferences.ShowThumbnail ? 0 : 1;
+        CaptureThumbnailLocation.SelectedIndex = CapturePreferences.ThumbnailOnPrimaryMonitor ? 0 : 1;
+        CaptureThumbnailDelay.ItemsSource = Enumerable.Range(3,58);
+        CaptureThumbnailDelay.SelectedItem = CapturePreferences.ThumbnailSeconds;
         AutoSaveCaptures.IsChecked = CapturePreferences.AutoSave;
         CaptureFormatPicker.SelectedItem = CaptureFormatPicker.Items.OfType<System.Windows.Controls.ComboBoxItem>().First(item => (string)item.Tag == CapturePreferences.FormatExtension);
         CaptureFormatPicker.SelectionChanged += CaptureFormatPicker_SelectionChanged;

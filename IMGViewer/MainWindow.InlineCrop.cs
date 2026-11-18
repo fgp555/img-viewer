@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
@@ -8,6 +8,33 @@ using System.Windows.Shapes;
 namespace IMGViewer;
 public partial class MainWindow
 {
+    private sealed record CropUndoState(BitmapSource Result, BitmapSource Before, BitmapSource? RotationBase, int Rotation, bool PixelEdit, StyledMarker[] Marks);
+    private readonly Stack<CropUndoState> cropUndo = new();
+    private bool preserveCropUndo;
+    private System.Windows.Threading.DispatcherTimer? cropCommitTimer;
+    private bool CanUndoCrop => cropUndo.TryPeek(out var state) && ReferenceEquals(Photo.Source,state.Result);
+    private void UndoCrop()
+    {
+        if (!CanUndoCrop) return;
+        var state=cropUndo.Pop(); CancelInlineCrop();
+        markers.Clear(); markers.AddRange(state.Marks);
+        Photo.Source=state.Before; rotationBasePhoto=state.RotationBase;
+        hasPixelEdit=state.PixelEdit; rotationDegrees=state.Rotation;
+        ResetPhotoView(); RefreshMarkerOverlay(); UpdateMetadataFooter(); UpdatePendingSaveIndicator(); RememberActiveCapture();
+        StatusText.Text="Recorte deshecho.";
+    }
+    private void ScheduleGestureCrop()
+    {
+        UpdateInlineCropAdorners();
+        inlineCropOutline?.BeginAnimation(OpacityProperty,new System.Windows.Media.Animation.DoubleAnimation(0.35,1,TimeSpan.FromMilliseconds(150)) {AutoReverse=true});
+        var source=inlineCropBitmap;
+        cropCommitTimer=new System.Windows.Threading.DispatcherTimer {Interval=TimeSpan.FromMilliseconds(300)};
+        cropCommitTimer.Tick+=(_,_)=>{
+            cropCommitTimer?.Stop(); cropCommitTimer=null;
+            if (ReferenceEquals(Photo.Source,source)) ApplyInlineCrop(); else CancelInlineCrop();
+        };
+        cropCommitTimer.Start();
+    }
     private BitmapSource? inlineCropBitmap;
     private Rect inlineCropBounds;
     private bool inlineCropPending;
@@ -117,6 +144,8 @@ public partial class MainWindow
 
     private void CancelInlineCrop()
     {
+        cropCommitTimer?.Stop(); cropCommitTimer=null;
+        inlineCropOutline?.BeginAnimation(OpacityProperty,null);
         inlineCropBitmap=null; inlineCropPending=false;
         if(CropButton is not null) CropButton.ClearValue(BackgroundProperty);
         foreach(var handle in inlineCropHandles) if(handle.IsMouseCaptured) handle.ReleaseMouseCapture();
@@ -135,7 +164,14 @@ public partial class MainWindow
         try
         {
             var result=new CroppedBitmap(FlattenMarkers(bitmap),new Int32Rect(left,top,right-left,bottom-top)); result.Freeze();
-            CancelInlineCrop(); ApplyPixelEdit(result); RememberActiveCapture();
+            var undo=new CropUndoState(result,bitmap,rotationBasePhoto,rotationDegrees,hasPixelEdit,markers.ToArray());
+            if(!CanUndoCrop) cropUndo.Clear();
+            CancelInlineCrop();
+            preserveCropUndo=true;
+            try {ApplyPixelEdit(result);} finally {preserveCropUndo=false;}
+            // Bound retained image memory while allowing consecutive crops to be undone.
+            if(cropUndo.Count>=10) {var recent=cropUndo.Take(9).Reverse().ToArray();cropUndo.Clear();foreach(var entry in recent)cropUndo.Push(entry);}
+            cropUndo.Push(undo); UpdatePendingSaveIndicator(); RememberActiveCapture();
             StatusText.Text="Recorte aplicado · Ctrl + C copia · Ctrl + S guarda.";
         }
         catch(Exception ex) when(ex is InvalidOperationException or ArgumentException or System.Runtime.InteropServices.ExternalException)

@@ -10,6 +10,21 @@ internal static class CapturePreferences
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "IMGViewer", "capture-folder-v2.txt");
 
+    internal static bool ShowThumbnail
+    {
+        get { using var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(@"Software\IMGViewer"); return key?.GetValue("CaptureThumbnail") is not 0; }
+        set { using var key = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(@"Software\IMGViewer"); key.SetValue("CaptureThumbnail", value ? 1 : 0); }
+    }
+    internal static bool ThumbnailOnPrimaryMonitor
+    {
+        get { using var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(@"Software\IMGViewer"); return key?.GetValue("CaptureThumbnailOnPrimaryMonitor") is not 0; }
+        set { using var key = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(@"Software\IMGViewer"); key.SetValue("CaptureThumbnailOnPrimaryMonitor", value ? 1 : 0); }
+    }
+    internal static int ThumbnailSeconds
+    {
+        get { using var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(@"Software\IMGViewer"); return key?.GetValue("CaptureThumbnailSeconds") is int seconds ? Math.Clamp(seconds, 3, 60) : 8; }
+        set { using var key = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(@"Software\IMGViewer"); key.SetValue("CaptureThumbnailSeconds", Math.Clamp(value, 3, 60)); }
+    }
     internal static bool AutoSave
     {
         get { using var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(@"Software\IMGViewer"); return key?.GetValue("AutoSaveCaptures") is 1; }
@@ -21,7 +36,7 @@ internal static class CapturePreferences
         {
             using var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(@"Software\IMGViewer");
             string? ext = key?.GetValue("CaptureFormat") as string;
-            return ext is ".webp" or ".png" or ".jpg" or ".bmp" ? ext : ".webp";
+            return ext is ".webp" or ".png" or ".jpg" or ".bmp" ? ext : ".jpg";
         }
         set { using var key = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(@"Software\IMGViewer"); key.SetValue("CaptureFormat", value); }
     }

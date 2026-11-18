@@ -1,4 +1,4 @@
-using Microsoft.Win32;
+﻿using Microsoft.Win32;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
@@ -164,6 +164,19 @@ public partial class MainWindow
         WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
     }
 
+    private void SelectWindowMoveTool()
+    {
+        if (Keyboard.FocusedElement is ComboBox picker) picker.IsDropDownOpen = false;
+        if (markerDrag.HasValue || photoDragPosition.HasValue || windowDragOffset.HasValue) ReleaseMouseCapture();
+        activeMarkerTool = null;
+        panTool = false;
+        MoveTool.IsChecked = true;
+        Photo.Cursor = null;
+        ClearValue(CursorProperty);
+        ClearValue(ForceCursorProperty);
+        Keyboard.Focus(this);
+    }
+
     private bool HandleWorkspaceKey(KeyEventArgs e)
     {
         if (e.Key == Key.V && Keyboard.Modifiers == ModifierKeys.None && Keyboard.FocusedElement is not TextBoxBase &&
@@ -172,15 +185,7 @@ public partial class MainWindow
         {
             if (!e.IsRepeat)
             {
-                if (Keyboard.FocusedElement is ComboBox picker) picker.IsDropDownOpen = false;
-                if (markerDrag.HasValue || photoDragPosition.HasValue || windowDragOffset.HasValue) ReleaseMouseCapture();
-                activeMarkerTool = null;
-                panTool = false;
-                MoveTool.IsChecked = true;
-                Photo.Cursor = null;
-                ClearValue(CursorProperty);
-                ClearValue(ForceCursorProperty);
-                Keyboard.Focus(this);
+                SelectWindowMoveTool();
             }
             e.Handled = true;
             return true;
@@ -236,7 +241,7 @@ public partial class MainWindow
                 "save" or "savecopy" or "rotate" or "rotateback" or "crop" or "clear" => image,
                 "copy" or "resize" or "convert" or "delete" => IsFolderGridOpen ? SelectedGridPaths().Length > 0 : image,
                 "rename" => image && currentIndex >= 0,
-                "undo" => image && markers.Count > 0 || recycledPhotos.Count > 0,
+                "undo" => image && (markers.Count > 0 || CanUndoCrop) || recycledPhotos.Count > 0,
                 _ => true
             };
             if (item.IsCheckable) item.IsChecked = action switch
@@ -443,7 +448,7 @@ public partial class MainWindow
     {
         if (CopyPhotoButton is null || SavePendingButton is null || DeletePhotoButton is null) return;
         RestorePhotoButton.Visibility = Visibility.Visible;
-        RestorePhotoButton.IsEnabled = (!IsFolderGridOpen && markers.Count > 0) || recycledPhotos.Count > 0;
+        RestorePhotoButton.IsEnabled = (!IsFolderGridOpen && (markers.Count > 0 || CanUndoCrop)) || recycledPhotos.Count > 0;
         bool image = Photo.Source is BitmapSource;
         bool inGrid = IsFolderGridOpen;
         bool selected = inGrid && SelectedGridPaths().Length > 0 && !gridBatchInProgress;

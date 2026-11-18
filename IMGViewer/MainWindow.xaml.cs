@@ -88,6 +88,7 @@ public partial class MainWindow : Window
 
         UpdateMetadataFooter();
         InitializeWorkspace();
+        draftSaveTimer.Tick+=(_,_)=>{draftSaveTimer.Stop();RememberActiveCapture();};
         slideShowTimer.Tick += SlideShowTimer_Tick;
         recycleNoticeTimer.Tick += (_, _) => HideRecycleNotice();
     }
@@ -165,7 +166,9 @@ public partial class MainWindow : Window
 
     protected override void OnClosed(EventArgs e)
     {
+        FlushCaptureDrafts();
         imageOpenVersion++;
+        CancelInlineCrop();
         viewerClickTimer.Stop();
         slideShowTimer.Stop();
         recycleNoticeTimer.Stop();
@@ -230,6 +233,7 @@ public partial class MainWindow : Window
     protected override void OnPreviewMouseDown(MouseButtonEventArgs e)
     {
         base.OnPreviewMouseDown(e);
+        if(cropCommitTimer is not null && IsViewerSurface(e)) {e.Handled=true;return;}
         lastMinimizeEscape = 0;
         if (CurveHandle.IsMouseOver || (InlineCropCanvas.IsVisible && GalleryAncestor<System.Windows.Controls.Primitives.Thumb>(e.OriginalSource as DependencyObject) is not null)) return;
         if (e.ChangedButton == MouseButton.Left && !IsFolderGridOpen && IsViewerSurface(e)) Keyboard.Focus(this);
@@ -546,6 +550,18 @@ public partial class MainWindow : Window
 
     private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
     {
+        if(cropCommitTimer is not null)
+        {
+            if(e.Key==Key.Escape) CancelInlineCrop();
+            e.Handled=true; return;
+        }
+        if (e.Key == Key.Escape && markerDrag is { Kind: MarkerKind.Crop })
+        {
+            lastMinimizeEscape = 0;
+            ReleaseMouseCapture();
+            e.Handled = true;
+            return;
+        }
         if (e.Key != Key.Escape) lastMinimizeEscape = 0;
         if (TryExitZenWithEscape(e)) return;
         if (HandleInlineCropKey(e)) { lastMinimizeEscape = 0; return; }
@@ -563,7 +579,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (e.Key == Key.Z && Keyboard.Modifiers == ModifierKeys.Control && (IsFolderGridOpen || markers.Count == 0) && recycledPhotos.Count > 0)
+        if (e.Key == Key.Z && Keyboard.Modifiers == ModifierKeys.Control && (IsFolderGridOpen || (markers.Count == 0 && !CanUndoCrop)) && recycledPhotos.Count > 0)
         {
             if (!e.IsRepeat) RestorePhoto();
             e.Handled = true;
@@ -590,6 +606,11 @@ public partial class MainWindow : Window
                 lastMinimizeEscape = 0;
                 DiscardPendingChanges();
             }
+            else if (!IsFolderGridOpen && (activeCapture is not null || HasUnsavedCapture))
+            {
+                lastMinimizeEscape = 0;
+                SelectWindowMoveTool();
+            }
             else if (windowedMode.HasValue)
             {
                 lastMinimizeEscape = 0;
@@ -605,11 +626,11 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (e.Key == Key.Z && Keyboard.Modifiers == ModifierKeys.Control && markers.Count > 0)
+        if (e.Key == Key.Z && Keyboard.Modifiers == ModifierKeys.Control && (markers.Count > 0 || CanUndoCrop))
         {
             if (!e.IsRepeat)
             {
-                UndoMarker();
+                UndoWorkspace();
             }
 
             e.Handled = true;
@@ -994,6 +1015,7 @@ public partial class MainWindow : Window
 
     private void UpdatePendingSaveIndicator()
     {
+        ScheduleCaptureDraftSave();
         UpdateToolbarActions();
     }
 
@@ -1013,7 +1035,8 @@ public partial class MainWindow : Window
 
         string? originalPath = currentIndex >= 0 ? folderImages[currentIndex] : null;
         string destination;
-        bool chooseDestination = saveCopy || originalPath is null || IsSvg(originalPath);
+        bool directCapture = !saveCopy && originalPath is null;
+        bool chooseDestination = saveCopy || originalPath is not null && IsSvg(originalPath);
         if (chooseDestination)
         {
             var dialog = new SaveFileDialog
@@ -1041,6 +1064,10 @@ public partial class MainWindow : Window
                 return;
             }
         }
+        else if (directCapture)
+        {
+            destination = Path.Combine(CapturePreferences.CaptureFolder,CapturePreferences.FileName(activeCapture?.Created ?? DateTime.Now));
+        }
         else
         {
             if (!HasPendingChanges)
@@ -1055,7 +1082,9 @@ public partial class MainWindow : Window
         try
         {
             bitmap = FlattenMarkers(bitmap);
-            WritePhoto(bitmap, destination, chooseDestination);
+            if(directCapture)
+                destination=SaveCaptureFile(bitmap,CapturePreferences.CaptureFolder,activeCapture?.Created ?? DateTime.Now);
+            else WritePhoto(bitmap, destination, chooseDestination);
             if (!saveCopy)
             {
                 ClearMarkers();

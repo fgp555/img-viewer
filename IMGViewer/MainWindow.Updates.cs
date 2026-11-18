@@ -1,4 +1,4 @@
-using IMGViewer.Services.Updates;
+﻿using IMGViewer.Services.Updates;
 using System.Windows;
 namespace IMGViewer;
 public partial class MainWindow
@@ -11,5 +11,5 @@ public partial class MainWindow
     }
     internal bool ConfirmUpdateRestart() =>
         !(HasPendingChanges || inlineCropPending || captureHistory.Count > 0) ||
-        ViewerDialog.Show(this,"La aplicación se reiniciará. Los cambios sin guardar y el historial de capturas se perderán. ¿Continuar?","Actualizar IMG Viewer",MessageBoxButton.YesNo,defaultResult:MessageBoxResult.No) == MessageBoxResult.Yes;
+        ViewerDialog.Show(this,"La aplicación se reiniciará. Las capturas pendientes se conservarán como borradores. Los cambios sin guardar en otras imágenes se perderán. ¿Continuar?","Actualizar IMG Viewer",MessageBoxButton.YesNo,defaultResult:MessageBoxResult.No) == MessageBoxResult.Yes;
 }

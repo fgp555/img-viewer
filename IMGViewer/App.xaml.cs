@@ -60,6 +60,7 @@ public partial class App : Application
 
         var window = new MainWindow();
         MainWindow = window;
+        _ = window.RestoreCaptureDraftsAsync();
         instance.Listen(path => Dispatcher.InvokeAsync(() => ShowViewer(path)));
         if (!startInTray)
         {
@@ -208,12 +209,14 @@ public partial class App : Application
         base.OnSessionEnding(e);
         if (!e.Cancel)
         {
+            if(MainWindow is MainWindow window)window.FlushCaptureDrafts();
             exitRequested = true;
         }
     }
 
     protected override void OnExit(ExitEventArgs e)
     {
+        if(MainWindow is MainWindow window)window.FlushCaptureDrafts();
         exitRequested = true;
         updates?.Dispose();
         idleCursor?.Dispose();

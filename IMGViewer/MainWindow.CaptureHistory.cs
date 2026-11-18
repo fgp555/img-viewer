@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media.Imaging;
@@ -7,6 +7,8 @@ public partial class MainWindow
 {
     private sealed class SessionCapture
     {
+        public Guid DraftId {get;init;}=Guid.NewGuid();
+        public DateTime Created {get;init;}=DateTime.Now;
         public string Name { get; init; } = "";
         public BitmapSource Preview { get; set; } = null!;
         public BitmapSource Photo { get; set; } = null!;
@@ -33,11 +35,12 @@ public partial class MainWindow
         activeCapture.Marks = markers.ToList();
         activeCapture.Preview = FlattenMarkers(bitmap);
         activeCapture.FilePath = CurrentGridImage;
+        PersistCaptureDraft(activeCapture);
     }
     private void AddCaptureToHistory(DateTime timestamp)
     {
         if (Photo.Source is not BitmapSource bitmap) return;
-        activeCapture = new SessionCapture { Name = "Captura " + timestamp.ToString("HH:mm:ss"), Photo = bitmap, Preview = bitmap };
+        activeCapture = new SessionCapture { Name = "Captura " + timestamp.ToString("HH:mm:ss"), Created=timestamp, Photo = bitmap, Preview = bitmap };
         captureHistory.Insert(0, activeCapture);
         RememberActiveCapture();
         CaptureHistoryList.ItemsSource = captureHistory;
@@ -81,6 +84,8 @@ public partial class MainWindow
     {
         if (sender is not Button { DataContext: SessionCapture capture }) return;
         bool current = ReferenceEquals(activeCapture,capture);
+        if(ReferenceEquals(widgetCapture,capture))captureWidget?.Close();
+        DeleteCaptureDraft(capture);
         captureHistory.Remove(capture);
         if (current)
         {
@@ -92,6 +97,15 @@ public partial class MainWindow
     }
     private void ClearCaptureHistory_Click(object sender, RoutedEventArgs e)
     {
+        if(captureHistory.Count==0)return;
+        if(ViewerDialog.Show(this,"¿Eliminar todos los borradores y vaciar el historial de capturas? Los archivos que guardaste se conservarán.","Limpiar capturas",MessageBoxButton.YesNo,MessageBoxImage.Question,MessageBoxResult.No)!=MessageBoxResult.Yes)return;
+        discardRecoveredDrafts=true;
+        captureWidget?.Close();
+        foreach(var capture in captureHistory)DeleteCaptureDraft(capture);
+        QueueDraftOperation(()=> {
+            if(System.IO.Directory.Exists(CaptureDraftFolder))
+                foreach(string draft in System.IO.Directory.EnumerateFiles(CaptureDraftFolder,"*.draft"))System.IO.File.Delete(draft);
+        });
         bool clearCanvas = activeCapture is not null;
         activeCapture = null; captureHistory.Clear();
         if (clearCanvas) ClearHistoryCanvas();

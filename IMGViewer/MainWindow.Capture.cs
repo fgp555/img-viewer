@@ -119,6 +119,7 @@ public partial class MainWindow
             return;
         }
 
+        captureWidget?.Close();
         captureInProgress = true;
         bool restoreViewer = IsVisible;
         WindowState previousState = WindowState;
@@ -157,7 +158,8 @@ public partial class MainWindow
             if (selector.ShowDialog() == true && selector.Result is { } bitmap)
             {
                 captureCompleted = true;
-                SaveAndOpenCapture(bitmap, timestamp);
+                if (CapturePreferences.ShowThumbnail) ShowCaptureWidget(bitmap, timestamp, selector.CaptureOrigin);
+                else SaveAndOpenCapture(bitmap, timestamp);
                 if (ViewerPreferences.CopyCapturesToClipboard)
                 {
                     try
@@ -173,7 +175,7 @@ public partial class MainWindow
                     }
                 }
 
-                if (Application.Current is App app)
+                if (!CapturePreferences.ShowThumbnail && Application.Current is App app)
                 {
                     app.ShowViewer();
                 }
@@ -191,7 +193,7 @@ public partial class MainWindow
                 Show();
                 if (previousState != WindowState.Minimized) Activate();
             }
-            else if (captureCompleted && Application.Current is not App)
+            else if (captureCompleted && !CapturePreferences.ShowThumbnail && Application.Current is not App)
             {
                 Show();
                 Activate();
@@ -251,13 +253,13 @@ public partial class MainWindow
         AddCaptureToHistory(timestamp);
         UpdateCaptureDestination();
         HideCaptureFrame();
-        viewerBackgroundMode = 1;
+        viewerBackgroundMode = 0;
         UpdateBackgroundToggle();
-        PhotoViewport.Background = (System.Windows.Media.Brush)FindResource("TransparencyBackground");
+        PhotoViewport.Background = (System.Windows.Media.Brush)FindResource("ViewerBackground");
         SetZenMode(false);
         toolsOpen = true;
-        ArrowFormPicker.SelectedIndex = 1;
-        MarkerWidthSlider.Value = 30;
+        ArrowFormPicker.SelectedIndex = 0;
+        MarkerWidthSlider.Value = 60;
         ArrowTool.IsChecked = true;
         activeMarkerTool = MarkerKind.Arrow;
         panTool = false;

@@ -7,12 +7,12 @@ namespace IMGViewer;
 
 public partial class MainWindow
 {
-    private enum MarkerKind { Arrow, Rectangle, Freehand, Text, Blur }
+    private enum MarkerKind { Arrow, Rectangle, Freehand, Text, Blur, Crop }
     private enum ArrowForm { Classic, Tapered, Curved }
     private ArrowForm? dragArrowForm;
     private sealed record ArrowShape(Point Start, Point End, Point Control);
 
-    private sealed record StyledMarker(Geometry Geometry, Brush Color, double Width, bool Contrast, ArrowShape? Curve = null, BitmapSource? Patch = null, Rect PatchBounds = default);
+    private sealed record StyledMarker(Geometry Geometry, Brush Color, double Width, bool Contrast, ArrowShape? Curve = null, BitmapSource? Patch = null, Rect PatchBounds = default, double ShadowIntensity = 0);
     private readonly List<StyledMarker> markers = [];
     private (MarkerKind Kind, Point Start)? markerDrag;
     private readonly List<Point> freehandPoints = [];
@@ -28,6 +28,7 @@ public partial class MainWindow
     {
         MarkerKind? kind = Keyboard.Modifiers switch
         {
+            ModifierKeys.Control | ModifierKeys.Alt => MarkerKind.Crop,
             ModifierKeys.Control | ModifierKeys.Shift => MarkerKind.Arrow,
             ModifierKeys.Alt | ModifierKeys.Shift => MarkerKind.Freehand,
             ModifierKeys.Alt => MarkerKind.Arrow,
@@ -101,7 +102,7 @@ public partial class MainWindow
             return freehandBrush ? CreateBrushFreehand(freehandPoints, freehandPressure, freehandStroke)
                 : CreateSmoothFreehand(freehandPoints, end, freehandStroke);
         }
-        if (drag.Kind is MarkerKind.Blur or MarkerKind.Text) return new RectangleGeometry(new Rect(drag.Start, end));
+        if (drag.Kind is MarkerKind.Blur or MarkerKind.Text or MarkerKind.Crop) return new RectangleGeometry(new Rect(drag.Start, end));
         Vector direction = end - drag.Start;
         double stroke = MarkerStroke(bitmap);
         if (direction.Length < stroke)
@@ -262,8 +263,8 @@ public partial class MainWindow
         Vector direction = end - start;
         double length = direction.Length;
         if (length < 0.001) return Geometry.Empty;
-        double headLength = Math.Min(length * 0.45, stroke * 4.5);
-        double headWidth = headLength * 0.65;
+        double headLength = Math.Min(length * 0.45, stroke * 3.4);
+        double headWidth = headLength * (1.6 / 3.4);
         direction.Normalize();
         Vector perpendicular = new(-direction.Y, direction.X);
         Point neck = end - direction * headLength;
@@ -308,23 +309,31 @@ public partial class MainWindow
         for (int i=0;i<=segments;i++)
         {
             double t = neckT*i/segments;
-            double halfWidth = Math.Max(0.15, stroke * 1.25 * Math.Pow(t/neckT,0.85));
+            double halfWidth = stroke * (0.42 + 0.83 * Math.Pow(t/neckT,0.85));
             left.Add(At(t)+Normal(t)*halfWidth);
             right.Add(At(t)-Normal(t)*halfWidth);
         }
         Point neck = At(neckT); Vector normal = Normal(neckT);
-        double wing = Math.Max(stroke*2.8,headLength*0.55);
+        double wing = Math.Max(stroke*2.2,headLength*0.45);
         Vector tangent = new(normal.Y, -normal.X);
-        // Swept-back barbs leave a concave notch at either side of the shaft.
-        Point barbBase = neck - tangent * (headLength * 0.38);
+        // Keep a shallow harpoon notch, with softened barbs and a flat-cut tail.
+        Point barbBase = neck - tangent * (headLength * 0.18);
         var geometry = new StreamGeometry();
         using(var context=geometry.Open())
         {
-            context.BeginFigure(start,true,true);
-            context.PolyLineTo(left,true,false);
-            context.LineTo(barbBase+normal*wing,true,false);
+            void RoundedBarb(Point previous, Point corner, Point next)
+            {
+                Vector incoming = previous - corner, outgoing = next - corner;
+                double radius = Math.Min(stroke * 0.7, Math.Min(incoming.Length, outgoing.Length) * 0.22);
+                incoming.Normalize(); outgoing.Normalize();
+                context.LineTo(corner + incoming * radius, true, false);
+                context.QuadraticBezierTo(corner, corner + outgoing * radius, true, false);
+            }
+            context.BeginFigure(left[0],true,true);
+            context.PolyLineTo(left.Skip(1).ToArray(),true,false);
+            RoundedBarb(left[^1],barbBase+normal*wing,end);
             context.LineTo(end,true,false);
-            context.LineTo(barbBase-normal*wing,true,false);
+            RoundedBarb(end,barbBase-normal*wing,right[^1]);
             right.Reverse(); context.PolyLineTo(right,true,false);
         }
         geometry.Freeze(); return geometry;
@@ -376,6 +385,22 @@ public partial class MainWindow
 
     private void CompleteMarker(MouseButtonEventArgs e)
     {
+        if (markerDrag is { Kind: MarkerKind.Crop } crop && Photo.Source is BitmapSource cropBitmap)
+        {
+            Point end = GetMarkerPoint(e, cropBitmap);
+            Rect selection = new(crop.Start, end);
+            ReleaseMouseCapture();
+            if (selection.Width * Photo.ActualWidth / cropBitmap.Width < SystemParameters.MinimumHorizontalDragDistance ||
+                selection.Height * Photo.ActualHeight / cropBitmap.Height < SystemParameters.MinimumVerticalDragDistance) return;
+            EnableInlineCrop();
+            inlineCropBounds = new Rect(selection.X * cropBitmap.PixelWidth / cropBitmap.Width,
+                selection.Y * cropBitmap.PixelHeight / cropBitmap.Height,
+                selection.Width * cropBitmap.PixelWidth / cropBitmap.Width,
+                selection.Height * cropBitmap.PixelHeight / cropBitmap.Height);
+            inlineCropPending = true;
+            ScheduleGestureCrop();
+            return;
+        }
         if (markerDrag is { Kind: MarkerKind.Text } textDrag && Photo.Source is BitmapSource textBitmap)
         {
             Point end = GetMarkerPoint(e, textBitmap);
@@ -400,7 +425,7 @@ public partial class MainWindow
             }
             ArrowShape? curve = markerDrag is { Kind: MarkerKind.Arrow } drag && SelectedArrowForm == ArrowForm.Curved
                 ? new ArrowShape(drag.Start, GetMarkerPoint(e, bitmap), DefaultCurveControl(drag.Start, GetMarkerPoint(e, bitmap), true)) : null;
-            markers.Add(new StyledMarker(geometry, markerBrush, MarkerStroke(bitmap), MarkerContrast, curve));
+            markers.Add(new StyledMarker(geometry, markerBrush, MarkerStroke(bitmap), MarkerContrast, curve, ShadowIntensity: markerDrag is { Kind: MarkerKind.Arrow } && SelectedArrowForm == ArrowForm.Classic ? (ArrowShadowSlider?.Value ?? 20) / 100 : 0));
         }
 
         ReleaseMouseCapture();
@@ -419,6 +444,7 @@ public partial class MainWindow
 
     private void ClearMarkers()
     {
+        if(!preserveCropUndo) cropUndo.Clear();
         EndInlineText(false);
         markers.Clear();
         if (CurveHandle is not null) CurveHandle.Visibility = Visibility.Collapsed;
@@ -448,16 +474,26 @@ public partial class MainWindow
     {
         drawing.PushClip(new RectangleGeometry(new Rect(0, 0, bitmap.Width, bitmap.Height)));
         foreach (StyledMarker marker in markers) DrawStyledMark(drawing, marker);
-        if (preview is not null && markerDrag is { Kind: MarkerKind.Blur or MarkerKind.Text })
+        if (preview is not null && markerDrag is { Kind: MarkerKind.Blur or MarkerKind.Text or MarkerKind.Crop })
             drawing.DrawGeometry(new SolidColorBrush(Color.FromArgb(60, 100, 160, 230)), new Pen(Brushes.White, 1), preview);
         else if (preview is not null)
-            DrawStyledMark(drawing, new StyledMarker(preview, markerBrush, MarkerStroke(bitmap), MarkerContrast));
+            DrawStyledMark(drawing, new StyledMarker(preview, markerBrush, MarkerStroke(bitmap), MarkerContrast, ShadowIntensity: markerDrag is { Kind: MarkerKind.Arrow } && SelectedArrowForm == ArrowForm.Classic ? (ArrowShadowSlider?.Value ?? 20) / 100 : 0));
         drawing.Pop();
     }
 
     private static void DrawStyledMark(DrawingContext drawing, StyledMarker marker)
     {
         if (marker.Patch is not null) { drawing.DrawImage(marker.Patch, marker.PatchBounds); return; }
+        if (marker.ShadowIntensity > 0)
+        {
+            // Render the same soft shadow in the preview, clipboard and saved bitmap.
+            drawing.PushTransform(new TranslateTransform(marker.Width * 0.18, marker.Width * 0.35));
+            var shadow = new SolidColorBrush(Color.FromArgb((byte)(30 * marker.ShadowIntensity), 0, 0, 0));
+            for (int layer = 6; layer >= 1; layer--)
+                drawing.DrawGeometry(null, new Pen(shadow, marker.Width * layer * 0.22) { LineJoin = PenLineJoin.Round }, marker.Geometry);
+            drawing.DrawGeometry(new SolidColorBrush(Color.FromArgb((byte)(110 * marker.ShadowIntensity), 0, 0, 0)), null, marker.Geometry);
+            drawing.Pop();
+        }
         if (marker.Contrast)
         {
             // Two neutral outlines stay readable against both white UI and dark photos.
@@ -468,7 +504,7 @@ public partial class MainWindow
     }
 
     private double MarkerStroke(BitmapSource bitmap) =>
-        Math.Max(1, Math.Max(1, (MarkerWidthSlider?.Value ?? 30) * 0.16) * Math.Min(bitmap.Width, bitmap.Height) / 700);
+        Math.Max(1, Math.Max(1, (MarkerWidthSlider?.Value ?? 60) * 0.16) * Math.Min(bitmap.Width, bitmap.Height) / 700);
 
     private BitmapSource FlattenMarkers(BitmapSource bitmap)
     {

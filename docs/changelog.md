@@ -617,3 +617,84 @@ Añadir cada cambio visible para el usuario con su fecha, el comportamiento y el
 ### Inicializador WPF reutilizable
 - npm run wpf:init detecta csproj WPF/AssemblyName, actualiza scripts npm y configuracion sin eliminar comandos ajenos. --project resuelve multiples proyectos.
 - PROJECT y STORAGE_PUBLIC_URL en release/.env generan nombre EXE, URLs downloads y prefijo R2; se preservan credenciales y URL existente.
+
+
+### Miniatura temporal tras captura
+- Miniatura sin activar la ventana principal, fondo sólido, historial conservado y acciones copiar, guardar, guardar/copiar ruta, abrir carpeta y cerrar. Clic en imagen abre el visor con marcación y recorte.
+- Configuración permite miniatura (predeterminado) o abrir visor y duración 3–60 segundos (8 por defecto), pausada con hover. Se reutiliza el archivo guardado para evitar duplicados.
+- Capturas abiertas en el visor usan fondo sólido.
+
+
+### Miniatura sin texto y posicion multimonitor
+- Botones arriba de la miniatura, sin texto de estado visible.
+- El selector transmite el centro fisico de la region capturada; widget ubicado en ese monitor, con DPI del destino, limites de area de trabajo y coordenadas negativas. Reposicion tras render y cambios de DPI.
+
+
+### Miniatura de captura: acciones separadas
+
+- Barra superior independiente con cuatro acciones: copiar, guardar y copiar ruta, guardar y cerrar. Iconos Fluent centrados sin recortes. Abrir carpeta pasa al menú contextual.
+- Vista previa proporcional de hasta 320 × 240, sin relleno alrededor de las capturas horizontales. Las capturas estrechas mantienen un ancho mínimo para los botones. Se elimina la altura mínima nativa que añadía espacio vacío.
+- Verificación: compilación Release sin errores y revisión visual con vistas sintéticas horizontal (320 × 220) y vertical (160 × 280). No se verificaron transiciones entre monitores con escalas diferentes.
+
+
+### Flecha de arpón refinada
+
+- Cola con corte plano y anchura visible, sin terminar en aguja. Laterales de la cabeza más cortos, menos inclinados y con extremos redondeados. Se aplica tanto a la flecha estilizada recta como a la curva y a su exportación.
+- Grosor predeterminado actualizado al 40 % en el panel de marcación y al abrir capturas.
+
+
+### Ubicación de la miniatura
+
+- Configuración → Capturas permite elegir Monitor principal (predeterminado) o Monitor de la captura. La preferencia se conserva entre sesiones.
+- La miniatura se coloca en la esquina inferior derecha del área útil del monitor elegido, respetando la barra de tareas; la selección de captura continúa disponible en todos los monitores.
+
+
+### Flecha clásica predeterminada
+
+- La flecha clásica pasa a ser la forma inicial, también al capturar. Cabeza proporcionada al cuerpo, cola redondeada y sombra suave conservada al copiar y guardar. Se mantiene el grosor inicial del 40 %. Las formas estilizada y curva siguen disponibles.
+
+
+### Sombra y recorte por gesto
+
+- La flecha clásica permite ajustar la intensidad de sombra entre 0 y 100 % (40 % inicial); cada nueva flecha conserva su valor al copiar o guardar.
+- Ctrl + Alt + arrastrar sobre la imagen selecciona el área que se conservará al soltar, con recorte inmediato en memoria y sin guardar automáticamente. Esc cancela el gesto y un clic sin arrastrar no recorta.
+
+
+### Ajustes iniciales de marcación
+
+- Intensidad de sombra situada debajo de Grosor en las propiedades de la flecha. Nuevos valores iniciales: sombra 20 % y grosor 60 %, incluido el grosor al capturar pantalla.
+
+
+### Recorte con confirmación visual y deshacer
+
+- Ctrl + Alt + arrastrar mantiene la selección 0,3 segundos con un pulso del borde antes de recortar. Esc cancela durante esa pausa.
+- Ctrl + Z y el icono Deshacer restauran recortes, incluida la imagen y las marcas previas. Hasta 10 recortes consecutivos por imagen; las marcas añadidas después se deshacen primero. No se modifica el archivo original hasta guardar.
+
+
+### Borradores recuperables de capturas
+
+- Las capturas pendientes se conservan automáticamente en %LocalAppData%\IMGViewer\Drafts y se recuperan al iniciar, también después de reiniciar Windows. La escritura se realiza en segundo plano con sustitución atómica de cada borrador.
+- Se conservan la imagen, sus anotaciones editables, texto, parches de desenfoque, rotación y estado de edición. El pie distingue Borrador · sin guardar del destino de exportación.
+- Guardar una captura sin cambios pendientes elimina su copia interna. Cerrar la miniatura conserva el borrador; cerrar una captura desde Galería lo elimina. Limpiar todo solicita confirmación y conserva los archivos exportados. Los borradores dañados se conservan y no impiden recuperar los demás.
+- Verificación: ida y vuelta de un borrador temporal con comparación de píxeles y transparencia; conservación de rotación, geometría, control de curva, sombra y desenfoque. Se comprobó la sustitución de un borrador existente sin archivos temporales residuales. No se reinició Windows durante la prueba.
+
+
+### Ubicación de Configuración
+
+- Configuración pasa de Ver al final de Editar, con un separador. El menú compacto refleja el mismo orden; se conserva el acceso desde la bandeja.
+
+
+### Guardado directo de capturas
+
+- Ctrl + S y Guardar exportan capturas nuevas o borradores directamente a la carpeta configurada, con nombre screen-yyMMdd-HHmmss y sufijo si ya existe. Guardar copia conserva el selector de destino.
+- JPG pasa a ser el formato predeterminado de las capturas; los demás formatos siguen disponibles en Configuración.
+
+
+### Orden de opciones de Capturas
+
+- Configuración → Capturas muestra Atajo de captura, Guardado y portapapeles y Después de capturar, en ese orden. Se conserva el comportamiento de todas las opciones.
+
+
+### Escape en capturas
+
+- Esc mantiene la cancelación/restauración de cambios. Cuando una captura ya no tiene cambios pendientes, activa Mover ventana igual que V y desactiva Flecha, sin minimizar ni cerrar. Se mantiene la prioridad de selección, edición de texto y menús.
