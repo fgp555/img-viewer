@@ -33,6 +33,7 @@ public partial class CaptureSettingsWindow : Window
         CaptureThumbnailDelay.ItemsSource = Enumerable.Range(3,58);
         CaptureThumbnailDelay.SelectedItem = CapturePreferences.ThumbnailSeconds;
         AutoSaveCaptures.IsChecked = CapturePreferences.AutoSave;
+        FloatingCaptureEnabled.IsChecked = CapturePreferences.ShowFloatingCaptureButton;
         CaptureFormatPicker.SelectedItem = CaptureFormatPicker.Items.OfType<System.Windows.Controls.ComboBoxItem>().First(item => (string)item.Tag == CapturePreferences.FormatExtension);
         CaptureFormatPicker.SelectionChanged += CaptureFormatPicker_SelectionChanged;
         AppVersion.Text = $"Versión {typeof(App).Assembly.GetName().Version?.ToString(3)}";
@@ -117,7 +118,7 @@ public partial class CaptureSettingsWindow : Window
     {
         if (SettingsNavigation is null || SettingsNoResults is null) return;
         string query = SettingsSearch.Text.Trim();
-        var keywords = new Dictionary<string,string> { ["general"]="General inicio Windows bandeja cerrar segundo plano minimizar copiar portapapeles", ["captures"]="Capturas carpeta guardar descargas portapapeles copiar atajo teclado Impr Pant", ["gallery"]="Galería columnas cuadrícula imágenes fila", ["cloud"]="Nube cloud R2 bucket subir conexión credenciales enlace remoto", ["formats"]="Formatos tipos archivos jpg jpeg png bmp svg webp predeterminado default Windows asociaciones", ["cursor"]="Cursor mouse ocultar inactividad segundos alcance", ["about"]="Acerca versión página web IMG Viewer" };
+        var keywords = new Dictionary<string,string> { ["general"]="General inicio Windows bandeja cerrar segundo plano minimizar copiar portapapeles", ["captures"]="Capturas carpeta guardar descargas portapapeles copiar atajo teclado Impr Pant botón flotante cámara", ["gallery"]="Galería columnas cuadrícula imágenes fila", ["cloud"]="Nube cloud R2 bucket subir conexión credenciales enlace remoto", ["formats"]="Formatos tipos archivos jpg jpeg png bmp svg webp predeterminado default Windows asociaciones", ["cursor"]="Cursor mouse ocultar inactividad segundos alcance", ["about"]="Acerca versión página web IMG Viewer" };
         foreach (var item in SettingsNavigation.Items.OfType<System.Windows.Controls.ListBoxItem>())
             item.Visibility = keywords[(string)item.Tag].Contains(query, StringComparison.OrdinalIgnoreCase) ? Visibility.Visible : Visibility.Collapsed;
         var visible = SettingsNavigation.Items.OfType<System.Windows.Controls.ListBoxItem>().Where(item => item.Visibility == Visibility.Visible).ToArray();

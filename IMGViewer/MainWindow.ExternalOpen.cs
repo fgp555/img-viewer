@@ -36,7 +36,7 @@ public partial class MainWindow
             if(version!=imageOpenVersion) return;
             folderImages=details.Files; currentIndex=details.Index;
             deferImageDetails=false;
-            ImageInfo.Text=details.Info;
+            SetImageInfo(details.Info);
             UpdateCaptureDestination(); UpdateToolbarActions(); UpdateSlideShowAvailability();
             RefreshGallery();
             Debug.WriteLine($"IMGViewer open: details ready {elapsed.ElapsedMilliseconds} ms");

@@ -119,6 +119,7 @@ public partial class MainWindow
             return;
         }
 
+        bool hidingUtilityWindows=floatingCaptureButton?.IsVisible==true || captureWidget?.IsVisible==true;
         captureWidget?.Close();
         captureInProgress = true;
         bool restoreViewer = IsVisible;
@@ -126,6 +127,7 @@ public partial class MainWindow
         bool captureCompleted = false;
         try
         {
+            floatingCaptureButton?.Hide();
             SetSlideShowPlaying(false);
             if (IsVisible)
             {
@@ -133,6 +135,7 @@ public partial class MainWindow
                 // Give the desktop compositor time to present the windows behind the viewer.
                 DwmFlush();
             }
+            else if(hidingUtilityWindows)DwmFlush();
             DateTime timestamp = DateTime.Now;
             var elapsed = System.Diagnostics.Stopwatch.StartNew();
             DesktopSnapshot snapshot = DesktopSnapshot.Capture();
@@ -199,6 +202,7 @@ public partial class MainWindow
                 Activate();
             }
             captureInProgress = false;
+            RefreshFloatingCaptureButton();
         }
     }
 
@@ -210,6 +214,7 @@ public partial class MainWindow
         SetSlideShowPlaying(false);
         var settings = new CaptureSettingsWindow { Owner = this };
         settings.ShowDialog();
+        RefreshFloatingCaptureButton();
         UpdateCaptureDestination();
         gallerySignature = null;
         RefreshGallery(true);

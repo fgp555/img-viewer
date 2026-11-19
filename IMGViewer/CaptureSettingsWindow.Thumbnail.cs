@@ -2,6 +2,12 @@
 namespace IMGViewer;
 public partial class CaptureSettingsWindow
 {
+    private void FloatingCaptureEnabled_Click(object sender,System.Windows.RoutedEventArgs e)
+    {
+        try {CapturePreferences.ShowFloatingCaptureButton=FloatingCaptureEnabled.IsChecked==true;(Owner as MainWindow)?.RefreshFloatingCaptureButton();}
+        catch(Exception ex) when(ex is System.IO.IOException or UnauthorizedAccessException or System.Security.SecurityException)
+        {FloatingCaptureEnabled.IsChecked=CapturePreferences.ShowFloatingCaptureButton;SettingsStatus.Text="No se pudo guardar la opción del botón flotante.";}
+    }
     private void CaptureResultPicker_SelectionChanged(object sender,SelectionChangedEventArgs e)
     {
         if(CaptureResultPicker.SelectedIndex<0)return;

@@ -136,6 +136,7 @@ public partial class MainWindow : Window
             SetScreenBounds(handle, previous.Bounds);
             WindowState = previous.State;
             windowedMode = null;
+            ApplyWorkspaceLayout();
             UpdateNativeWindowFrame();
             UpdateSlideShowAvailability();
             return;
@@ -161,12 +162,15 @@ public partial class MainWindow : Window
         ResizeMode = ResizeMode.NoResize;
         Topmost = true;
         SetScreenBounds(handle, info.Monitor);
+        ApplyWorkspaceLayout();
         UpdateNativeWindowFrame();
         UpdateSlideShowAvailability();
     }
 
     protected override void OnClosed(EventArgs e)
     {
+        dimensionsCopyFeedback?.Stop();
+        CloseFloatingCaptureButton();
         FlushCaptureDrafts();
         imageOpenVersion++;
         CancelInlineCrop();
@@ -235,7 +239,6 @@ public partial class MainWindow : Window
     {
         base.OnPreviewMouseDown(e);
         if(cropCommitTimer is not null && IsViewerSurface(e)) {e.Handled=true;return;}
-        lastMinimizeEscape = 0;
         if (CurveHandle.IsMouseOver || (InlineCropCanvas.IsVisible && GalleryAncestor<System.Windows.Controls.Primitives.Thumb>(e.OriginalSource as DependencyObject) is not null)) return;
         if (e.ChangedButton == MouseButton.Left && !IsFolderGridOpen && IsViewerSurface(e)) Keyboard.Focus(this);
         viewerPressStart = null;
@@ -531,6 +534,11 @@ public partial class MainWindow : Window
 
     private void CompletePhotoOpen(string path, bool resetMarkup, string[] images)
     {
+        // Local file openings share this completion path (Explorer, dialog, drop and gallery).
+        // Capture-history navigation uses ShowSessionCapture and keeps its own tab.
+        historyView=false;
+        cloudView=false;
+        UpdateHistoryView();
         if (resetMarkup)
         {
             toolsOpen = false;
@@ -558,22 +566,19 @@ public partial class MainWindow : Window
         }
         if (e.Key == Key.Escape && markerDrag is { Kind: MarkerKind.Crop })
         {
-            lastMinimizeEscape = 0;
             ReleaseMouseCapture();
             e.Handled = true;
             return;
         }
-        if (e.Key != Key.Escape) lastMinimizeEscape = 0;
         if (TryExitZenWithEscape(e)) return;
-        if (HandleInlineCropKey(e)) { lastMinimizeEscape = 0; return; }
-        if (HandleGalleryInteractionKey(e)) { lastMinimizeEscape = 0; return; }
-        if (HandleCloudKey(e)) { lastMinimizeEscape = 0; return; }
-        if (HandleWorkspaceKey(e)) { lastMinimizeEscape = 0; return; }
+        if (HandleInlineCropKey(e)) { return; }
+        if (HandleGalleryInteractionKey(e)) { return; }
+        if (HandleCloudKey(e)) { return; }
+        if (HandleWorkspaceKey(e)) { return; }
         if (markerDrag.HasValue)
         {
             if (e.Key == Key.Escape)
             {
-                lastMinimizeEscape = 0;
                 ReleaseMouseCapture();
             }
 
@@ -605,20 +610,16 @@ public partial class MainWindow : Window
             if (e.IsRepeat) return;
             if (!IsFolderGridOpen && HasPendingChanges)
             {
-                lastMinimizeEscape = 0;
                 DiscardPendingChanges();
             }
             else if (!IsFolderGridOpen && (activeCapture is not null || HasUnsavedCapture))
             {
-                lastMinimizeEscape = 0;
                 SelectWindowMoveTool();
             }
             else if (windowedMode.HasValue)
             {
-                lastMinimizeEscape = 0;
                 ToggleFullScreen();
             }
-            else MinimizeOnDoubleEscape();
             return;
         }
 
@@ -1343,7 +1344,7 @@ public partial class MainWindow : Window
         UpdateZoomFooter();
         if (deferImageDetails)
         {
-            if (Photo.Source is BitmapSource pending) ImageInfo.Text = $"{Path.GetFileName(CurrentGridImage)} · {pending.PixelWidth} × {pending.PixelHeight} px";
+            if (Photo.Source is BitmapSource pending) SetImageInfo($"{Path.GetFileName(CurrentGridImage)} · {pending.PixelWidth} × {pending.PixelHeight} px");
             UpdateToolbarActions();
             return;
         }
@@ -1357,18 +1358,18 @@ public partial class MainWindow : Window
 
         if (Photo.Source is not BitmapSource bitmap)
         {
-            ImageInfo.Text = "No hay una imagen abierta.";
+            SetImageInfo("No hay una imagen abierta.");
             return;
         }
 
         if (HasUnsavedCapture)
         {
-            ImageInfo.Text = $"Captura de pantalla · {bitmap.PixelWidth} × {bitmap.PixelHeight} px · Sin guardar";
+            SetImageInfo($"Captura de pantalla · {bitmap.PixelWidth} × {bitmap.PixelHeight} px · Sin guardar");
             return;
         }
 
-        ImageInfo.Text = DescribePhotoFile(folderImages[currentIndex],
-            $"{currentIndex + 1} / {folderImages.Length}", bitmap);
+        SetImageInfo(DescribePhotoFile(folderImages[currentIndex],
+            $"{currentIndex + 1} / {folderImages.Length}", bitmap));
     }
 
     private static string FormatFileSize(long bytes) => bytes switch

@@ -141,7 +141,7 @@ public partial class MainWindow
             new("Capturas y ventana", "\uE722", "zen", "Modo zen", "Tab"),
             new("Capturas y ventana", "\uE722", "topmost", "Siempre visible", "Ctrl + F12"),
             new("Capturas y ventana", "\uE722", "normalmode", "Salir del modo zen", "Esc"),
-            new("Capturas y ventana", "\uE722", "minimize", "Minimizar ventana", "Esc + Esc"),
+            new("Capturas y ventana", "\uE722", "minimize", "Minimizar ventana", ""),
             new("Capturas y ventana", "\uE722", "close", "Ocultar / cerrar ventana", ""),
             new("Capturas y ventana", "\uE722", "exit", "Salir completamente", "Shift + cerrar"),
             new("Capturas y ventana", "\uE722", "settings", "Configuración", "")

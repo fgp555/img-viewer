@@ -356,7 +356,7 @@ public partial class MainWindow
     private void UpdateCurveHandle()
     {
         if (CurveHandle is null) return;
-        if (zenMode || IsFolderGridOpen || markers.Count==0 || markers[^1].Curve is not { } curve || Photo.Source is not BitmapSource bitmap)
+        if (zenMode || windowedMode.HasValue || IsFolderGridOpen || markers.Count==0 || markers[^1].Curve is not { } curve || Photo.Source is not BitmapSource bitmap)
         { CurveHandle.Visibility=Visibility.Collapsed; return; }
         Point mid = new((curve.Start.X+2*curve.Control.X+curve.End.X)/4,
             (curve.Start.Y+2*curve.Control.Y+curve.End.Y)/4);

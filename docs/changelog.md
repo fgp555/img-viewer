@@ -719,3 +719,69 @@ Añadir cada cambio visible para el usuario con su fecha, el comportamiento y el
 ### Ayudas en la conexión Nube
 
 - Placeholders en endpoint S3, bucket, Access Key ID, Secret Access Key, carpeta remota y URL pública. Los ejemplos desaparecen al introducir un valor, sin sustituir las etiquetas ni modificar los datos de conexión.
+
+
+### Orden de opciones de Formatos
+
+- Configuración → Formatos muestra Visor predeterminado de Windows, Tipos de archivos y Compresión WebP, en ese orden. Se conservan las opciones y sus eventos.
+
+
+### Orden de Guardado y portapapeles
+
+- En Capturas se muestran Carpeta de capturas, Formato de captura (con sus opciones WebP), Guardar capturas automáticamente y Copiar capturas al portapapeles, en ese orden.
+
+
+### Opciones compactas después de capturar
+
+- Resultado, monitor y duración se presentan en una sola fila, con sus etiquetas encima y el texto de ayuda debajo. Monitor y duración se desactivan cuando se elige Abrir visor, conservando sus valores.
+
+
+### Botón flotante de captura
+
+- Nueva opción Mostrar botón flotante de captura en Configuración → Capturas → Atajo de captura, desactivada por defecto.
+- Cámara compacta de 44 × 44 DIPs sobre otras ventanas, disponible también con el visor en la bandeja. Un clic inicia el capturador existente; arrastrar mueve el botón sin capturar.
+- Posición recordada entre sesiones, limitada al área útil del monitor y ajustada si se desconecta una pantalla. Menú contextual: Capturar pantalla, Abrir IMG Viewer y Ocultar botón. Ocultar desactiva la opción; se puede volver a activar en Configuración.
+- El botón se oculta antes de congelar el escritorio y vuelve al terminar o cancelar. Se cierra al salir de IMG Viewer y no crea otra instancia.
+- Verificado visualmente el botón y menú. Probados clic y arrastre rápido con captura simulada, y límites de posición con coordenadas negativas, monitor desconectado y tamaño escalado. No se cambió la escala de Windows para probar DPI reales.
+
+
+### Switches sin recortes al pulsar
+
+- Se corrige el estilo compartido de Configuración: el contorno de foco deja de consumir espacio dentro de la pista. El círculo conserva 14 × 14 DIPs, centrado en la pista de 36 × 20, al activar, pulsar o enfocar el switch. Se mantienen teclado, foco visible y estado desactivado.
+- Verificación: medidas de pista y círculo en activado/desactivado con foco, tanto en la app como en WpfUi.Switch de la skill. Revisión visual a 100 % y alternancia con clic y Espacio. No se cambiaron las escalas DPI de Windows.
+
+
+### Copiar dimensiones desde el pie
+
+- Clic en las dimensiones del footer copia ancho y alto actuales como 1920x1080, sin espacios ni unidades y sin modal. Usa los píxeles reales tras recortar o redimensionar, independientemente del zoom.
+
+
+### Conversión directa a WebP
+
+- Menú contextual → Convertir a WebP crea una copia junto al original sin selector, respetando la compresión configurada y añadiendo sufijo si el nombre existe. Conserva el original y las ediciones pendientes.
+- Compatible con la imagen actual y la selección múltiple del grid. Las capturas sin archivo se convierten en la carpeta de capturas configurada.
+
+
+### Confirmación al copiar dimensiones
+
+- Al copiar dimensiones desde el footer, el tamaño se sustituye por Copiado… durante cinco segundos. Otro clic reinicia la espera; al cambiar de imagen se cancela el aviso anterior para no restaurar dimensiones incorrectas.
+
+
+### Pantalla completa sin interfaz
+
+- Pantalla completa oculta título, barras, footer y paneles laterales para dejar el espacio a la imagen. Al salir se recupera la disposición normal sin alterar las preferencias de los paneles.
+
+
+### Escape sin minimizar
+
+- Se elimina el atajo de doble Esc para minimizar y su referencia en la lista de atajos. Esc conserva la cancelación, restauración, salida de pantalla completa/zen y vuelta a Mover ventana en capturas.
+
+
+### Pestaña correcta al abrir imágenes locales
+
+- Al abrir una imagen desde el Explorador, el diálogo de archivos o arrastrar y soltar se activa Carpeta en la galería, en lugar de conservar Capturas o Nube. La navegación del historial mantiene su pestaña.
+
+
+### Botón flotante activado inicialmente
+
+- Mostrar botón flotante de captura queda activado por defecto. Se conserva la posibilidad de desactivarlo en Configuración → Capturas.

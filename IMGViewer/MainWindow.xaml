@@ -201,6 +201,7 @@
                 <MenuItem Header="Copiar" Tag="copy" InputGestureText="Ctrl+C" Click="WorkspaceAction_Click"/>
                 <MenuItem Header="Cerrar ventana" Tag="close" Click="WorkspaceAction_Click"/>
                 <MenuItem Header="Convertir formato…" Tag="convert" Click="WorkspaceAction_Click"/>
+                <MenuItem Header="Convertir a WebP" Tag="quickwebp" Click="WorkspaceAction_Click"/>
                 <MenuItem Header="Guardar" Tag="save" InputGestureText="Ctrl+S" Click="WorkspaceAction_Click"/>
                 <MenuItem Header="Guardar copia…" Tag="savecopy" Click="WorkspaceAction_Click"/>
 <MenuItem Header="Subir a Nube" Tag="cloud" Click="WorkspaceAction_Click"/>

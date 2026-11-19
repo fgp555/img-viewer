@@ -36,7 +36,6 @@ public partial class MainWindow
         if (settings?.GetValue("ToolsWidth") is int right) toolsWidth = Math.Clamp(right, 170, 360);
         gallerySearchTimer.Tick += (_, _) => { gallerySearchTimer.Stop(); RefreshGallery(true); };
         StateChanged += (_, _) => { UpdateCaptionIcon(); UpdateNativeWindowFrame(); };
-        Deactivated += (_, _) => lastMinimizeEscape = 0;
         LoadGalleryFolders();
         Loaded += (_, _) => UpdateMarkerColorChecks();
         Loaded += (_, _) => { ApplyWorkspaceLayout(); RefreshGallery(); };
@@ -47,16 +46,17 @@ public partial class MainWindow
     private void ApplyWorkspaceLayout()
     {
         if (Workspace is null) return;
+        bool hideChrome=zenMode || windowedMode.HasValue;
         MainWindowFrame.BorderThickness = new Thickness(0);
         MainWindowFrame.CornerRadius = new CornerRadius(0);
         Workspace.Margin = new Thickness(0);
         Workspace.Clip = null;
-        TitleBar.Visibility = ActionBar.Visibility = zenMode ? Visibility.Collapsed : Visibility.Visible;
+        TitleBar.Visibility = ActionBar.Visibility = hideChrome ? Visibility.Collapsed : Visibility.Visible;
         UpdateWindowCornerClip();
         ApplyCompactMode();
         // Preserve the image's working space on compact windows, without losing panel preferences.
-        bool showTools = !zenMode && toolsOpen && ActualWidth >= 560;
-        bool showGallery = !zenMode && galleryOpen && ActualWidth >= (showTools ? 840 : 520);
+        bool showTools = !hideChrome && toolsOpen && ActualWidth >= 560;
+        bool showGallery = !hideChrome && galleryOpen && ActualWidth >= (showTools ? 840 : 520);
         GalleryColumn.Width = new GridLength(showGallery ? galleryWidth : 0);
         GalleryColumn.MinWidth = showGallery ? 140 : 0;
         GalleryColumn.MaxWidth = showGallery ? Math.Min(360, Math.Max(140, ActualWidth - 360 - (showTools ? toolsWidth : 0))) : 0;
@@ -65,13 +65,14 @@ public partial class MainWindow
         ToolsColumn.MaxWidth = showTools ? Math.Min(360, Math.Max(170, ActualWidth - 360)) : 0;
         GallerySplitterColumn.Width = new GridLength(showGallery ? 4 : 0);
         ToolsSplitterColumn.Width = new GridLength(showTools ? 4 : 0);
-        Photo.Cursor = !zenMode && panTool ? Cursors.Hand : !zenMode && activeMarkerTool is not null ? Cursors.Cross : null;
+        Photo.Cursor = !hideChrome && panTool ? Cursors.Hand : !hideChrome && activeMarkerTool is not null ? Cursors.Cross : null;
         GalleryPanel.Visibility = showGallery ? Visibility.Visible : Visibility.Collapsed;
         ToolsPanel.Visibility = showTools ? Visibility.Visible : Visibility.Collapsed;
-        ImageFooter.Opacity = zenMode ? 0 : 1;
-        ImageFooter.IsHitTestVisible = !zenMode;
-        GridFooter.Visibility = !zenMode && IsFolderGridOpen ? Visibility.Visible : Visibility.Collapsed;
-        StatusRow.Height = zenMode ? new GridLength(0) : GridLength.Auto;
+        ImageFooter.Visibility=hideChrome?Visibility.Collapsed:Visibility.Visible;
+        ImageFooter.Opacity = hideChrome ? 0 : 1;
+        ImageFooter.IsHitTestVisible = !hideChrome;
+        GridFooter.Visibility = !hideChrome && IsFolderGridOpen ? Visibility.Visible : Visibility.Collapsed;
+        StatusRow.Height = hideChrome ? new GridLength(0) : GridLength.Auto;
         // The transparent background remains limited to the image canvas.
         Workspace.Background = zenMode ? Brushes.Transparent : (Brush)FindResource("ViewerBackground");
         ApplyCompactPanels();
@@ -241,6 +242,7 @@ public partial class MainWindow
                 "save" or "savecopy" or "rotate" or "rotateback" or "crop" or "clear" => image,
                 "copy" or "resize" or "convert" or "delete" => IsFolderGridOpen ? SelectedGridPaths().Length > 0 : image,
                 "cloud" => cloudSettings.Enabled && !cloudBusy && (IsFolderGridOpen ? SelectedGridPaths().Length > 0 : image),
+                "quickwebp" => !quickWebPInProgress && !gridBatchInProgress && (IsFolderGridOpen ? SelectedGridPaths().Length > 0 : image),
                 "rename" => image && currentIndex >= 0,
                 "undo" => image && (markers.Count > 0 || CanUndoCrop) || recycledPhotos.Count > 0,
                 _ => true
@@ -271,6 +273,7 @@ public partial class MainWindow
             case "save": SavePhoto(false); break;
             case "savecopy": SavePhoto(true); break;
             case "convert": if (IsFolderGridOpen) ConvertSelectedGridPhotos(); else SavePhoto(true); break;
+            case "quickwebp": QuickConvertToWebP(); break;
             case "copy": CopyWorkspaceImage(); break;
             case "minimize": WindowState = WindowState.Minimized; break;
             case "normalmode": SetZenMode(false); break;

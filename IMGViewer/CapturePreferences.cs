@@ -10,6 +10,25 @@ internal static class CapturePreferences
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "IMGViewer", "capture-folder-v2.txt");
 
+    internal static bool ShowFloatingCaptureButton
+    {
+        get {using var key=Microsoft.Win32.Registry.CurrentUser.OpenSubKey(@"Software\IMGViewer");return key?.GetValue("FloatingCaptureButton") is not 0;}
+        set {using var key=Microsoft.Win32.Registry.CurrentUser.CreateSubKey(@"Software\IMGViewer");key.SetValue("FloatingCaptureButton",value?1:0);}
+    }
+    internal static System.Windows.Point? FloatingCaptureButtonPosition
+    {
+        get
+        {
+            using var key=Microsoft.Win32.Registry.CurrentUser.OpenSubKey(@"Software\IMGViewer");
+            return key?.GetValue("FloatingCaptureX") is int x && key.GetValue("FloatingCaptureY") is int y ?new System.Windows.Point(x,y):null;
+        }
+        set
+        {
+            if(value is not System.Windows.Point point)return;
+            using var key=Microsoft.Win32.Registry.CurrentUser.CreateSubKey(@"Software\IMGViewer");
+            key.SetValue("FloatingCaptureX",(int)Math.Round(point.X));key.SetValue("FloatingCaptureY",(int)Math.Round(point.Y));
+        }
+    }
     internal static bool ShowThumbnail
     {
         get { using var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(@"Software\IMGViewer"); return key?.GetValue("CaptureThumbnail") is not 0; }

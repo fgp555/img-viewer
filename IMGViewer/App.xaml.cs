@@ -81,6 +81,7 @@ public partial class App : Application
         }, System.Windows.Threading.DispatcherPriority.ApplicationIdle);
         nint handle = new WindowInteropHelper(window).EnsureHandle();
         idleCursor = new IdleCursor(HwndSource.FromHwnd(handle));
+        window.RefreshFloatingCaptureButton();
         Activated += (_, _) => idleCursor?.ResetLocal();
         Deactivated += (_, _) => idleCursor?.ResetLocal();
         if (!RefreshCursorSettings())

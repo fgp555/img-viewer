@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 namespace IMGViewer;
@@ -34,9 +34,9 @@ public partial class MainWindow
         if (!compact) return;
         GalleryColumn.Width = ToolsColumn.Width = GallerySplitterColumn.Width = ToolsSplitterColumn.Width = new GridLength(0);
         GalleryColumn.MinWidth = ToolsColumn.MinWidth = 0;
-        GalleryPanel.Visibility = !zenMode && galleryOpen ? Visibility.Visible : Visibility.Collapsed;
-        ToolsPanel.Visibility = !zenMode && toolsOpen ? Visibility.Visible : Visibility.Collapsed;
-        if (!zenMode && galleryOpen) RefreshGallery();
+        GalleryPanel.Visibility = !zenMode && !windowedMode.HasValue && galleryOpen ? Visibility.Visible : Visibility.Collapsed;
+        ToolsPanel.Visibility = !zenMode && !windowedMode.HasValue && toolsOpen ? Visibility.Visible : Visibility.Collapsed;
+        if (!zenMode && !windowedMode.HasValue && galleryOpen) RefreshGallery();
     }
     private void CompactMenu_Click(object sender, RoutedEventArgs e)
     {
