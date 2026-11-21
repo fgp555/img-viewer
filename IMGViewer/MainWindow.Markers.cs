@@ -12,7 +12,7 @@ public partial class MainWindow
     private ArrowForm? dragArrowForm;
     private sealed record ArrowShape(Point Start, Point End, Point Control);
 
-    private sealed record StyledMarker(Geometry Geometry, Brush Color, double Width, bool Contrast, ArrowShape? Curve = null, BitmapSource? Patch = null, Rect PatchBounds = default, double ShadowIntensity = 0);
+    private sealed record StyledMarker(Geometry Geometry, Brush Color, double Width, bool Contrast, ArrowShape? Curve = null, BitmapSource? Patch = null, Rect PatchBounds = default, double ShadowIntensity = 0, bool IsPastedImage = false);
     private readonly List<StyledMarker> markers = [];
     private (MarkerKind Kind, Point Start)? markerDrag;
     private readonly List<Point> freehandPoints = [];
@@ -444,16 +444,19 @@ public partial class MainWindow
 
     private void ClearMarkers()
     {
+        selectedPastedImage=-1;pastedTransformUndo.Clear();pastedDeleteUndo.Clear();
         if(!preserveCropUndo) cropUndo.Clear();
         EndInlineText(false);
         markers.Clear();
         if (CurveHandle is not null) CurveHandle.Visibility = Visibility.Collapsed;
         MarkerOverlay.Source = null;
+        UpdatePastedImageAdorners();
     }
 
     private void RefreshMarkerOverlay(Geometry? preview = null)
     {
         UpdateCurveHandle();
+        UpdatePastedImageAdorners();
         if (Photo.Source is not BitmapSource bitmap || (markers.Count == 0 && preview is null))
         {
             MarkerOverlay.Source = null;

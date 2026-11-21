@@ -78,6 +78,7 @@ public partial class MainWindow
         ApplyCompactPanels();
         UpdateCurveHandle();
         UpdateInlineCropAdorners();
+        UpdatePastedImageAdorners();
         if (showGallery) RefreshGallery();
     }
 
@@ -176,6 +177,7 @@ public partial class MainWindow
         ClearValue(CursorProperty);
         ClearValue(ForceCursorProperty);
         Keyboard.Focus(this);
+        UpdatePastedImageAdorners();
     }
 
     private bool HandleWorkspaceKey(KeyEventArgs e)
@@ -196,6 +198,14 @@ public partial class MainWindow
             MainMenu.Items.OfType<MenuItem>().Any(item => item.IsSubmenuOpen) ||
             (MainMenu.IsKeyboardFocusWithin && Keyboard.Modifiers == ModifierKeys.None) ||
             Workspace.ContextMenu?.IsOpen == true) return true;
+        if(e.Key==Key.Delete && Keyboard.Modifiers==ModifierKeys.None && selectedPastedImage>=0 && !IsFolderGridOpen)
+        {
+            if(!e.IsRepeat)DeleteSelectedPastedImage();e.Handled=true;return true;
+        }
+        if(e.Key==Key.V && Keyboard.Modifiers==ModifierKeys.Control)
+        {
+            e.Handled=true;if(!e.IsRepeat)PasteClipboardImage();return true;
+        }
         if (e.Key == Key.Tab && Keyboard.Modifiers == ModifierKeys.None &&
             (zenMode || Keyboard.FocusedElement == this || PhotoViewport.IsMouseOver))
         {
@@ -243,8 +253,9 @@ public partial class MainWindow
                 "copy" or "resize" or "convert" or "delete" => IsFolderGridOpen ? SelectedGridPaths().Length > 0 : image,
                 "cloud" => cloudSettings.Enabled && !cloudBusy && (IsFolderGridOpen ? SelectedGridPaths().Length > 0 : image),
                 "quickwebp" => !quickWebPInProgress && !gridBatchInProgress && (IsFolderGridOpen ? SelectedGridPaths().Length > 0 : image),
+                "paste" => !IsFolderGridOpen && !gridBatchInProgress,
                 "rename" => image && currentIndex >= 0,
-                "undo" => image && (markers.Count > 0 || CanUndoCrop) || recycledPhotos.Count > 0,
+                "undo" => image && (markers.Count > 0 || CanUndoCrop || CanUndoPastedDelete) || recycledPhotos.Count > 0,
                 _ => true
             };
             if(action=="cloud")item.Visibility=cloudSettings.Enabled?Visibility.Visible:Visibility.Collapsed;
@@ -275,6 +286,7 @@ public partial class MainWindow
             case "convert": if (IsFolderGridOpen) ConvertSelectedGridPhotos(); else SavePhoto(true); break;
             case "quickwebp": QuickConvertToWebP(); break;
             case "copy": CopyWorkspaceImage(); break;
+            case "paste": PasteClipboardImage(); break;
             case "minimize": WindowState = WindowState.Minimized; break;
             case "normalmode": SetZenMode(false); break;
             case "close": Close(); break;
@@ -371,10 +383,14 @@ public partial class MainWindow
     {
         imageOpenVersion++;
         deferImageDetails = false;
-        if (!ConfirmWorkspaceNavigation()) return;
+        if (activeCapture is null && !ConfirmWorkspaceNavigation()) return;
+        EndInlineText(true);
+        RememberActiveCapture();
+        draftSaveTimer.Stop();activeCapture=null;captureExportPath=null;
         SetSlideShowPlaying(false);
         StopGridPhotoAnimation();
         HideCaptureFrame();
+        CancelInlineCrop();
         ClearMarkers();
         Photo.Source = null;
         lastSavedPhoto = rotationBasePhoto = null;
@@ -403,6 +419,7 @@ public partial class MainWindow
             _ => null
         };
         if (Photo is not null) Photo.Cursor = activeMarkerTool is null ? null : Cursors.Cross;
+        UpdatePastedImageAdorners();
     }
 
     private void UpdateMarkerColorChecks()
@@ -455,7 +472,7 @@ public partial class MainWindow
         if (CopyPhotoButton is null || SavePendingButton is null || DeletePhotoButton is null) return;
         UpdateCloudActions();
         RestorePhotoButton.Visibility = Visibility.Visible;
-        RestorePhotoButton.IsEnabled = (!IsFolderGridOpen && (markers.Count > 0 || CanUndoCrop)) || recycledPhotos.Count > 0;
+        RestorePhotoButton.IsEnabled = (!IsFolderGridOpen && (markers.Count > 0 || CanUndoCrop || CanUndoPastedDelete)) || recycledPhotos.Count > 0;
         bool image = Photo.Source is BitmapSource;
         bool inGrid = IsFolderGridOpen;
         bool selected = inGrid && SelectedGridPaths().Length > 0 && !gridBatchInProgress;

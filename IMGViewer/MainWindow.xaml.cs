@@ -239,6 +239,7 @@ public partial class MainWindow : Window
     {
         base.OnPreviewMouseDown(e);
         if(cropCommitTimer is not null && IsViewerSurface(e)) {e.Handled=true;return;}
+        if(e.ChangedButton==MouseButton.Left && IsPastedImageThumb(e.OriginalSource as DependencyObject))return;
         if (CurveHandle.IsMouseOver || (InlineCropCanvas.IsVisible && GalleryAncestor<System.Windows.Controls.Primitives.Thumb>(e.OriginalSource as DependencyObject) is not null)) return;
         if (e.ChangedButton == MouseButton.Left && !IsFolderGridOpen && IsViewerSurface(e)) Keyboard.Focus(this);
         viewerPressStart = null;
@@ -559,6 +560,8 @@ public partial class MainWindow : Window
 
     private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
     {
+        UpdatePastedHitTesting();
+        if(HandlePastedImageDragKey(e))return;
         if(cropCommitTimer is not null)
         {
             if(e.Key==Key.Escape) CancelInlineCrop();
@@ -586,7 +589,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (e.Key == Key.Z && Keyboard.Modifiers == ModifierKeys.Control && (IsFolderGridOpen || (markers.Count == 0 && !CanUndoCrop)) && recycledPhotos.Count > 0)
+        if (e.Key == Key.Z && Keyboard.Modifiers == ModifierKeys.Control && (IsFolderGridOpen || (markers.Count == 0 && !CanUndoCrop && !CanUndoPastedDelete)) && recycledPhotos.Count > 0)
         {
             if (!e.IsRepeat) RestorePhoto();
             e.Handled = true;
@@ -629,7 +632,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (e.Key == Key.Z && Keyboard.Modifiers == ModifierKeys.Control && (markers.Count > 0 || CanUndoCrop))
+        if (e.Key == Key.Z && Keyboard.Modifiers == ModifierKeys.Control && (markers.Count > 0 || CanUndoCrop || CanUndoPastedDelete))
         {
             if (!e.IsRepeat)
             {
@@ -1129,6 +1132,17 @@ public partial class MainWindow : Window
             ".jpg" or ".jpeg" => new JpegBitmapEncoder { QualityLevel = 95 },
             _ => throw new NotSupportedException("Formato de guardado no disponible.")
         };
+        if(encoder is JpegBitmapEncoder)
+        {
+            var visual=new DrawingVisual();
+            using(var drawing=visual.RenderOpen())
+            {
+                drawing.DrawRectangle(Brushes.White,null,new Rect(0,0,bitmap.Width,bitmap.Height));
+                drawing.DrawImage(bitmap,new Rect(0,0,bitmap.Width,bitmap.Height));
+            }
+            var opaque=new RenderTargetBitmap(bitmap.PixelWidth,bitmap.PixelHeight,bitmap.DpiX,bitmap.DpiY,PixelFormats.Pbgra32);
+            opaque.Render(visual);opaque.Freeze();bitmap=opaque;
+        }
         encoder?.Frames.Add(BitmapFrame.Create(bitmap));
 
         // Encode beside the destination before replacing any existing file.
@@ -1202,6 +1216,7 @@ public partial class MainWindow : Window
         UpdateCaptureFrame();
         UpdateCurveHandle();
         UpdateInlineCropAdorners();
+        UpdatePastedImageAdorners();
     }
 
     private void Window_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
