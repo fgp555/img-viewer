@@ -264,9 +264,9 @@ public partial class MainWindow
         SetZenMode(false);
         toolsOpen = true;
         ArrowFormPicker.SelectedIndex = 0;
-        MarkerWidthSlider.Value = 60;
         ArrowTool.IsChecked = true;
         activeMarkerTool = MarkerKind.Arrow;
+        SyncMarkerWidthControl();
         panTool = false;
         if (Width < 560 && WindowState == WindowState.Normal) Width = 760;
         ApplyWorkspaceLayout();

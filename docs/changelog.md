@@ -1,4 +1,4 @@
-# Registro de cambios de IMG Viewer
+﻿# Registro de cambios de IMG Viewer
 
 ## Funciones incorporadas en las etapas 1 a 5
 
@@ -785,3 +785,54 @@ Añadir cada cambio visible para el usuario con su fecha, el comportamiento y el
 ### Botón flotante activado inicialmente
 
 - Mostrar botón flotante de captura queda activado por defecto. Se conserva la posibilidad de desactivarlo en Configuración → Capturas.
+
+
+### Proporción correcta de miniaturas de capturas
+
+- Las capturas notifican los cambios de su vista previa tras editar o recortar. La tarjeta recalcula altura y recorte redondeado al cargar o recibir una imagen distinta, incluso cuando WPF reutiliza el contenedor al desplazarse. No se reconstruye el historial ni se reinicia el scroll.
+
+## 2026-11-20 · Pegar y componer imágenes
+
+- **Ctrl + V** o **Editar → Pegar imagen** añade la imagen del portapapeles sobre la imagen abierta. Si el visor está vacío, se usa como imagen base.
+- Cada imagen pegada se mueve mediante arrastre y se redimensiona proporcionalmente desde las esquinas, dentro de los límites de la imagen base. Se activa la herramienta Mover automáticamente.
+- **Ctrl + Z** deshace el pegado y los movimientos o cambios de tamaño; **Esc** cancela el arrastre en curso.
+- Copiar y guardar incluyen la composición completa. Las capturas conservan las imágenes pegadas como elementos editables en sus borradores recuperables.
+- Corregida la serialización de geometrías rectangulares de los borradores.
+- Validación: 19 comprobaciones automáticas de posición, exportación, movimiento con zoom, proporciones, deshacer, cancelación, superposición y recuperación. Sin nuevas dependencias.
+
+## 2026-11-20 · Selección visible en Capturas
+
+- La captura abierta muestra un borde de selección como en Carpeta, independiente del foco del teclado y del botón pulsado. Se actualiza al capturar, navegar, recuperar o cerrar un borrador.
+
+## 2026-11-20 · Composición con lienzo ampliable
+
+- Arrastrar una imagen pegada fuera del borde amplía el lienzo al soltarla. Durante el arrastre se muestra la imagen fuera del área original y aparecen guías con ajuste a los bordes.
+- Clic derecho sobre una imagen pegada: colocar a la derecha, izquierda, arriba o abajo, alineada al borde de la composición actual.
+- Ctrl + Z restaura juntos la posición y el tamaño del lienzo. Esc cancela el arrastre sin ampliar. Las demás imágenes y marcas conservan su posición relativa.
+- Los espacios vacíos conservan transparencia; la exportación JPG los rellena de blanco. Copiar y guardar incluyen el lienzo completo.
+- Límite de composición de 64 megapíxeles y 16384 píxeles por lado para evitar asignaciones excesivas.
+- Validación: 41 comprobaciones automáticas de composición, colocación en los cuatro lados, exportación transparente y JPG, deshacer y recuperación de borradores. Sin nuevas dependencias.
+## 2026-11-20 · Eliminar imágenes pegadas
+
+- Supr / Delete elimina la imagen pegada seleccionada sin borrar el archivo original ni enviar la imagen base a la Papelera. El tamaño del lienzo se conserva.
+- Ctrl + Z recupera imágenes eliminadas, incluyendo varias eliminaciones consecutivas, con su posición y orden original.
+- Se respeta la edición de texto y, sin una imagen pegada seleccionada, se conserva la acción existente de Supr.
+- Validación: 50 comprobaciones automáticas de composición, incluyendo eliminación de la única imagen pegada, eliminación de capas inferiores y restauración consecutiva.
+
+## 2026-11-20 · Recuperar composiciones desde Capturas
+
+- Corregido el cierre de una captura: se conserva su composición editable antes de vaciar el visor y se desactiva su selección. El historial permite volver a abrirla sin guardar un archivo.
+- Recuperación de capturas marcadas como activas cuyo visor quedó vacío. Al cambiar de captura se cancelan los controles transitorios y se reconstruyen los tiradores de las imágenes pegadas.
+- Se conservan posiciones, orden y dimensiones del lienzo al regresar. El historial no aplana las imágenes pegadas.
+- Validación: 59 comprobaciones automáticas, incluyendo navegación entre capturas, cierre y reapertura, recuperación de estado activo obsoleto y edición/deshacer tras regresar.
+
+## 2026-11-20 · Grosor independiente por herramienta
+
+- Flecha al 60 % y rectángulo al 25 % por defecto, conservando las esquinas redondeadas. Mano alzada conserva su propio grosor inicial del 60 %.
+- El slider muestra el grosor de la herramienta seleccionada y recuerda los ajustes de cada herramienta durante la sesión. Las nuevas capturas conservan esos ajustes.
+- Los atajos temporales, como Shift + arrastrar para rectángulo, usan el grosor de su herramienta, independientemente de la seleccionada en el panel. Las marcas existentes mantienen su aspecto.
+- Validación: compilación Release sin errores y 66 comprobaciones automáticas, incluyendo valores iniciales, independencia, cambio de herramientas y atajo temporal.
+
+## 2026-11-20 · Grosor de mano alzada
+
+- Mano alzada comienza con un grosor del 40 %. Conserva los ajustes independientes por herramienta durante la sesión.

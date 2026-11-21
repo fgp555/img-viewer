@@ -1,16 +1,39 @@
 ﻿using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media.Imaging;
 namespace IMGViewer;
 public partial class MainWindow
 {
-    private sealed class SessionCapture
+    private sealed class SessionCapture : INotifyPropertyChanged
     {
         public Guid DraftId {get;init;}=Guid.NewGuid();
         public DateTime Created {get;init;}=DateTime.Now;
         public string Name { get; init; } = "";
-        public BitmapSource Preview { get; set; } = null!;
+        private BitmapSource preview = null!;
+        public BitmapSource Preview
+        {
+            get => preview;
+            set
+            {
+                if(ReferenceEquals(preview,value))return;
+                preview=value;
+                PropertyChanged?.Invoke(this,new PropertyChangedEventArgs(nameof(Preview)));
+            }
+        }
+        private bool isActive;
+        public bool IsActive
+        {
+            get => isActive;
+            set
+            {
+                if(isActive==value)return;
+                isActive=value;
+                PropertyChanged?.Invoke(this,new PropertyChangedEventArgs(nameof(IsActive)));
+            }
+        }
+        public event PropertyChangedEventHandler? PropertyChanged;
         public BitmapSource Photo { get; set; } = null!;
         public BitmapSource? SavedPhoto;
         public BitmapSource? RotationBase;
@@ -20,7 +43,18 @@ public partial class MainWindow
         public string? FilePath;
     }
     private readonly ObservableCollection<SessionCapture> captureHistory = [];
-    private SessionCapture? activeCapture;
+    private SessionCapture? currentCapture;
+    private SessionCapture? activeCapture
+    {
+        get => currentCapture;
+        set
+        {
+            if(ReferenceEquals(currentCapture,value))return;
+            if(currentCapture is not null)currentCapture.IsActive=false;
+            currentCapture=value;
+            if(currentCapture is not null)currentCapture.IsActive=true;
+        }
+    }
     private bool switchingCapture;
     private bool historyView;
 
@@ -53,12 +87,24 @@ public partial class MainWindow
     {
         imageOpenVersion++;
         deferImageDetails = false;
-        if (ReferenceEquals(activeCapture,capture)) return;
-        RememberActiveCapture();
+        EndInlineText(true);
+        bool same=ReferenceEquals(activeCapture,capture);
+        if(same && Photo.Source is BitmapSource && EmptyState.Visibility==Visibility.Collapsed && !IsFolderGridOpen)
+        {
+            RefreshMarkerOverlay();UpdateMetadataFooter();UpdatePendingSaveIndicator();return;
+        }
+        if(!same)RememberActiveCapture();
+        // Copy before resetting the outgoing editor; the history model owns editable layers.
+        var restoredMarks=capture.Marks.ToArray();
+        draftSaveTimer.Stop();
         switchingCapture = true;
         try
         {
+            CancelInlineCrop();
+            if(pastedImageGesture is {} gesture)gesture.Thumb.CancelDrag();
             CloseFolderGrid(); StopGridPhotoAnimation(); HideCaptureFrame();
+            ClearMarkers();
+            PastedImagesCanvas.Children.Clear();pastedImageBodies.Clear();pastedImageCorners.Clear();
             activeCapture = capture;
             captureExportPath = null;
             Photo.Source = capture.Photo;
@@ -68,7 +114,7 @@ public partial class MainWindow
             hasPixelEdit = capture.PixelEdit;
             folderImages = capture.FilePath is null ? [] : [capture.FilePath];
             currentIndex = capture.FilePath is null ? -1 : 0;
-            markers.Clear(); markers.AddRange(capture.Marks);
+            markers.AddRange(restoredMarks);
             RefreshMarkerOverlay(); ResetPhotoView();
             EmptyState.Visibility = Visibility.Collapsed;
             CropButton.Visibility = Visibility.Visible;

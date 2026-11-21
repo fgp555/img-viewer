@@ -12,7 +12,7 @@ public partial class MainWindow
     private ArrowForm? dragArrowForm;
     private sealed record ArrowShape(Point Start, Point End, Point Control);
 
-    private sealed record StyledMarker(Geometry Geometry, Brush Color, double Width, bool Contrast, ArrowShape? Curve = null, BitmapSource? Patch = null, Rect PatchBounds = default, double ShadowIntensity = 0);
+    private sealed record StyledMarker(Geometry Geometry, Brush Color, double Width, bool Contrast, ArrowShape? Curve = null, BitmapSource? Patch = null, Rect PatchBounds = default, double ShadowIntensity = 0, bool IsPastedImage = false);
     private readonly List<StyledMarker> markers = [];
     private (MarkerKind Kind, Point Start)? markerDrag;
     private readonly List<Point> freehandPoints = [];
@@ -23,6 +23,25 @@ public partial class MainWindow
     private double previousFreehandTime;
     private double filteredBrushPressure = 0.7;
     private bool freehandBrush;
+
+    private readonly Dictionary<MarkerKind,double> markerWidths=new()
+    {
+        [MarkerKind.Arrow]=60,[MarkerKind.Rectangle]=25,[MarkerKind.Freehand]=40
+    };
+    private MarkerKind markerWidthTool=MarkerKind.Arrow;
+    private bool syncingMarkerWidth;
+    private void SyncMarkerWidthControl()
+    {
+        if(MarkerWidthSlider is null || activeMarkerTool is not {} kind || !markerWidths.ContainsKey(kind))return;
+        markerWidthTool=kind;syncingMarkerWidth=true;
+        try {MarkerWidthSlider.Value=markerWidths[kind];}
+        finally {syncingMarkerWidth=false;}
+    }
+    private void MarkerWidthChanged(object sender,RoutedPropertyChangedEventArgs<double> e)
+    {
+        if(!syncingMarkerWidth)markerWidths[markerWidthTool]=e.NewValue;
+    }
+    private double CurrentMarkerWidth=>markerWidths.GetValueOrDefault(markerDrag?.Kind??activeMarkerTool??markerWidthTool,60);
 
     private bool TryStartMarker(MouseButtonEventArgs e)
     {
@@ -444,16 +463,19 @@ public partial class MainWindow
 
     private void ClearMarkers()
     {
+        selectedPastedImage=-1;pastedTransformUndo.Clear();pastedDeleteUndo.Clear();
         if(!preserveCropUndo) cropUndo.Clear();
         EndInlineText(false);
         markers.Clear();
         if (CurveHandle is not null) CurveHandle.Visibility = Visibility.Collapsed;
         MarkerOverlay.Source = null;
+        UpdatePastedImageAdorners();
     }
 
     private void RefreshMarkerOverlay(Geometry? preview = null)
     {
         UpdateCurveHandle();
+        UpdatePastedImageAdorners();
         if (Photo.Source is not BitmapSource bitmap || (markers.Count == 0 && preview is null))
         {
             MarkerOverlay.Source = null;
@@ -504,7 +526,7 @@ public partial class MainWindow
     }
 
     private double MarkerStroke(BitmapSource bitmap) =>
-        Math.Max(1, Math.Max(1, (MarkerWidthSlider?.Value ?? 60) * 0.16) * Math.Min(bitmap.Width, bitmap.Height) / 700);
+        Math.Max(1, Math.Max(1, CurrentMarkerWidth * 0.16) * Math.Min(bitmap.Width, bitmap.Height) / 700);
 
     private BitmapSource FlattenMarkers(BitmapSource bitmap)
     {

@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -6,6 +6,12 @@ namespace IMGViewer;
 public partial class MainWindow
 {
     private void GalleryCard_SizeChanged(object sender, SizeChangedEventArgs e) => UpdateGalleryCard((Grid)sender);
+    private void CaptureThumbnail_Loaded(object sender,RoutedEventArgs e) => RefreshCaptureCard(sender);
+    private void CaptureThumbnail_Updated(object sender,System.Windows.Data.DataTransferEventArgs e) => RefreshCaptureCard(sender);
+    private static void RefreshCaptureCard(object sender)
+    {
+        if(sender is Image {Parent:Grid card})UpdateGalleryCard(card);
+    }
     private static void UpdateGalleryCard(Grid card)
     {
         if (card.ActualWidth <= 0) return;

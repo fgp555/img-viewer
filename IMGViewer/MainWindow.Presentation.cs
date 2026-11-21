@@ -93,7 +93,9 @@ public partial class MainWindow
     }
     private void UndoWorkspace()
     {
-        if (!IsFolderGridOpen && markers.Count > 0) UndoMarker();
+        if(!IsFolderGridOpen && CanUndoPastedDelete)UndoPastedDelete();
+        else if(!IsFolderGridOpen && CanUndoPastedTransform)UndoPastedTransform();
+        else if (!IsFolderGridOpen && markers.Count > 0) UndoMarker();
         else if (!IsFolderGridOpen && CanUndoCrop) UndoCrop();
         else RestorePhoto();
     }
@@ -105,6 +107,7 @@ public partial class MainWindow
             new("Archivos", "\uE8B7", "save", "Guardar", "Ctrl + S"),
             new("Archivos", "\uE8B7", "savecopy", "Guardar copia / convertir", "Ctrl + Shift + S"),
             new("Archivos", "\uE8B7", "copy", "Copiar", "Ctrl + C"),
+            new("Archivos", "\uE8B7", "paste", "Pegar imagen", "Ctrl + V"),
             new("Archivos", "\uE8B7", "rename", "Renombrar", "F2"),
             new("Archivos", "\uE8B7", "delete", "Enviar a la Papelera", "Supr"),
             new("Archivos", "\uE8B7", "restore", "Recuperar eliminación", "Shift + Supr"),
@@ -157,8 +160,9 @@ public partial class MainWindow
                 "previous" or "next" => currentIndex >= 0 && folderImages.Length > 1,
                 "save" or "savecopy" or "rotate" or "rotateback" or "scale50" or "scale100" or "scale150" or "zoomin" or "zoomout" or "cover" or "fit" or "pan" or "arrowtool" or "curvedarrowtool" or "rectangletool" or "freehandtool" or "texttool" or "blurtool" or "movetool" or "inlinecrop" or "crop" => image,
                 "normalmode" => zenMode,
+                "paste" => !IsFolderGridOpen,
                 "discard" => HasPendingChanges,
-                "undo" => markers.Count > 0 || CanUndoCrop || recycledPhotos.Count > 0,
+                "undo" => markers.Count > 0 || CanUndoCrop || CanUndoPastedDelete || recycledPhotos.Count > 0,
                 _ => true };
         var dialog = new ShortcutsWindow(commands, action => Dispatcher.InvokeAsync(() => {
             Activate(); WorkspaceAction_Click(new Button { Tag = action }, new RoutedEventArgs());
