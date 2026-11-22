@@ -15,6 +15,11 @@
             <Line x:Name="HorizontalGuide" Stroke="#FFFFC247" StrokeThickness="1" Opacity="0.8" IsHitTestVisible="False" Visibility="Collapsed" />
             <Line x:Name="VerticalGuide" Stroke="#FFFFC247" StrokeThickness="1" Opacity="0.8" IsHitTestVisible="False" Visibility="Collapsed" />
         </Grid>
+        <Canvas IsHitTestVisible="False">
+            <Border x:Name="SelectionDimensions" Visibility="Collapsed" Background="#E6181818" CornerRadius="5" Padding="8,4" BorderBrush="#555555" BorderThickness="1">
+                <TextBlock x:Name="SelectionDimensionsText" Foreground="White" FontSize="12" FontWeight="SemiBold"/>
+            </Border>
+        </Canvas>
         <Canvas>
             <Button x:Name="Toolbar" Background="#F0181818" Foreground="White" BorderThickness="0" Padding="10,5" Cursor="Hand" Click="CaptureMonitor_Click" MouseEnter="MonitorPreview_Changed" MouseLeave="MonitorPreview_Changed" GotKeyboardFocus="MonitorPreview_Changed" LostKeyboardFocus="MonitorPreview_Changed" SizeChanged="Surface_SizeChanged" ToolTip="Capturar el monitor completo · Esc cancela" AutomationProperties.Name="Capturar pantalla completa">
                 <Button.Template><ControlTemplate TargetType="Button"><Border x:Name="Pill" Background="{TemplateBinding Background}" CornerRadius="16" Padding="{TemplateBinding Padding}"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border><ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Pill" Property="Background" Value="#333333"/></Trigger><Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Pill" Property="Background" Value="#333333"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Button.Template>

@@ -158,14 +158,33 @@ public partial class ScreenCaptureWindow : Window
         {
             Dimmer.Data = full;
             Outline.Data = null;
+            SelectionDimensions.Visibility=Visibility.Collapsed;
             return;
         }
 
         var highlight = new RectangleGeometry(ToView(selected));
         Dimmer.Data = new CombinedGeometry(GeometryCombineMode.Exclude, full, highlight);
         Outline.Data = highlight;
+        ShowSelectionDimensions(selected);
     }
 
+    private void ShowSelectionDimensions(Int32Rect selected)
+    {
+        SelectionDimensionsText.Text=$"{selected.Width} × {selected.Height} px";
+        SelectionDimensions.Visibility=Visibility.Visible;
+        SelectionDimensions.Measure(new Size(double.PositiveInfinity,double.PositiveInfinity));
+        Size size=SelectionDimensions.DesiredSize;
+        Rect selection=ToView(selected);
+        // Use the monitor containing the selection corner, including negative desktop coordinates.
+        Rect screen=ToView(snapshot.MonitorAt(new Point(selected.X+selected.Width-1,selected.Y+selected.Height-1)));
+        screen.Intersect(new Rect(0,0,Surface.ActualWidth,Surface.ActualHeight));
+        const double gap=8;
+        double x=selection.Right-size.Width,y=selection.Bottom+gap;
+        if(y+size.Height>screen.Bottom-gap)y=selection.Bottom-size.Height-gap;
+        x=Math.Clamp(x,screen.Left+gap,Math.Max(screen.Left+gap,screen.Right-size.Width-gap));
+        y=Math.Clamp(y,screen.Top+gap,Math.Max(screen.Top+gap,screen.Bottom-size.Height-gap));
+        Canvas.SetLeft(SelectionDimensions,x);Canvas.SetTop(SelectionDimensions,y);
+    }
     private void Selection_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
         Keyboard.Focus(SelectionSurface);

@@ -252,7 +252,7 @@ public partial class MainWindow
                 "save" or "savecopy" or "rotate" or "rotateback" or "crop" or "clear" => image,
                 "copy" or "resize" or "convert" or "delete" => IsFolderGridOpen ? SelectedGridPaths().Length > 0 : image,
                 "cloud" => cloudSettings.Enabled && !cloudBusy && (IsFolderGridOpen ? SelectedGridPaths().Length > 0 : image),
-                "quickwebp" => !quickWebPInProgress && !gridBatchInProgress && (IsFolderGridOpen ? SelectedGridPaths().Length > 0 : image),
+                "quickwebp" or "quickjpg" => !quickConversionInProgress && !gridBatchInProgress && (IsFolderGridOpen ? SelectedGridPaths().Length > 0 : image),
                 "paste" => !IsFolderGridOpen && !gridBatchInProgress,
                 "rename" => image && currentIndex >= 0,
                 "undo" => image && (markers.Count > 0 || CanUndoCrop || CanUndoPastedDelete) || recycledPhotos.Count > 0,
@@ -284,7 +284,8 @@ public partial class MainWindow
             case "save": SavePhoto(false); break;
             case "savecopy": SavePhoto(true); break;
             case "convert": if (IsFolderGridOpen) ConvertSelectedGridPhotos(); else SavePhoto(true); break;
-            case "quickwebp": QuickConvertToWebP(); break;
+            case "quickwebp": QuickConvertPhoto(".webp"); break;
+            case "quickjpg": QuickConvertPhoto(".jpg"); break;
             case "copy": CopyWorkspaceImage(); break;
             case "paste": PasteClipboardImage(); break;
             case "minimize": WindowState = WindowState.Minimized; break;

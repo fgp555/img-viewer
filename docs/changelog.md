@@ -836,3 +836,16 @@ Añadir cada cambio visible para el usuario con su fecha, el comportamiento y el
 ## 2026-11-20 · Grosor de mano alzada
 
 - Mano alzada comienza con un grosor del 40 %. Conserva los ajustes independientes por herramienta durante la sesión.
+
+## 2026-11-21 · Conversión rápida a JPG
+
+- El menú contextual incorpora Convertir a JPG debajo de Convertir a WebP. Usa el mismo flujo para una imagen o varias seleccionadas en modo grid, sin diálogo.
+- Genera copias en la carpeta original con nombres únicos, sin sobrescribir archivos existentes. Las capturas sin archivo usan la carpeta configurada.
+- Incluye las ediciones visibles y rellena las transparencias de blanco al exportar JPG.
+- Ambas conversiones comparten el flujo y el bloqueo de operaciones simultáneas.
+
+## 2026-11-22 · Dimensiones de la selección al capturar
+
+- La selección muestra una etiqueta con ancho × alto en píxeles reales, actualizada durante el arrastre y al detectar áreas.
+- Etiqueta compacta con fondo oscuro semitransparente junto a la esquina inferior derecha. Se recoloca dentro del monitor si no cabe debajo y no intercepta clics.
+- Sin selección se oculta; la vista previa de pantalla completa muestra las dimensiones del monitor.
