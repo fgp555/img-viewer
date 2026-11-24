@@ -256,7 +256,7 @@
                     <MenuItem Header="Galería lateral" Tag="gallery" IsCheckable="True" Click="WorkspaceAction_Click"/>
                     <MenuItem Header="Herramientas de marcación" Tag="tools" IsCheckable="True" Click="WorkspaceAction_Click"/>
                     <MenuItem Header="Cuadrícula / imagen" Tag="grid" InputGestureText="G" Click="WorkspaceAction_Click"/>
-                    <MenuItem Header="Pantalla completa" Tag="fullscreen" Click="WorkspaceAction_Click"/>
+                    <MenuItem Header="Pantalla completa" InputGestureText="F11" Tag="fullscreen" Click="WorkspaceAction_Click"/>
                     <MenuItem Header="Modo zen" Tag="zen" IsCheckable="True" InputGestureText="Tab" Click="WorkspaceAction_Click"/>
                     <MenuItem x:Name="BackgroundMenuItem" Header="Cambiar a cuadrícula" Tag="background" InputGestureText="T" Click="WorkspaceAction_Click"/>
                 </MenuItem>
@@ -268,7 +268,7 @@
             </Menu>
             </DockPanel>
             <TextBlock Grid.Column="1" Text="IMG Viewer" Foreground="#A5A9AB" HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False" Margin="8,0" TextTrimming="CharacterEllipsis"/>
-            <StackPanel Grid.Column="2" Orientation="Horizontal">
+            <StackPanel Grid.Column="2" Orientation="Horizontal"><Button x:Name="TopmostPin" Style="{StaticResource CaptionButton}" Background="#343637" Visibility="Collapsed" ToolTip="Siempre visible · Ctrl + F12 · Clic para desactivar" AutomationProperties.Name="Desactivar siempre visible" Click="TopmostPin_Click"><TextBlock Style="{StaticResource FluentIcon}" Text="&#xE718;" FontSize="14"/></Button>
                 <Button Style="{StaticResource CaptionButton}" ToolTip="Minimizar" AutomationProperties.Name="Minimizar" Click="MinimizeButton_Click"><TextBlock Style="{StaticResource FluentIcon}" Height="Auto" Width="Auto" FontSize="10" Text="&#xE921;"/></Button>
                 <Button x:Name="MaximizeCaption" Style="{StaticResource CaptionButton}" ToolTip="Maximizar / restaurar" AutomationProperties.Name="Maximizar o restaurar" Click="MaximizeWorkspace_Click"><TextBlock x:Name="MaximizeCaptionIcon" Style="{StaticResource FluentIcon}" Height="Auto" Width="Auto" FontSize="10" Text="&#xE922;"/></Button>
                 <Button Style="{StaticResource CaptionCloseButton}" ToolTip="Cerrar · Shift + clic para salir" AutomationProperties.Name="Cerrar" Click="CloseButton_Click"><TextBlock Style="{StaticResource FluentIcon}" Height="Auto" Width="Auto" FontSize="10" Text="&#xE8BB;"/></Button>
@@ -310,7 +310,7 @@
                 </Button>
                 
                 <Button x:Name="BackgroundToggleButton" Style="{StaticResource FloatingButton}" ToolTip="Cambiar a cuadrícula · T" AutomationProperties.Name="Cambiar a cuadrícula" Tag="background" Click="WorkspaceAction_Click"><TextBlock x:Name="BackgroundToggleIcon" Style="{StaticResource FluentIcon}" Text="&#xF232;"/></Button>
-                <Button Style="{StaticResource FloatingButton}" ToolTip="Pantalla completa" AutomationProperties.Name="Pantalla completa" Tag="fullscreen" Click="WorkspaceAction_Click"><TextBlock Style="{StaticResource FluentIcon}" Text="&#xE740;"/></Button>
+                <Button Style="{StaticResource FloatingButton}" ToolTip="Pantalla completa · F11" AutomationProperties.Name="Pantalla completa" Tag="fullscreen" Click="WorkspaceAction_Click"><TextBlock Style="{StaticResource FluentIcon}" Text="&#xE740;"/></Button>
                 <Button Style="{StaticResource FloatingButton}" ToolTip="Modo zen · Tab" AutomationProperties.Name="Modo zen" Tag="zen" Click="WorkspaceAction_Click"><TextBlock Style="{StaticResource FluentIcon}" Text="&#xE890;"/></Button>
                 <Button Style="{StaticResource FloatingButton}" ToolTip="Todas las acciones y atajos" AutomationProperties.Name="Todas las acciones y atajos" Tag="shortcuts" Click="WorkspaceAction_Click"><TextBlock Style="{StaticResource FluentIcon}" Text="&#xE712;"/></Button>
                 <CheckBox x:Name="SelectAllImages" Content="Todas" Style="{StaticResource FluentSelectionCheck}" Foreground="#D4D4D4" VerticalAlignment="Center" Margin="6,0" IsThreeState="True" Visibility="{Binding Visibility, ElementName=FolderGrid}" Click="SelectAllImages_Click" ToolTip="Seleccionar todas las imágenes · Ctrl + A" AutomationProperties.Name="Seleccionar todas las imágenes"/>
@@ -522,6 +522,12 @@
             </Grid>
         </Border>
 
+        <Border x:Name="ZenTopmostZone" Grid.RowSpan="4" Grid.ColumnSpan="5" Panel.ZIndex="50" HorizontalAlignment="Right" VerticalAlignment="Top" Width="44" Height="44" Background="Transparent" Visibility="Collapsed">
+            <Button Width="32" Height="32" Background="#343637" ToolTip="Siempre visible · Ctrl + F12 · Clic para desactivar" AutomationProperties.Name="Desactivar siempre visible" Click="TopmostPin_Click">
+                <Button.Style><Style TargetType="Button" BasedOn="{StaticResource FloatingButton}"><Setter Property="Opacity" Value="0"/><Style.Triggers><DataTrigger Binding="{Binding IsMouseOver, ElementName=ZenTopmostZone}" Value="True"><Setter Property="Opacity" Value="1"/></DataTrigger><Trigger Property="IsKeyboardFocused" Value="True"><Setter Property="Opacity" Value="1"/></Trigger></Style.Triggers></Style></Button.Style>
+                <TextBlock Style="{StaticResource FluentIcon}" Text="&#xE718;"/>
+            </Button>
+        </Border>
     </Grid>
     </Border>
 </Window>

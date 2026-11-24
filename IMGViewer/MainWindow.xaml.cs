@@ -106,7 +106,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        if(e.ClickCount==1 && PhotoZoom.ScaleX>1 &&
+        if(e.ClickCount==1 && PhotoZoom.ScaleX>1 && (!zenMode || Keyboard.Modifiers==ModifierKeys.Control) &&
             (Keyboard.Modifiers is ModifierKeys.None or ModifierKeys.Control || panTool))
         {
             if(!windowDragOffset.HasValue && CaptureMouse())
@@ -255,7 +255,8 @@ public partial class MainWindow : Window
         bool gridHeader=IsFolderGridOpen && e.OriginalSource==GridDragHeader;
         bool viewerMiddle=middle && !IsFolderGridOpen && (IsViewerSurface(e)||PhotoViewport.IsMouseOver);
         bool headerDrag=gridHeader && e.ChangedButton is MouseButton.Left or MouseButton.Middle;
-        if(!viewerMiddle && !headerDrag)return;
+        bool zenLeft=zenMode && !IsFolderGridOpen && e.ChangedButton==MouseButton.Left && IsViewerSurface(e);
+        if(!viewerMiddle && !headerDrag && !zenLeft)return;
         if(Keyboard.Modifiers!=ModifierKeys.None || windowedMode.HasValue || WindowState!=WindowState.Normal)return;
         if(e.ClickCount>1){viewerClickTimer.Stop();return;}
         windowDragButton=e.ChangedButton;

@@ -145,7 +145,7 @@ public partial class MainWindow
             new("Marcación y edición", "\uE70F", "crop", "Recortar y enderezar", ""),
             new("Marcación y edición", "\uE70F", "resize", "Redimensionar", ""),
             new("Capturas y ventana", "\uE722", "capture", "Capturar pantalla", captureHotkey.Label),
-            new("Capturas y ventana", "\uE722", "fullscreen", "Pantalla completa", "Doble clic"),
+            new("Capturas y ventana", "\uE722", "fullscreen", "Pantalla completa", "F11 / Doble clic"),
             new("Capturas y ventana", "\uE722", "zen", "Modo zen", "Tab"),
             new("Capturas y ventana", "\uE722", "topmost", "Siempre visible", "Ctrl + F12"),
             new("Capturas y ventana", "\uE722", "normalmode", "Salir del modo zen", "Esc"),

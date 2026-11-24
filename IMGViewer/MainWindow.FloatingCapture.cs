@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 namespace IMGViewer;
 public partial class MainWindow
 {
@@ -6,6 +6,8 @@ public partial class MainWindow
     private bool floatingCaptureShuttingDown;
     internal void RefreshFloatingCaptureButton()
     {
+        if(IsAuxiliaryViewer && Application.Current?.MainWindow is MainWindow primary)
+        {primary.RefreshFloatingCaptureButton();return;}
         if(floatingCaptureShuttingDown||Dispatcher.HasShutdownStarted)return;
         try
         {

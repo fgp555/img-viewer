@@ -14,6 +14,8 @@ namespace IMGViewer;
 public partial class MainWindow
 {
     private bool zenMode;
+    internal bool IsZenWorkspace => zenMode;
+    internal bool IsAuxiliaryViewer { get; init; }
     private bool galleryOpen;
     private bool toolsOpen;
     private double galleryWidth = 180;
@@ -51,6 +53,7 @@ public partial class MainWindow
         MainWindowFrame.CornerRadius = new CornerRadius(0);
         Workspace.Margin = new Thickness(0);
         Workspace.Clip = null;
+        UpdateTopmostIndicator();
         TitleBar.Visibility = ActionBar.Visibility = hideChrome ? Visibility.Collapsed : Visibility.Visible;
         UpdateWindowCornerClip();
         ApplyCompactMode();
@@ -129,8 +132,9 @@ public partial class MainWindow
             Width = Math.Max(MinWidth, target.Bounds.Width);
             Height = Math.Max(MinHeight, target.Bounds.Height);
         }
-        WindowState = target.State;
+        WindowState = enabled ? WindowState.Normal : target.State;
         UpdateLayout();
+        if(enabled)FitZenWindowToPhoto();
         Keyboard.Focus(this);
     }
 
@@ -182,6 +186,12 @@ public partial class MainWindow
 
     private bool HandleWorkspaceKey(KeyEventArgs e)
     {
+        if(e.Key==Key.F11 && Keyboard.Modifiers==ModifierKeys.None)
+        {
+            if(!e.IsRepeat)ToggleFullScreen();
+            e.Handled=true;return true;
+        }
+
         if (e.Key == Key.V && Keyboard.Modifiers == ModifierKeys.None && Keyboard.FocusedElement is not TextBoxBase &&
             !(Keyboard.FocusedElement is ComboBox { IsEditable: true, IsKeyboardFocusWithin: true }) &&
             !MainMenu.Items.OfType<MenuItem>().Any(item => item.IsSubmenuOpen) && Workspace.ContextMenu?.IsOpen != true)
@@ -315,7 +325,7 @@ public partial class MainWindow
             case "zoomin": case "zoomout": if (Photo.Source is not null) { photoZoomMultiplier = Math.Clamp(photoZoomMultiplier * (action == "zoomin" ? 1.2 : 1 / 1.2), 0.1, 8); UpdatePhotoZoom(); } break;
             case "cover": coverPhoto = !coverPhoto; UpdatePhotoZoom(); SetPhotoPan(0,0); break;
             case "discard": if (HasPendingChanges) DiscardPendingChanges(); break;
-            case "topmost": Topmost = !Topmost; break;
+            case "topmost": ToggleViewerTopmost(); break;
             case "fit": coverPhoto = false; ResetPhotoView(); break;
             case "freehandtool": ActivateExtraMarker(MarkerKind.Freehand); break;
             case "texttool": ActivateExtraMarker(MarkerKind.Text); break;

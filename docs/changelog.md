@@ -1000,3 +1000,34 @@ Añadir cada cambio visible para el usuario con su fecha, el comportamiento y el
 - Los botones se recolocan dentro del visor y usan los mismos iconos y estados que la barra de herramientas.
 
 - Eliminado el temporizador de recorte automático de la selección con Ctrl + Alt. Guardar o convertir tampoco confirma un recorte pendiente.
+
+
+## Ventanas zen independientes — 24 de noviembre de 2026
+
+- Abrir otra imagen desde el Explorador conserva la imagen y las ediciones de la ventana zen y utiliza una ventana en modo normal.
+- Si ya hay una ventana normal, se reutiliza; si todas están en zen, se crea otra. Las ventanas comparten proceso, bandeja y servicios, sin registrar atajos globales adicionales.
+- Cerrar una ventana adicional la cierra sin ocultarla en la bandeja.
+
+### Estado de Siempre visible
+
+- Ctrl + F12 muestra un aviso de activación/desactivación durante dos segundos, también para ventanas externas.
+- Una chincheta en el título indica el estado y permite desactivarlo. En zen aparece al pasar por la esquina superior derecha; se oculta en pantalla completa.
+- Las ventanas adicionales de IMG Viewer reciben su propio indicador. Sin nuevas dependencias.
+
+
+### Chincheta para ventanas externas
+
+- Las ventanas de otras aplicaciones fijadas con Ctrl + F12 muestran una chincheta flotante cuando están activas. Un clic desactiva Siempre visible sin tomar el foco.
+- El indicador sigue el movimiento, tamaño y DPI de la ventana; se oculta al minimizarla o cambiar de aplicación y se elimina al cerrar o desfijar la ventana.
+- Utiliza eventos de Windows, sin temporizadores de consulta ni nuevas librerías. Los indicadores se cierran al salir de IMG Viewer.
+
+- En modo zen, el arrastre con clic izquierdo también mueve la ventana, incluso con zoom. Ctrl + arrastre conserva el desplazamiento de la imagen y el doble clic sigue alternando pantalla completa.
+
+- Chincheta flotante externa sin borde ni fondo permanente; conserva la respuesta visual al pasar el cursor y pulsar.
+
+- **F11** alterna entre pantalla completa y la ventana anterior. Mantener la tecla pulsada no alterna repetidamente.
+
+### Ratio de imagen en zen
+
+- Entrar en zen ajusta la ventana al ratio de la imagen y restablece la vista ajustada. Conserva el tamaño de la ventana normal para restaurarlo al salir.
+- En zen, redimensionar conserva el ratio por defecto; Ctrl permite redimensionar libremente. En modo normal se mantiene el comportamiento anterior.

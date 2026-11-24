@@ -27,6 +27,7 @@ public partial class MainWindow
         windowSource.AddHook(WindowMessageHook);
         UpdateNativeWindowFrame();
         captureHotkey = CaptureShortcut.Load();
+        if(IsAuxiliaryViewer) {UpdateCaptureShortcutLabels();return;}
         captureHotkeyRegistered = RegisterHotKey(handle, ScreenCaptureHotkey, noRepeat | captureHotkey.Modifiers, captureHotkey.VirtualKey);
         UpdateCaptureShortcutLabels();
         const uint control = 0x0002;

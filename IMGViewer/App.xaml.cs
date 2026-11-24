@@ -156,6 +156,8 @@ public partial class App : Application
 
         if (path.Length > 0)
         {
+            // Preserve pinned zen workspaces; reuse a normal viewer before creating another.
+            window = SelectExternalImageTarget(window);
             window.OpenExplorerImage(path);
         }
 
@@ -172,6 +174,22 @@ public partial class App : Application
         window.Activate();
     }
 
+    private MainWindow SelectExternalImageTarget(MainWindow primary)
+    {
+        var viewers=Windows.OfType<MainWindow>().ToArray();
+        var target=FindExternalImageTarget(viewers,primary);
+        if(target is not null)return target;
+        var extra=new MainWindow {IsAuxiliaryViewer=true};
+        extra.BindUpdates(Updates);
+        return extra;
+    }
+
+    private static MainWindow? FindExternalImageTarget(MainWindow[] viewers,MainWindow primary)
+    {
+        var active=viewers.FirstOrDefault(viewer=>viewer.IsActive)??primary;
+        return !active.IsZenWorkspace?active:viewers.LastOrDefault(viewer=>!viewer.IsZenWorkspace);
+    }
+
     internal void ExitViewer()
     {
         exitRequested = true;
@@ -180,7 +198,7 @@ public partial class App : Application
 
     internal bool TryHideViewer(MainWindow window)
     {
-        if (exitRequested || tray is null || !ViewerPreferences.CloseToTray)
+        if (window.IsAuxiliaryViewer || exitRequested || tray is null || !ViewerPreferences.CloseToTray)
         {
             return false;
         }
@@ -219,6 +237,7 @@ public partial class App : Application
     {
         if(MainWindow is MainWindow window)window.FlushCaptureDrafts();
         exitRequested = true;
+        ExternalTopmostPins.Dispose();
         updates?.Dispose();
         idleCursor?.Dispose();
         tray?.Dispose();

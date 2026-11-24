@@ -1,4 +1,4 @@
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -65,9 +65,34 @@ public partial class MainWindow
         }
     }
 
+    private static bool ShouldConstrainPhotoResize(bool zen,bool control)=>zen?!control:control;
+
+    private void FitZenWindowToPhoto()
+    {
+        if(Photo.Source is not BitmapSource photo||IsFolderGridOpen)return;
+        WindowState=WindowState.Normal;
+        UpdateLayout();
+        var dpi=VisualTreeHelper.GetDpi(this);
+        nint handle=new System.Windows.Interop.WindowInteropHelper(this).Handle;
+        if(!GetWindowRect(handle,out var bounds))return;
+        var work=System.Windows.Forms.Screen.FromHandle(handle).WorkingArea;
+        double ratio=(double)photo.PixelWidth/photo.PixelHeight;
+        double chromeWidth=Math.Max(0,ActualWidth-PhotoViewport.ActualWidth)*dpi.DpiScaleX;
+        double chromeHeight=Math.Max(0,ActualHeight-PhotoViewport.ActualHeight)*dpi.DpiScaleY;
+        double availableWidth=Math.Min(bounds.Right-bounds.Left,work.Width)-chromeWidth;
+        double availableHeight=Math.Min(bounds.Bottom-bounds.Top,work.Height)-chromeHeight;
+        double height=Math.Min(Math.Max(1,availableHeight),Math.Max(1,availableWidth)/ratio);
+        height=Math.Max(height,Math.Max(Math.Max(1,MinHeight*dpi.DpiScaleY-chromeHeight),Math.Max(1,MinWidth*dpi.DpiScaleX-chromeWidth)/ratio));
+        int width=(int)Math.Round(height*ratio+chromeWidth),fullHeight=(int)Math.Round(height+chromeHeight);
+        int x=Math.Clamp(bounds.Left+(bounds.Right-bounds.Left-width)/2,work.Left,Math.Max(work.Left,work.Right-width));
+        int y=Math.Clamp(bounds.Top+(bounds.Bottom-bounds.Top-fullHeight)/2,work.Top,Math.Max(work.Top,work.Bottom-fullHeight));
+        SetWindowPos(handle,0,x,y,width,fullHeight,0x0004|0x0010);
+        ResetPhotoView();
+    }
+
     private bool TryResizeToPhoto(nint edge, nint bounds)
     {
-        if (bounds == 0 || GetKeyState(ControlKey) >= 0 || IsFolderGridOpen ||
+        if (bounds == 0 || !ShouldConstrainPhotoResize(zenMode,GetKeyState(ControlKey)<0) || IsFolderGridOpen ||
             windowedMode.HasValue || WindowState != WindowState.Normal || Photo.Source is not BitmapSource photo)
         {
             return false;

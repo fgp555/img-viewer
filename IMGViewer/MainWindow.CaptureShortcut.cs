@@ -1,10 +1,10 @@
-using System.IO;
+﻿using System.IO;
 namespace IMGViewer;
 public partial class MainWindow
 {
     private CaptureShortcut captureHotkey = CaptureShortcut.Default;
     internal string CaptureShortcutLabel => captureHotkey.Label;
-    internal bool CaptureShortcutAvailable => captureHotkeyRegistered;
+    internal bool CaptureShortcutAvailable => IsAuxiliaryViewer && System.Windows.Application.Current?.MainWindow is MainWindow primary ? primary.CaptureShortcutAvailable : captureHotkeyRegistered;
     private void UpdateCaptureShortcutLabels()
     {
         CaptureMenuItem.InputGestureText = captureHotkey.Label;
@@ -13,6 +13,12 @@ public partial class MainWindow
     internal bool TrySetCaptureShortcut(CaptureShortcut shortcut, out string message)
     {
         message = "";
+        if(IsAuxiliaryViewer && System.Windows.Application.Current?.MainWindow is MainWindow primary)
+        {
+            bool changed=primary.TrySetCaptureShortcut(shortcut,out message);
+            if(changed){captureHotkey=shortcut;UpdateCaptureShortcutLabels();}
+            return changed;
+        }
         if (windowSource is null) { message = "El visor aún no está listo."; return false; }
         if (shortcut == captureHotkey && captureHotkeyRegistered) return true;
         var previous = captureHotkey;
