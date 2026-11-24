@@ -19,7 +19,7 @@ public partial class MainWindow
     private double galleryWidth = 180;
     private double toolsWidth = 210;
     private MarkerKind? activeMarkerTool;
-    private Brush markerBrush = new SolidColorBrush(Color.FromRgb(242, 79, 87));
+    private Brush markerBrush = CreateMarkerBrush("violet");
     private CancellationTokenSource? galleryLoad;
     private string? gallerySignature;
     private bool syncingGallery;
@@ -166,7 +166,7 @@ public partial class MainWindow
         WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
     }
 
-    private void SelectWindowMoveTool()
+    private void SelectElementMoveTool()
     {
         if (Keyboard.FocusedElement is ComboBox picker) picker.IsDropDownOpen = false;
         if (markerDrag.HasValue || photoDragPosition.HasValue || windowDragOffset.HasValue) ReleaseMouseCapture();
@@ -188,7 +188,7 @@ public partial class MainWindow
         {
             if (!e.IsRepeat)
             {
-                SelectWindowMoveTool();
+                SelectElementMoveTool();
             }
             e.Handled = true;
             return true;
@@ -198,6 +198,16 @@ public partial class MainWindow
             MainMenu.Items.OfType<MenuItem>().Any(item => item.IsSubmenuOpen) ||
             (MainMenu.IsKeyboardFocusWithin && Keyboard.Modifiers == ModifierKeys.None) ||
             Workspace.ContextMenu?.IsOpen == true) return true;
+        if(e.Key==Key.Z&&Keyboard.Modifiers==ModifierKeys.Control)
+        {if(!e.IsRepeat)UndoWorkspace();e.Handled=true;return true;}
+        if(e.Key==Key.Y&&Keyboard.Modifiers==ModifierKeys.Control || e.Key==Key.Z&&Keyboard.Modifiers==(ModifierKeys.Control|ModifierKeys.Shift))
+        {if(!e.IsRepeat)RedoWorkspace();e.Handled=true;return true;}
+        if(e.Key==Key.D&&Keyboard.Modifiers==ModifierKeys.Control)
+        {if(!e.IsRepeat)DuplicateSelectedElement();e.Handled=true;return true;}
+        if(e.Key==Key.Enter&&Keyboard.Modifiers==ModifierKeys.None&&HasSelectedEditableMarker&&markers[selectedPastedImage].Definition?.Kind==MarkerKind.Text)
+        {EditSelectedText();e.Handled=true;return true;}
+        if(e.Key==Key.E&&Keyboard.Modifiers==ModifierKeys.None&&Photo.Source is not null&&!IsFolderGridOpen)
+        {EllipseTool.IsChecked=true;toolsOpen=true;SetZenMode(false);ApplyWorkspaceLayout();e.Handled=true;return true;}
         if(e.Key==Key.Delete && Keyboard.Modifiers==ModifierKeys.None && selectedPastedImage>=0 && !IsFolderGridOpen)
         {
             if(!e.IsRepeat)DeleteSelectedPastedImage();e.Handled=true;return true;
@@ -253,11 +263,15 @@ public partial class MainWindow
                 "copy" or "resize" or "convert" or "delete" => IsFolderGridOpen ? SelectedGridPaths().Length > 0 : image,
                 "cloud" => cloudSettings.Enabled && !cloudBusy && (IsFolderGridOpen ? SelectedGridPaths().Length > 0 : image),
                 "quickwebp" or "quickjpg" => !quickConversionInProgress && !gridBatchInProgress && (IsFolderGridOpen ? SelectedGridPaths().Length > 0 : image),
+                "redo" => CanRedoEdit,
+                "duplicate" => HasSelectedEditableMarker,
+                "edittext" => HasSelectedEditableMarker&&markers[selectedPastedImage].Definition?.Kind==MarkerKind.Text,
                 "paste" => !IsFolderGridOpen && !gridBatchInProgress,
                 "rename" => image && currentIndex >= 0,
-                "undo" => image && (markers.Count > 0 || CanUndoCrop || CanUndoPastedDelete) || recycledPhotos.Count > 0,
+                "undo" => image && (markers.Count > 0 || CanUndoCrop || CanUndoPastedDelete || CanUndoElementEdit) || recycledPhotos.Count > 0,
                 _ => true
             };
+            if(action=="delete")item.Header=HasSelectedEditableMarker?"Eliminar elemento":"Enviar a la Papelera";
             if(action=="cloud")item.Visibility=cloudSettings.Enabled?Visibility.Visible:Visibility.Collapsed;
             if (item.IsCheckable) item.IsChecked = action switch
             {
@@ -320,13 +334,17 @@ public partial class MainWindow
             case "settings": CaptureSettingsButton_Click(sender, e); break;
             case "cloud": CloudUpload_Click(sender,e); break;
             case "undo": UndoWorkspace(); break;
+            case "redo": RedoWorkspace(); break;
+            case "duplicate": DuplicateSelectedElement(); break;
+            case "edittext": EditSelectedText(); break;
+            case "ellipsetool": EllipseTool.IsChecked=true;toolsOpen=true;SetZenMode(false);ApplyWorkspaceLayout();break;
             case "rename": if (currentIndex >= 0) RenameCurrentPhoto(); break;
             case "rotate": RotatePhoto(90); break;
             case "rotateback": RotatePhoto(-90); break;
             case "inlinecrop": CropButton_Click(sender, e); break;
             case "crop": OpenCropEditor(sender, e); break;
             case "resize": if (IsFolderGridOpen) GridResize_Click(sender, e); else ResizeImageButton_Click(sender, e); break;
-            case "delete": if (IsFolderGridOpen) RecycleGridFiles(); else if (currentIndex >= 0) RecycleCurrentPhoto(); break;
+            case "delete": if (IsFolderGridOpen) RecycleGridFiles(); else if (!DeleteSelectedPastedImage() && currentIndex >= 0) RecycleCurrentPhoto(); break;
             case "background":
                 ToggleViewerBackground();
                 break;
@@ -414,6 +432,7 @@ public partial class MainWindow
         {
             "arrow" => MarkerKind.Arrow,
             "rectangle" => MarkerKind.Rectangle,
+            "ellipse" => MarkerKind.Ellipse,
             "freehand" => MarkerKind.Freehand,
             "text" => MarkerKind.Text,
             "blur" => MarkerKind.Blur,
@@ -421,16 +440,16 @@ public partial class MainWindow
         };
         SyncMarkerWidthControl();
         if (Photo is not null) Photo.Cursor = activeMarkerTool is null ? null : Cursors.Cross;
-        UpdatePastedImageAdorners();
+        UpdatePastedImageAdorners();SyncSelectedElementProperties();
     }
 
     private void UpdateMarkerColorChecks()
     {
-        if (MarkerColors is null || markerBrush is not SolidColorBrush brush) return;
+        if (MarkerColors is null) return;
         foreach (var button in MarkerColors.Children.OfType<Button>())
         {
-            bool selected = brush.Color == (Color)ColorConverter.ConvertFromString((string)button.Tag);
-            button.Content = selected ? new TextBlock { Text = "\uE73E", FontFamily = new FontFamily("Segoe Fluent Icons, Segoe MDL2 Assets"), FontSize = 14, Foreground = Brushes.Black } : null;
+            bool selected = markerColorKey == (string)button.Tag;
+            button.Content = selected ? new TextBlock { Text = "\uE73E", FontFamily = new FontFamily("Segoe Fluent Icons, Segoe MDL2 Assets"), FontSize = 14, Foreground = markerBrush is LinearGradientBrush ? Brushes.White : Brushes.Black } : null;
             System.Windows.Automation.AutomationProperties.SetItemStatus(button, selected ? "Seleccionado" : "");
         }
     }
@@ -438,10 +457,10 @@ public partial class MainWindow
     private void MarkerColor_Click(object sender, RoutedEventArgs e)
     {
         string color = (string)((Button)sender).Tag;
-        markerBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString(color));
-        markerBrush.Freeze();
+        markerColorKey=color;
+        markerBrush=CreateMarkerBrush(color);
         MarkerColorLabel.Text = "Color: " + ((Button)sender).ToolTip;
-        UpdateMarkerColorChecks();
+        UpdateMarkerColorChecks();EditSelectedElement("color");
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -474,12 +493,13 @@ public partial class MainWindow
         if (CopyPhotoButton is null || SavePendingButton is null || DeletePhotoButton is null) return;
         UpdateCloudActions();
         RestorePhotoButton.Visibility = Visibility.Visible;
-        RestorePhotoButton.IsEnabled = (!IsFolderGridOpen && (markers.Count > 0 || CanUndoCrop || CanUndoPastedDelete)) || recycledPhotos.Count > 0;
+        RestorePhotoButton.IsEnabled = (!IsFolderGridOpen && (markers.Count > 0 || CanUndoCrop || CanUndoPastedDelete || CanUndoElementEdit)) || recycledPhotos.Count > 0;
         bool image = Photo.Source is BitmapSource;
         bool inGrid = IsFolderGridOpen;
         bool selected = inGrid && SelectedGridPaths().Length > 0 && !gridBatchInProgress;
         CopyPhotoButton.IsEnabled = inGrid ? selected : image;
-        DeletePhotoButton.IsEnabled = inGrid ? selected : image && currentIndex >= 0;
+        DeletePhotoButton.IsEnabled = inGrid ? selected : image && (currentIndex >= 0 || HasSelectedEditableMarker);
+        DeletePhotoButton.ToolTip=HasSelectedEditableMarker?"Eliminar elemento · Supr":"Enviar imagen a la Papelera · Supr";
         SavePendingButton.IsEnabled = image && !inGrid;
         SavePendingButton.Foreground = HasPendingChanges || HasUnsavedCapture ? Brushes.Orange : Brushes.LightGray;
         SavePendingButton.ToolTip = HasPendingChanges || HasUnsavedCapture ? "Cambios sin guardar · Ctrl + S" : "Guardar · Ctrl + S";

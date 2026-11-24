@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -8,6 +8,7 @@ namespace IMGViewer;
 public partial class MainWindow
 {
     private TextBox? inlineText;
+    private int inlineTextIndex=-1;
     private Point inlineTextOrigin;
     private double? inlineTextWidth;
     private Brush inlineTextBrush = Brushes.Red;
@@ -16,6 +17,7 @@ public partial class MainWindow
     private void BeginInlineText(Point origin, double? width)
     {
         EndInlineText(true);
+        inlineTextIndex=-1;
         if (Photo.Source is not BitmapSource bitmap) return;
         inlineTextOrigin = origin; inlineTextWidth = width;
         inlineTextBrush = markerBrush; inlineTextContrast = MarkerContrast;
@@ -38,20 +40,38 @@ public partial class MainWindow
         editor.LostKeyboardFocus += (_,_) => { if (ReferenceEquals(inlineText,editor)) EndInlineText(true); };
         Dispatcher.InvokeAsync(() => { if (ReferenceEquals(inlineText,editor)) editor.Focus(); });
     }
+    private void EditSelectedText()
+    {
+        if(!HasSelectedEditableMarker||markers[selectedPastedImage].Definition is not {Kind:MarkerKind.Text} def)return;
+        int index=selectedPastedImage;var mark=markers[index];
+        BeginInlineText(ElementPoint(def,def.Bounds.TopLeft),def.TextWidth is {} width?width*def.ScaleX:null);
+        inlineTextIndex=index;inlineTextBrush=mark.Color;inlineTextContrast=mark.Contrast;inlineTextFontSize=def.FontSize*def.ScaleY;
+        if(inlineText is {} editor)
+        {
+            editor.Text=def.Text??"";editor.Foreground=inlineTextBrush;
+            editor.FontSize=inlineTextFontSize*Photo.ActualWidth/((BitmapSource)Photo.Source).Width;
+            editor.SelectAll();
+        }
+        RefreshMarkerOverlay();UpdatePastedHitTesting();
+    }
     private void EndInlineText(bool commit)
     {
-        if (inlineText is not { } editor) return;
-        inlineText = null;
-        string value = editor.Text;
-        InlineTextCanvas.Children.Remove(editor);
-        if (commit && !string.IsNullOrWhiteSpace(value) && Photo.Source is BitmapSource)
+        if(inlineText is not {} editor)return;
+        inlineText=null;int index=inlineTextIndex;inlineTextIndex=-1;
+        string value=editor.Text;InlineTextCanvas.Children.Remove(editor);
+        var before=markers.ToArray();
+        if(commit && Photo.Source is BitmapSource)
         {
-            var text = new FormattedText(value, CultureInfo.CurrentUICulture, FlowDirection.LeftToRight,
-                new Typeface("Segoe UI"), inlineTextFontSize, inlineTextBrush, VisualTreeHelper.GetDpi(this).PixelsPerDip);
-            if (inlineTextWidth is double width) text.MaxTextWidth = System.Math.Max(1,width);
-            var geometry = text.BuildGeometry(inlineTextOrigin); geometry.Freeze();
-            markers.Add(new StyledMarker(geometry,inlineTextBrush,System.Math.Max(1,inlineTextFontSize/12),inlineTextContrast));
-            RefreshMarkerOverlay(); UpdatePendingSaveIndicator();
+            if(!string.IsNullOrWhiteSpace(value))
+            {
+                var def=new ElementDefinition(MarkerKind.Text,new Rect(inlineTextOrigin,new Size(Math.Max(1,inlineTextWidth??1),1)),Text:value,FontSize:inlineTextFontSize,TextWidth:inlineTextWidth);
+                StyledMarker mark=index>=0&&index<markers.Count?markers[index]:new StyledMarker(Geometry.Empty,inlineTextBrush,Math.Max(1,inlineTextFontSize/12),inlineTextContrast);
+                mark=RebuildElement(mark with {Color=inlineTextBrush,Contrast=inlineTextContrast,Definition=def});
+                if(index>=0&&index<markers.Count){markers[index]=mark;selectedPastedImage=index;RecordElementEdit(before,"text:"+Guid.NewGuid());}
+                else {markers.Add(mark);selectedPastedImage=markers.Count-1;}
+            }
+            else if(index>=0&&index<markers.Count){markers.RemoveAt(index);selectedPastedImage=-1;RecordElementEdit(before,"text-delete:"+Guid.NewGuid());}
         }
+        RefreshMarkerOverlay();UpdatePastedHitTesting();SyncSelectedElementProperties();UpdatePendingSaveIndicator();
     }
 }

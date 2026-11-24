@@ -13,7 +13,7 @@ public partial class MainWindow
         string[] paths=grid?SelectedGridPaths():[];
         if(grid && paths.Length==0 || !grid && Photo.Source is not BitmapSource)return;
         EndInlineText(true);
-        if(inlineCropPending){ApplyInlineCrop();if(inlineCropPending)return;}
+        if(inlineCropPending){StatusText.Text="Acepta o cancela el recorte antes de convertir.";return;}
         string? current=CurrentGridImage;
         BitmapSource? edited=Photo.Source is BitmapSource photo && (!grid || HasPendingChanges)
             ?FrozenDraftBitmap(FlattenMarkers(photo)):null;

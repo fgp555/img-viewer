@@ -14,7 +14,7 @@ public partial class MainWindow
     private readonly DispatcherTimer draftSaveTimer=new() {Interval=TimeSpan.FromMilliseconds(350)};
     private readonly HashSet<Guid> removedDrafts=[];
     private bool discardRecoveredDrafts;
-    private sealed record DraftMark(string Geometry,string Color,double Opacity,double Width,bool Contrast,ArrowShape? Curve,Rect PatchBounds,double ShadowIntensity,bool HasPatch,bool IsPastedImage=false);
+    private sealed record DraftMark(string Geometry,string Color,double Opacity,double Width,bool Contrast,ArrowShape? Curve,Rect PatchBounds,double ShadowIntensity,bool HasPatch,bool IsPastedImage=false,DraftGradient? Gradient=null,ElementDefinition? Definition=null);
     private sealed record DraftData(int Version,Guid Id,string Name,DateTime Created,string? FilePath,int Rotation,bool PixelEdit,bool HasSaved,bool HasRotationBase,DraftMark[] Marks);
     private sealed record DraftSnapshot(DraftData Data,BitmapSource Photo,BitmapSource Preview,BitmapSource? Saved,BitmapSource? RotationBase,BitmapSource?[] Patches);
     private static BitmapSource FrozenDraftBitmap(BitmapSource bitmap)
@@ -45,7 +45,7 @@ public partial class MainWindow
     private static DraftSnapshot CreateCaptureDraftSnapshot(SessionCapture capture)
     {
         var marks=capture.Marks.Select(mark=>new DraftMark(PathGeometry.CreateFromGeometry(mark.Geometry).ToString(CultureInfo.InvariantCulture),
-            ((SolidColorBrush)mark.Color).Color.ToString(CultureInfo.InvariantCulture),mark.Color.Opacity,mark.Width,mark.Contrast,mark.Curve,mark.PatchBounds,mark.ShadowIntensity,mark.Patch is not null,mark.IsPastedImage)).ToArray();
+            DraftBrushColor(mark.Color),mark.Color.Opacity,mark.Width,mark.Contrast,mark.Curve,mark.PatchBounds,mark.ShadowIntensity,mark.Patch is not null,mark.IsPastedImage,DraftBrushGradient(mark.Color),mark.Definition)).ToArray();
         var data=new DraftData(1,capture.DraftId,capture.Name,capture.Created,capture.FilePath,capture.Rotation,capture.PixelEdit,capture.SavedPhoto is not null,capture.RotationBase is not null,marks);
         var snapshot=new DraftSnapshot(data,FrozenDraftBitmap(capture.Photo),FrozenDraftBitmap(capture.Preview),capture.SavedPhoto is null?null:FrozenDraftBitmap(capture.SavedPhoto),
             capture.RotationBase is null?null:FrozenDraftBitmap(capture.RotationBase),capture.Marks.Select(m=>m.Patch is null?null:FrozenDraftBitmap(m.Patch)).ToArray());
@@ -86,8 +86,8 @@ public partial class MainWindow
         for(int i=0;i<data.Marks.Length;i++)
         {
             var mark=data.Marks[i];var geometry=Geometry.Parse(mark.Geometry);geometry.Freeze();
-            var brush=new SolidColorBrush((Color)ColorConverter.ConvertFromString(mark.Color)) {Opacity=mark.Opacity};brush.Freeze();
-            capture.Marks.Add(new StyledMarker(geometry,brush,mark.Width,mark.Contrast,mark.Curve,mark.HasPatch?Image($"patch-{i}.png"):null,mark.PatchBounds,mark.ShadowIntensity,mark.IsPastedImage));
+            var brush=RestoreDraftBrush(mark);
+            capture.Marks.Add(new StyledMarker(geometry,brush,mark.Width,mark.Contrast,mark.Curve,mark.HasPatch?Image($"patch-{i}.png"):null,mark.PatchBounds,mark.ShadowIntensity,mark.IsPastedImage,mark.Definition));
         }
         return capture;
     }

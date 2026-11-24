@@ -7,12 +7,12 @@ namespace IMGViewer;
 
 public partial class MainWindow
 {
-    private enum MarkerKind { Arrow, Rectangle, Freehand, Text, Blur, Crop }
+    private enum MarkerKind { Arrow, Rectangle, Freehand, Text, Blur, Crop, Ellipse }
     private enum ArrowForm { Classic, Tapered, Curved }
     private ArrowForm? dragArrowForm;
     private sealed record ArrowShape(Point Start, Point End, Point Control);
 
-    private sealed record StyledMarker(Geometry Geometry, Brush Color, double Width, bool Contrast, ArrowShape? Curve = null, BitmapSource? Patch = null, Rect PatchBounds = default, double ShadowIntensity = 0, bool IsPastedImage = false);
+    private sealed record StyledMarker(Geometry Geometry, Brush Color, double Width, bool Contrast, ArrowShape? Curve = null, BitmapSource? Patch = null, Rect PatchBounds = default, double ShadowIntensity = 0, bool IsPastedImage = false, ElementDefinition? Definition = null);
     private readonly List<StyledMarker> markers = [];
     private (MarkerKind Kind, Point Start)? markerDrag;
     private readonly List<Point> freehandPoints = [];
@@ -26,7 +26,7 @@ public partial class MainWindow
 
     private readonly Dictionary<MarkerKind,double> markerWidths=new()
     {
-        [MarkerKind.Arrow]=60,[MarkerKind.Rectangle]=25,[MarkerKind.Freehand]=40
+        [MarkerKind.Arrow]=60,[MarkerKind.Rectangle]=25,[MarkerKind.Ellipse]=25,[MarkerKind.Freehand]=40
     };
     private MarkerKind markerWidthTool=MarkerKind.Arrow;
     private bool syncingMarkerWidth;
@@ -39,7 +39,8 @@ public partial class MainWindow
     }
     private void MarkerWidthChanged(object sender,RoutedPropertyChangedEventArgs<double> e)
     {
-        if(!syncingMarkerWidth)markerWidths[markerWidthTool]=e.NewValue;
+        if(syncingElementProperties)return;
+        if(!syncingMarkerWidth){markerWidths[markerWidthTool]=e.NewValue;EditSelectedElement("width",e.NewValue);}
     }
     private double CurrentMarkerWidth=>markerWidths.GetValueOrDefault(markerDrag?.Kind??activeMarkerTool??markerWidthTool,60);
 
@@ -51,6 +52,7 @@ public partial class MainWindow
             ModifierKeys.Control | ModifierKeys.Shift => MarkerKind.Arrow,
             ModifierKeys.Alt | ModifierKeys.Shift => MarkerKind.Freehand,
             ModifierKeys.Alt => MarkerKind.Arrow,
+            ModifierKeys.Shift when activeMarkerTool==MarkerKind.Ellipse => MarkerKind.Ellipse,
             ModifierKeys.Shift => MarkerKind.Rectangle,
             ModifierKeys.None when !zenMode => activeMarkerTool,
             _ => null
@@ -103,6 +105,7 @@ public partial class MainWindow
         }
 
         Point end = GetMarkerPoint(e, bitmap);
+        markerEnd=end;
         if (drag.Kind == MarkerKind.Freehand)
         {
             end = StabilizeFreehandPoint(stabilizedFreehandPoint, end, freehandStabilizerRadius);
@@ -122,6 +125,10 @@ public partial class MainWindow
                 : CreateSmoothFreehand(freehandPoints, end, freehandStroke);
         }
         if (drag.Kind is MarkerKind.Blur or MarkerKind.Text or MarkerKind.Crop) return new RectangleGeometry(new Rect(drag.Start, end));
+        if(drag.Kind==MarkerKind.Ellipse && Keyboard.Modifiers.HasFlag(ModifierKeys.Shift))
+        {
+            end=ConstrainCircle(drag.Start,end);markerEnd=end;
+        }
         Vector direction = end - drag.Start;
         double stroke = MarkerStroke(bitmap);
         if (direction.Length < stroke)
@@ -129,10 +136,10 @@ public partial class MainWindow
             return null;
         }
 
-        if (drag.Kind == MarkerKind.Rectangle)
+        if (drag.Kind is MarkerKind.Rectangle or MarkerKind.Ellipse)
         {
             return Math.Abs(direction.X) >= stroke && Math.Abs(direction.Y) >= stroke
-                ? CreateRectangleMark(new Rect(drag.Start, end), stroke)
+                ? drag.Kind==MarkerKind.Ellipse?CreateEllipseMark(new Rect(drag.Start,end),stroke):CreateRectangleMark(new Rect(drag.Start, end), stroke)
                 : null;
         }
 
@@ -360,7 +367,8 @@ public partial class MainWindow
 
     private void CurveHandle_DragDelta(object sender, System.Windows.Controls.Primitives.DragDeltaEventArgs e)
     {
-        if (markers.Count == 0 || markers[^1].Curve is not { } curve) return;
+        int index=selectedPastedImage>=0?selectedPastedImage:markers.Count-1;
+        if(index<0||index>=markers.Count||markers[index].Curve is not {} curve)return;
         Point pointer = Mouse.GetPosition(Photo);
         Point control = new(pointer.X / Photo.ActualWidth * ((BitmapSource)Photo.Source).Width,
             pointer.Y / Photo.ActualHeight * ((BitmapSource)Photo.Source).Height);
@@ -368,14 +376,18 @@ public partial class MainWindow
         control = new Point(2*control.X - (curve.Start.X+curve.End.X)*0.5,
             2*control.Y - (curve.Start.Y+curve.End.Y)*0.5);
         var updated = curve with { Control = control };
-        var marker=markers[^1];
-        markers[^1]=marker with { Geometry=CreateTaperedArrow(updated.Start,updated.End,updated.Control,marker.Width), Curve=updated };
+        var marker=markers[index];var before=markers.ToArray();
+        var def=marker.Definition;
+        if(def is not null)def=def with {Control=new Point((updated.Control.X-def.Offset.X)/def.ScaleX,(updated.Control.Y-def.Offset.Y)/def.ScaleY)};
+        markers[index]=marker with { Geometry=CreateTaperedArrow(updated.Start,updated.End,updated.Control,marker.Width), Curve=updated,Definition=def };
+        RecordElementEdit(before,"curve:"+index);
         RefreshMarkerOverlay(); UpdatePendingSaveIndicator();
     }
     private void UpdateCurveHandle()
     {
         if (CurveHandle is null) return;
-        if (zenMode || windowedMode.HasValue || IsFolderGridOpen || markers.Count==0 || markers[^1].Curve is not { } curve || Photo.Source is not BitmapSource bitmap)
+        int index=selectedPastedImage>=0?selectedPastedImage:markers.Count-1;
+        if (zenMode || windowedMode.HasValue || IsFolderGridOpen || index<0 || index>=markers.Count || markers[index].Curve is not { } curve || Photo.Source is not BitmapSource bitmap)
         { CurveHandle.Visibility=Visibility.Collapsed; return; }
         Point mid = new((curve.Start.X+2*curve.Control.X+curve.End.X)/4,
             (curve.Start.Y+2*curve.Control.Y+curve.End.Y)/4);
@@ -417,7 +429,7 @@ public partial class MainWindow
                 selection.Width * cropBitmap.PixelWidth / cropBitmap.Width,
                 selection.Height * cropBitmap.PixelHeight / cropBitmap.Height);
             inlineCropPending = true;
-            ScheduleGestureCrop();
+            PreviewGestureCrop();
             return;
         }
         if (markerDrag is { Kind: MarkerKind.Text } textDrag && Photo.Source is BitmapSource textBitmap)
@@ -444,7 +456,7 @@ public partial class MainWindow
             }
             ArrowShape? curve = markerDrag is { Kind: MarkerKind.Arrow } drag && SelectedArrowForm == ArrowForm.Curved
                 ? new ArrowShape(drag.Start, GetMarkerPoint(e, bitmap), DefaultCurveControl(drag.Start, GetMarkerPoint(e, bitmap), true)) : null;
-            markers.Add(new StyledMarker(geometry, markerBrush, MarkerStroke(bitmap), MarkerContrast, curve, ShadowIntensity: markerDrag is { Kind: MarkerKind.Arrow } && SelectedArrowForm == ArrowForm.Classic ? (ArrowShadowSlider?.Value ?? 20) / 100 : 0));
+            markers.Add(new StyledMarker(geometry, MarkerPaint(geometry), MarkerStroke(bitmap), MarkerContrast, curve, Definition:CurrentElementDefinition(geometry), ShadowIntensity: markerDrag is { Kind: MarkerKind.Arrow } && SelectedArrowForm == ArrowForm.Classic ? (ArrowShadowSlider?.Value ?? 20) / 100 : 0));
         }
 
         ReleaseMouseCapture();
@@ -463,7 +475,7 @@ public partial class MainWindow
 
     private void ClearMarkers()
     {
-        selectedPastedImage=-1;pastedTransformUndo.Clear();pastedDeleteUndo.Clear();
+        selectedPastedImage=-1;pastedTransformUndo.Clear();pastedDeleteUndo.Clear();elementEdits.Clear();if(!replayingEdit)redoEdits.Clear();
         if(!preserveCropUndo) cropUndo.Clear();
         EndInlineText(false);
         markers.Clear();
@@ -474,8 +486,8 @@ public partial class MainWindow
 
     private void RefreshMarkerOverlay(Geometry? preview = null)
     {
-        UpdateCurveHandle();
         UpdatePastedImageAdorners();
+        UpdateCurveHandle();
         if (Photo.Source is not BitmapSource bitmap || (markers.Count == 0 && preview is null))
         {
             MarkerOverlay.Source = null;
@@ -495,11 +507,11 @@ public partial class MainWindow
     private void DrawMarkers(DrawingContext drawing, BitmapSource bitmap, Geometry? preview)
     {
         drawing.PushClip(new RectangleGeometry(new Rect(0, 0, bitmap.Width, bitmap.Height)));
-        foreach (StyledMarker marker in markers) DrawStyledMark(drawing, marker);
+        for(int index=0;index<markers.Count;index++)if(inlineText is null||index!=inlineTextIndex)DrawStyledMark(drawing,markers[index]);
         if (preview is not null && markerDrag is { Kind: MarkerKind.Blur or MarkerKind.Text or MarkerKind.Crop })
             drawing.DrawGeometry(new SolidColorBrush(Color.FromArgb(60, 100, 160, 230)), new Pen(Brushes.White, 1), preview);
         else if (preview is not null)
-            DrawStyledMark(drawing, new StyledMarker(preview, markerBrush, MarkerStroke(bitmap), MarkerContrast, ShadowIntensity: markerDrag is { Kind: MarkerKind.Arrow } && SelectedArrowForm == ArrowForm.Classic ? (ArrowShadowSlider?.Value ?? 20) / 100 : 0));
+            DrawStyledMark(drawing, new StyledMarker(preview, MarkerPaint(preview), MarkerStroke(bitmap), MarkerContrast, ShadowIntensity: markerDrag is { Kind: MarkerKind.Arrow } && SelectedArrowForm == ArrowForm.Classic ? (ArrowShadowSlider?.Value ?? 20) / 100 : 0));
         drawing.Pop();
     }
 

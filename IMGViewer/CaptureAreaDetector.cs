@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Collections.Concurrent;
 using System.Runtime.InteropServices;
 using System.Windows;
@@ -11,18 +11,19 @@ internal static class CaptureAreaDetector
 {
     private static Task<IReadOnlyDictionary<int, IReadOnlyList<Int32Rect>>>? pending;
 
-    internal static async Task<IReadOnlyDictionary<int, IReadOnlyList<Int32Rect>>> DetectAsync(DesktopSnapshot snapshot)
+    internal static async Task<IReadOnlyDictionary<int, IReadOnlyList<Int32Rect>>> DetectAsync(DesktopSnapshot snapshot, CancellationToken cancellation=default)
     {
+        if(cancellation.IsCancellationRequested)return new Dictionary<int,IReadOnlyList<Int32Rect>>();
         // A broken accessibility provider must not block capture or accumulate workers.
         if (pending is { IsCompleted: false }) return new Dictionary<int, IReadOnlyList<Int32Rect>>();
         var collected = new ConcurrentDictionary<int, IReadOnlyList<Int32Rect>>();
-        var task = Task.Run(() => Collect(snapshot, collected));
+        var task = Task.Run(() => Collect(snapshot, collected, cancellation));
         pending = task;
         return await Task.WhenAny(task, Task.Delay(700)) == task
             ? await task : collected.ToDictionary(entry => entry.Key, entry => entry.Value);
     }
 
-    private static IReadOnlyDictionary<int, IReadOnlyList<Int32Rect>> Collect(DesktopSnapshot snapshot, ConcurrentDictionary<int, IReadOnlyList<Int32Rect>> result)
+    private static IReadOnlyDictionary<int, IReadOnlyList<Int32Rect>> Collect(DesktopSnapshot snapshot, ConcurrentDictionary<int, IReadOnlyList<Int32Rect>> result, CancellationToken cancellation)
     {
         var timer = Stopwatch.StartNew();
         var walker = TreeWalker.ControlViewWalker;
@@ -32,7 +33,7 @@ internal static class CaptureAreaDetector
                 snapshot.Windows[index].Width, snapshot.Windows[index].Height).Contains(cursor));
         foreach (int i in order)
         {
-            if (timer.ElapsedMilliseconds >= 600) break;
+            if (cancellation.IsCancellationRequested || timer.ElapsedMilliseconds >= 600) break;
             var areas = new HashSet<Int32Rect>();
             try
             {
@@ -41,7 +42,7 @@ internal static class CaptureAreaDetector
                 var queue = new Queue<(AutomationElement Element, int Depth)>();
                 queue.Enqueue((root, 0));
                 int visited = 0;
-                while (queue.Count > 0 && visited++ < 800 && timer.ElapsedMilliseconds < 600)
+                while (!cancellation.IsCancellationRequested && queue.Count > 0 && visited++ < 800 && timer.ElapsedMilliseconds < 600)
                 {
                     var (element, depth) = queue.Dequeue();
                     var info = element.Current;
@@ -67,7 +68,7 @@ internal static class CaptureAreaDetector
                     }
                     if (depth >= 12) continue;
                     for (var child = walker.GetFirstChild(element); child is not null &&
-                         queue.Count < 800 && timer.ElapsedMilliseconds < 600;
+                         !cancellation.IsCancellationRequested && queue.Count < 800 && timer.ElapsedMilliseconds < 600;
                          child = walker.GetNextSibling(child))
                         queue.Enqueue((child, depth + 1));
                 }

@@ -111,7 +111,7 @@ public partial class MainWindow
         return 0;
     }
 
-    internal void CaptureScreen()
+    internal async void CaptureScreen()
     {
         nint handle = new WindowInteropHelper(this).Handle;
         if (captureInProgress || handle == 0 || !IsWindowEnabled(handle) || IsMouseCaptured)
@@ -140,28 +140,13 @@ public partial class MainWindow
             var elapsed = System.Diagnostics.Stopwatch.StartNew();
             DesktopSnapshot snapshot = DesktopSnapshot.Capture();
             System.Diagnostics.Debug.WriteLine($"IMGViewer: píxeles capturados en {elapsed.ElapsedMilliseconds} ms");
-            var selector = new ScreenCaptureWindow(snapshot, new Dictionary<int, IReadOnlyList<Int32Rect>>());
-            selector.ContentRendered += (_, _) => System.Diagnostics.Debug.WriteLine($"IMGViewer: selector mostrado en {elapsed.ElapsedMilliseconds} ms");
-            selector.Loaded += async (_, _) =>
+            // The selector owns a dedicated STA dispatcher. Viewer work cannot delay its input/rendering.
+            var selection=await CaptureSelectionSession.ShowAsync(snapshot);
+            if(selection is {} captured)
             {
-                try
-                {
-                    // Use original HWNDs, never hit-test the overlay. Pixels are already frozen.
-                    var detected = await System.Threading.Tasks.Task.Run(snapshot.WithWindowBounds);
-                    if (!selector.IsVisible) return;
-                    selector.UpdateDetectedAreas(detected, new Dictionary<int, IReadOnlyList<Int32Rect>>());
-                    var areas = await CaptureAreaDetector.DetectAsync(detected);
-                    if (selector.IsVisible) selector.UpdateDetectedAreas(detected, areas);
-                }
-                catch (Exception ex) when (ex is Win32Exception or ExternalException or InvalidOperationException or ArgumentException)
-                {
-                    System.Diagnostics.Debug.WriteLine($"IMGViewer: detección de áreas no disponible: {ex.Message}");
-                }
-            };
-            if (selector.ShowDialog() == true && selector.Result is { } bitmap)
-            {
+                var bitmap=captured.Bitmap;
                 captureCompleted = true;
-                if (CapturePreferences.ShowThumbnail) ShowCaptureWidget(bitmap, timestamp, selector.CaptureOrigin);
+                if (CapturePreferences.ShowThumbnail) ShowCaptureWidget(bitmap, timestamp, captured.Origin);
                 else SaveAndOpenCapture(bitmap, timestamp);
                 if (ViewerPreferences.CopyCapturesToClipboard)
                 {

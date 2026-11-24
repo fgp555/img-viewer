@@ -39,9 +39,7 @@ public partial class MainWindow : Window
     private Point? viewerPressStart;
     private Point? windowDragOffset;
     private Point? photoDragPosition;
-    private bool middlePhotoDrag;
-    private Point? middlePressStart;
-    private bool middlePressMoved;
+    private MouseButton windowDragButton=MouseButton.Middle;
 
     // Both the cursor and the native window position use screen pixels, including across monitors.
     private const uint MoveWithoutResizing = 0x0001 | 0x0004 | 0x0010;
@@ -87,6 +85,10 @@ public partial class MainWindow : Window
         InitializeComponent();
         MarkerWidthSlider.ValueChanged+=MarkerWidthChanged;
         SyncMarkerWidthControl();
+        TextSizeSlider.ValueChanged+=(_,e)=>EditSelectedElement("fontsize",e.NewValue);
+        ArrowShadowSlider.ValueChanged+=(_,e)=>EditSelectedElement("shadow",e.NewValue);
+        MarkerStylePicker.SelectionChanged+=(_,_)=>EditSelectedElement("contrast",MarkerStylePicker.SelectedIndex);
+        ArrowFormPicker.SelectionChanged+=(_,_)=>EditSelectedElement("arrowform",ArrowFormPicker.SelectedIndex);
 
         UpdateMetadataFooter();
         InitializeWorkspace();
@@ -104,17 +106,15 @@ public partial class MainWindow : Window
             return;
         }
 
-        if ((Keyboard.Modifiers & ModifierKeys.Control) != 0 || panTool)
+        if(e.ClickCount==1 && PhotoZoom.ScaleX>1 &&
+            (Keyboard.Modifiers is ModifierKeys.None or ModifierKeys.Control || panTool))
         {
-            if (PhotoZoom.ScaleX > 1 && !windowDragOffset.HasValue && CaptureMouse())
+            if(!windowDragOffset.HasValue && CaptureMouse())
             {
-                photoDragPosition = e.GetPosition(PhotoViewport);
-                Cursor = Cursors.Hand;
-                ForceCursor = true;
+                photoDragPosition=e.GetPosition(PhotoViewport);
+                Cursor=Cursors.Hand;ForceCursor=true;
             }
-
-            e.Handled = true;
-            return;
+            e.Handled=true;return;
         }
 
         if (e.ClickCount != 2 || Photo.Source is null || windowDragOffset.HasValue)
@@ -240,9 +240,10 @@ public partial class MainWindow : Window
     protected override void OnPreviewMouseDown(MouseButtonEventArgs e)
     {
         base.OnPreviewMouseDown(e);
-        if(cropCommitTimer is not null && IsViewerSurface(e)) {e.Handled=true;return;}
         if(e.ChangedButton==MouseButton.Left && IsPastedImageThumb(e.OriginalSource as DependencyObject))return;
-        if (CurveHandle.IsMouseOver || (InlineCropCanvas.IsVisible && GalleryAncestor<System.Windows.Controls.Primitives.Thumb>(e.OriginalSource as DependencyObject) is not null)) return;
+        if(e.ChangedButton==MouseButton.Left && Keyboard.Modifiers==ModifierKeys.None && activeMarkerTool is null && !panTool && IsViewerSurface(e) && selectedPastedImage>=0)
+        {selectedPastedImage=-1;UpdatePastedImageAdorners();UpdateCurveHandle();UpdateToolbarActions();}
+        if (e.ChangedButton==MouseButton.Left && (CurveHandle.IsMouseOver || (InlineCropCanvas.IsVisible && GalleryAncestor<System.Windows.Controls.Primitives.Thumb>(e.OriginalSource as DependencyObject) is not null))) return;
         if (e.ChangedButton == MouseButton.Left && !IsFolderGridOpen && IsViewerSurface(e)) Keyboard.Focus(this);
         viewerPressStart = null;
         if (markerDrag.HasValue || photoDragPosition.HasValue || windowDragOffset.HasValue)
@@ -250,37 +251,16 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (e.ChangedButton == MouseButton.Middle)
-        {
-            if (!IsFolderGridOpen && Photo.Source is not null && PhotoViewport.IsMouseOver && CaptureMouse())
-            {
-                middlePhotoDrag = true;
-                middlePressStart = e.GetPosition(PhotoViewport);
-                middlePressMoved = false;
-                photoDragPosition = middlePressStart;
-                Cursor = Cursors.Hand;
-                ForceCursor = true;
-            }
-            e.Handled = true;
-            return;
-        }
-
-        if (!zenMode && (activeMarkerTool is not null || panTool) && !IsFolderGridOpen && IsViewerSurface(e)) return;
-
-        if (e.ChangedButton != MouseButton.Left || Keyboard.Modifiers != ModifierKeys.None ||
-            !(IsFolderGridOpen ? e.OriginalSource == GridDragHeader : IsViewerSurface(e)))
-        {
-            return;
-        }
-
-        if (e.ClickCount > 1)
-        {
-            viewerClickTimer.Stop();
-            return;
-        }
-
-
-        viewerPressStart = e.GetPosition(this);
+        bool middle=e.ChangedButton==MouseButton.Middle;
+        bool gridHeader=IsFolderGridOpen && e.OriginalSource==GridDragHeader;
+        bool viewerMiddle=middle && !IsFolderGridOpen && (IsViewerSurface(e)||PhotoViewport.IsMouseOver);
+        bool headerDrag=gridHeader && e.ChangedButton is MouseButton.Left or MouseButton.Middle;
+        if(!viewerMiddle && !headerDrag)return;
+        if(Keyboard.Modifiers!=ModifierKeys.None || windowedMode.HasValue || WindowState!=WindowState.Normal)return;
+        if(e.ClickCount>1){viewerClickTimer.Stop();return;}
+        windowDragButton=e.ChangedButton;
+        viewerPressStart=e.GetPosition(this);
+        e.Handled=true;
     }
 
     protected override void OnPreviewMouseMove(MouseEventArgs e)
@@ -295,18 +275,13 @@ public partial class MainWindow : Window
 
         if (photoDragPosition is Point previous)
         {
-            if ((middlePhotoDrag ? e.MiddleButton : e.LeftButton) != MouseButtonState.Pressed)
+            if (e.LeftButton != MouseButtonState.Pressed)
             {
                 ReleaseMouseCapture();
                 return;
             }
 
             Point position = e.GetPosition(PhotoViewport);
-            if (middlePhotoDrag && !middlePressMoved && middlePressStart is Point middleStart)
-            {
-                if (!MovedBeyondClickThreshold(middleStart, position)) { e.Handled = true; return; }
-                middlePressMoved = true;
-            }
             Vector movement = position - previous;
             photoDragPosition = position;
             SetPhotoPan(PhotoPan.X + movement.X, PhotoPan.Y + movement.Y);
@@ -316,7 +291,7 @@ public partial class MainWindow : Window
 
         if (viewerPressStart is Point start)
         {
-            if (e.LeftButton != MouseButtonState.Pressed || Keyboard.Modifiers != ModifierKeys.None)
+            if ((windowDragButton==MouseButton.Middle?e.MiddleButton:e.LeftButton) != MouseButtonState.Pressed || Keyboard.Modifiers != ModifierKeys.None)
             {
                 viewerPressStart = null;
                 return;
@@ -345,7 +320,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (e.LeftButton != MouseButtonState.Pressed)
+        if ((windowDragButton==MouseButton.Middle?e.MiddleButton:e.LeftButton) != MouseButtonState.Pressed)
         {
             ReleaseMouseCapture();
             return;
@@ -361,33 +336,12 @@ public partial class MainWindow : Window
     protected override void OnPreviewMouseUp(MouseButtonEventArgs e)
     {
         base.OnPreviewMouseUp(e);
-        if (middlePhotoDrag && e.ChangedButton == MouseButton.Middle)
+        if(e.ChangedButton==windowDragButton && (viewerPressStart.HasValue||windowDragOffset.HasValue))
         {
-            bool toggleFit = !middlePressMoved && middlePressStart is Point middleOrigin &&
-                !MovedBeyondClickThreshold(middleOrigin, e.GetPosition(PhotoViewport));
-            Point anchor = middlePressStart ?? e.GetPosition(PhotoViewport);
-            Point imageAnchor = PhotoViewport.TranslatePoint(anchor, Photo);
-            ReleaseMouseCapture();
-            if (toggleFit && Photo.Source is not null)
-            {
-                if (Math.Abs(photoZoomMultiplier - 1) > 0.0001)
-                {
-                    coverPhoto = false;
-                    ResetPhotoView();
-                }
-                else
-                {
-                    coverPhoto = !coverPhoto;
-                    UpdatePhotoZoom();
-                    Point movedAnchor = Photo.TranslatePoint(imageAnchor, PhotoViewport);
-                    SetPhotoPan(PhotoPan.X + anchor.X - movedAnchor.X,
-                        PhotoPan.Y + anchor.Y - movedAnchor.Y);
-                }
-            }
-            e.Handled = true;
-            return;
+            viewerPressStart=null;
+            if(IsMouseCaptured)ReleaseMouseCapture();
+            e.Handled=true;return;
         }
-        if (middlePhotoDrag) return;
         if (e.ChangedButton != MouseButton.Left)
         {
             return;
@@ -433,9 +387,6 @@ public partial class MainWindow : Window
         {
             windowDragOffset = null;
             photoDragPosition = null;
-            middlePhotoDrag = false;
-            middlePressStart = null;
-            middlePressMoved = false;
             ClearValue(CursorProperty);
             ClearValue(ForceCursorProperty);
         }
@@ -564,11 +515,6 @@ public partial class MainWindow : Window
     {
         UpdatePastedHitTesting();
         if(HandlePastedImageDragKey(e))return;
-        if(cropCommitTimer is not null)
-        {
-            if(e.Key==Key.Escape) CancelInlineCrop();
-            e.Handled=true; return;
-        }
         if (e.Key == Key.Escape && markerDrag is { Kind: MarkerKind.Crop })
         {
             ReleaseMouseCapture();
@@ -619,7 +565,7 @@ public partial class MainWindow : Window
             }
             else if (!IsFolderGridOpen && (activeCapture is not null || HasUnsavedCapture))
             {
-                SelectWindowMoveTool();
+                SelectElementMoveTool();
             }
             else if (windowedMode.HasValue)
             {
@@ -634,7 +580,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (e.Key == Key.Z && Keyboard.Modifiers == ModifierKeys.Control && (markers.Count > 0 || CanUndoCrop || CanUndoPastedDelete))
+        if (e.Key == Key.Z && Keyboard.Modifiers == ModifierKeys.Control && (markers.Count > 0 || CanUndoCrop || CanUndoPastedDelete || CanUndoElementEdit))
         {
             if (!e.IsRepeat)
             {
@@ -1023,6 +969,7 @@ public partial class MainWindow : Window
 
     private void UpdatePendingSaveIndicator()
     {
+        InvalidateRedoBranch();
         ScheduleCaptureDraftSave();
         UpdateToolbarActions();
     }
@@ -1035,7 +982,7 @@ public partial class MainWindow : Window
     private void SavePhoto(bool saveCopy)
     {
         EndInlineText(true);
-        if (inlineCropPending) { ApplyInlineCrop(); if (inlineCropPending) return; }
+        if (inlineCropPending) { StatusText.Text="Acepta o cancela el recorte antes de guardar."; return; }
         if (Photo.Source is not BitmapSource bitmap)
         {
             return;

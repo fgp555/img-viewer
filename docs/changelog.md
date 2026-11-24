@@ -849,3 +849,154 @@ Añadir cada cambio visible para el usuario con su fecha, el comportamiento y el
 - La selección muestra una etiqueta con ancho × alto en píxeles reales, actualizada durante el arrastre y al detectar áreas.
 - Etiqueta compacta con fondo oscuro semitransparente junto a la esquina inferior derecha. Se recoloca dentro del monitor si no cabe debajo y no intercepta clics.
 - Sin selección se oculta; la vista previa de pantalla completa muestra las dimensiones del monitor.
+
+## 2026-11-23 · Actualización de selección de captura
+
+- Evita reconstruir la máscara y el contorno cuando la selección y el tamaño del visor no cambiaron.
+- La etiqueta de dimensiones solo vuelve a medirse cuando cambia su texto.
+- Las actualizaciones tardías de detección no reemplazan una selección durante el arrastre.
+- Compilación Release verificada. Pendiente medir la latencia en el equipo del usuario; no se atribuye una mejora temporal cuantificada.
+
+## 2026-11-23 · Selección manual de captura
+
+- Al soltar el botón se comprueba también la distancia final del arrastre para distinguir el área manual de un clic sobre un área detectada, incluso si faltó el último evento de movimiento.
+- Los eventos de captura del mouse de otros controles y la vista previa de monitor no deben cancelar ni sustituir el arrastre manual.
+- Se limpia el estado antes de liberar el mouse para evitar eventos anidados. Compilación Release sin errores; pendiente validación manual del caso reportado.
+
+## 2026-11-23 · Máscara ligera durante selección
+
+- Sustituida la combinación geométrica calculada en cada movimiento por dos rectángulos reutilizables con relleno EvenOdd.
+- La etiqueta de dimensiones tiene un espacio fijo, sin medición síncrona por cada cambio del ancho o alto. Se mantienen las dimensiones físicas en píxeles.
+- Compilación Release sin errores. Pendiente comprobar la latencia percibida en la captura real.
+
+## 2026-11-23 · Selección al ritmo de pantalla
+
+- El movimiento solo marca una actualización pendiente. La selección consulta la posición actual del cursor una vez por fotograma, sin dibujar la cola de posiciones antiguas.
+- Al soltar se calcula el área con la posición actual y se limpia el estado antes de liberar el mouse. Se desconecta el evento Rendering al cerrar el selector.
+- App compilada sin errores. Prueba visual pendiente de completar: el primer host de prueba no resultó controlable mediante automatización.
+
+## 2026-11-23 · Aislar dimensiones del arrastre
+
+- Las formas de selección se alojan en un Canvas para que sus cambios no participen en la medida del Grid del selector.
+- La etiqueta se mueve con RenderTransform y actualiza sus dimensiones como máximo cada 100 ms durante el arrastre.
+- Publicación local compilada; reemplazo del ejecutable final bloqueado por EBUSY al estar abierto. El binario nuevo queda en release/output/.build/IMGViewer.exe.
+
+## 2026-11-23 · Selección personalizada sin dimensiones
+
+- Se oculta y no se calcula ni actualiza la etiqueta de dimensiones durante la selección personalizada por arrastre. Las áreas detectadas y la pantalla completa conservan sus dimensiones.
+
+## 2026-11-23 · Corrección efectiva de ocultación de dimensiones
+
+- Verificada la condición en ShowSelectionDimensions: durante cualquier arrastre retorna sin calcular ni mostrar la etiqueta. Se oculta inmediatamente al pulsar para iniciar la selección y se bloquea la vista previa de monitor durante el arrastre.
+- La modificación anterior no estaba presente en el archivo; esta corrección se comprobó leyendo el código después de escribirlo.
+
+## 2026-11-23 · Dibujo directo del selector
+
+- Marco, máscara y cruz dibujados en una sola superficie mediante DrawingContext. Sustituye las geometrías y controles Path/Line mutables y usa cuatro rectángulos para sombrear fuera de la selección.
+- La selección personalizada mantiene ocultas las dimensiones. Se conserva el muestreo de la posición actual por fotograma y la posición exacta al soltar.
+- Prueba sintética renderizada de 120 fotogramas: mediana 16,9 ms, p95 21,3 ms, máximo 31,8 ms; cero invalidaciones de medida. Verificados visualmente máscara y marco. No equivale a medir la latencia completa del dispositivo de entrada.
+- Build de distribución compila, pero el reemplazo del EXE habitual quedó bloqueado por EBUSY. Binario compilado disponible en release/output/.build/IMGViewer.exe.
+
+## 2026-11-23 · Hilo independiente para seleccionar capturas
+
+- El selector se crea en un hilo STA con dispatcher propio. La interfaz del visor, miniaturas y temporizadores ya no comparte su cola de entrada y dibujo.
+- La selección devuelve únicamente un bitmap congelado y el origen de captura; las ventanas y controles no cruzan hilos. El dispatcher termina al cancelar, completar o fallar.
+- La detección automática continúa en segundo plano y la selección manual mantiene las dimensiones ocultas.
+- Prueba de integración: hilo llamador bloqueado deliberadamente 1800 ms; el selector completa 90 fotogramas con pausa máxima de 30,8 ms. Verificadas ocultación de dimensiones, cancelación y terminación. No equivale a medir la latencia física del mouse.
+- npm run build completado: release/output/IMGViewer.exe actualizado, sin publicación.
+
+## 2026-11-23 · DrawingVisual sin invalidar layout
+
+- Sustituidas las llamadas a InvalidateVisual y OnRender por dos DrawingVisual retenidos: máscara/marco y cruz independientes. Mover solo la cruz no reconstruye la máscara ni la imagen de escritorio congelada.
+- El tamaño del host solo actualiza los dibujos cuando cambia realmente. Las actualizaciones de selección no invalidan medida ni distribución.
+- Prueba renderizada de 120 fotogramas: mediana 16,7 ms, máximo 37,8 ms, cero invalidaciones de medida y distribución. Prueba integrada de 90 fotogramas con llamador bloqueado 1800 ms: máximo 22,1 ms, cero invalidaciones y dimensiones ocultas. No acredita aún la latencia física del mouse.
+
+## 2026-11-23 · Consumo y diagnóstico del selector
+
+- Reemplazado el evento continuo CompositionTarget.Rendering por un temporizador bajo demanda, con intervalo de 1/60 s. Agrupa movimientos pendientes y se detiene en reposo; el punto final sigue leyéndose al soltar.
+- Al iniciar el arrastre o cerrar se cancela cooperativamente la detección de controles; no se siguen consultando nuevos controles ni se aplican resultados tardíos. Una llamada de accesibilidad nativa ya iniciada puede tardar en regresar.
+- Resumen local sobrescrito en %LocalAppData%/IMGViewer/Diagnostics/capture-performance.json: duración, CPU y memoria del proceso, asignaciones administradas, tamaño del escritorio, nivel gráfico y separación entre muestras de movimiento. No guarda imagen, títulos, coordenadas ni credenciales; no envía información. Las cifras son del proceso completo y las separaciones entre muestras no equivalen a latencia del mouse.
+- Prueba integrada de 90 fotogramas, hilo llamador bloqueado 1800 ms: máximo 40,5 ms, cero invalidaciones de layout. Verificados refresco limitado, temporizador inactivo, agrupación de mil avisos y detección previamente cancelada. La prueba no demuestra aún una reducción de consumo en el caso real.
+
+## 2026-11-23 · Prototipo nativo y comparación A/B
+
+- Añadida herramienta aislada tools/CaptureSelectorProbe con selector Win32/Windows Forms/GDI BitBlt, sin migrar la app ni añadir NuGet.
+- Compara el selector manual nativo y WPF con una sola captura congelada; incluye benchmark programado, fuente sintética y comprobación básica de coordenadas. No guarda capturas ni escribe en el portapapeles.
+- En escritorio 5760 × 2280, nativo BitBlt y WPF tuvieron medianas cercanas a 32 ms; el nativo usó más CPU y no mejoró los percentiles. No se reemplaza el selector actual. Métodos, límites y resultados en el README de la herramienta.
+
+## 2026-11-23 · Selector nativo integrado
+
+- La captura habitual usa una ventana Win32/Windows Forms con GDI BitBlt en su propio hilo STA. El visor, la edición, el historial y la miniatura permanecen en WPF.
+- Mantiene el escritorio congelado, selección manual, ventanas y áreas detectadas, rueda para cambiar de área y cruz de pantalla completa. La selección manual no calcula ni muestra dimensiones.
+- Botón de pantalla completa con vista previa del monitor bajo el cursor; Enter captura ese monitor. Esc cancela primero el arrastre y después la captura.
+- Conserva las coordenadas físicas y el origen de captura para varios monitores, incluidos orígenes negativos. El resultado congelado vuelve al flujo existente de miniatura, guardado, portapapeles e historial.
+- Se cancela la detección al comenzar el arrastre y al cerrar; se liberan los DC, bitmaps y pinceles/bolígrafos nativos. No se añadieron dependencias.
+- Diagnóstico local identifica el motor como native-gdi. Prueba integrada: 15 comprobaciones de arrastre inverso, detección, rueda, Esc, límites, vista previa de monitor y devolución del resultado desde la sesión nativa.
+
+## 2026-11-23 · Respuesta visual de pantalla completa
+
+- El botón del selector nativo pasa de #181818 a #353535 al hacer hover y a #282828 al pulsar; muestra texto blanco, icono amarillo de Segoe Fluent Icons y cursor de mano.
+- El clic se confirma al soltar dentro del botón. Soltar fuera o cancelar la pulsación con Esc no toma la captura. Al salir del hover recupera la selección detectada anterior y el cursor de cruz.
+- Solo se repinta al cambiar el estado, sin temporizadores ni animaciones continuas.
+
+## 2026-11-23 · Dimensiones en vivo en el prototipo nativo
+
+- Solo tools/CaptureSelectorProbe muestra ancho × alto en píxeles junto a la selección mientras se arrastra. Dibujo GDI de tamaño fijo, recolocación dentro del monitor y borrado de la etiqueta previa; sin controles adicionales ni ciclo de animación.
+- El selector integrado de IMG Viewer permanece sin dimensiones durante selección manual.
+- Comprobados actualización de dimensiones, recorte a límites, posición junto al borde y limpieza al cancelar. Compilación del prototipo correcta.
+
+## 2026-11-23 · Dimensiones en vivo integradas
+
+- Integrada la etiqueta de dimensiones del prototipo validado por el usuario en el selector nativo de la app. Muestra ancho × alto en píxeles durante el arrastre manual, en áreas detectadas y en pantalla completa.
+- Dibujo GDI en espacio fijo y caché del monitor; borra las posiciones anteriores, se recoloca junto al borde y se oculta al cancelar. Sin controles WPF, medición de texto ni temporizadores adicionales.
+- Pasaron 27 comprobaciones del selector, incluidas actualización en vivo, colocación en bordes y eliminación de la etiqueta al cancelar.
+
+## 2026-11-23 · Gestos de ventana e imagen
+
+- En el visor, arrastrar con el botón central mueve la ventana. El clic central ya no alterna cubrir/ajustar ni restablece el zoom.
+- Con la imagen ampliada, el arrastre izquierdo la desplaza sin requerir Ctrl. Los marcadores, recorte y elementos pegados conservan su interacción izquierda. Ctrl + arrastre sigue siendo compatible.
+- Se conserva el doble clic para pantalla completa y el arrastre del encabezado de grid. No se mueve la ventana durante pantalla completa o maximizada.
+- Ayuda y tooltip actualizados. Pasaron 72 comprobaciones de composición y gestos: prioridad de herramientas, inicio/fin de pan y clic central sin cambios de zoom.
+
+## 2026-11-23 · Gradientes de marcación
+
+- Violeta (#8B5CF6 → #F36DAE) es el color predeterminado de los nuevos marcadores. El panel incluye también Coral, Océano y Dorado, junto a los cuatro colores sólidos y su indicador de selección.
+- Las flechas usan la dirección cola → punta, incluso al dibujarlas en sentido inverso; rectángulos, mano alzada y texto usan un gradiente diagonal. Se conservan el grosor, las sombras y los estilos existentes.
+- Vista previa, copiar y guardar usan los mismos pinceles. Los borradores guardan colores, posiciones y dirección del gradiente; los borradores antiguos sin ese dato conservan el color sólido.
+- Pasaron 90 comprobaciones de composición, incluida selección de paletas, exportación con colores distintos, recuperación de gradientes y compatibilidad con borradores anteriores. Sin dependencias nuevas.
+
+## 2026-11-23 · Seleccionar y mover elementos
+
+- La antigua herramienta Mover ventana pasa a Seleccionar y mover, con icono Click de Segoe Fluent Icons y atajo V. El botón central mantiene el movimiento de ventana.
+- Permite seleccionar con clic y mover con arrastre izquierdo textos, flechas, rectángulos y trazos de mano alzada, además de las imágenes pegadas. Se muestra un contorno fino; las esquinas de redimensionado se mantienen solo para imágenes pegadas.
+- Las figuras usan su geometría como zona de selección; el interior vacío del rectángulo queda disponible para desplazar la imagen con zoom. Se selecciona un elemento cada vez.
+- Supr y el botón Eliminar quitan el elemento seleccionado. Ctrl + Z recupera elementos y revierte movimientos; Esc cancela el arrastre. Sin elemento seleccionado se conserva la acción de Papelera.
+- Los movimientos conservan gradientes, sombras y controles de flechas curvas. Sus posiciones se guardan y recuperan como geometrías editables en los borradores.
+- Pasaron 118 comprobaciones de composición y gestos, incluidas selección por geometría, movimiento de texto/flecha/rectángulo, recuperación de posición, eliminación, deshacer y cancelación.
+
+
+## Edición de elementos — 23 de noviembre de 2026
+
+- Seleccionar con **V** para mover y editar color, grosor, sombra y estilo según el tipo de elemento.
+- Doble clic o **Enter** sobre un texto para editarlo directamente. **Ctrl + Enter** confirma y **Esc** cancela. Los textos nuevos conservan su contenido editable en los borradores; los antiguos que solo conservan contornos no pueden recuperar el texto original.
+- Tiradores en las esquinas para redimensionar marcadores. **Shift** conserva las proporciones; el texto las conserva siempre.
+- **Ctrl + Y** o **Ctrl + Shift + Z** rehace las ediciones deshechas. Una edición nueva descarta la rama de rehacer. Historial limitado a 32 pasos de rehacer, sin duplicar los píxeles de las imágenes.
+- **Ctrl + D** duplica el elemento seleccionado conservando sus propiedades.
+- Herramienta **Círculo / elipse**, también con **E**. **Shift** mientras se dibuja crea un círculo.
+- Implementado con WPF y las dependencias existentes, sin incorporar nuevas librerías.
+
+
+### Ajuste de flechas por extremos
+
+- Las flechas editables muestran dos tiradores: cola y punta, en lugar del marco con esquinas. El cuerpo sigue permitiendo mover la flecha completa.
+- Cambiar la longitud o dirección reconstruye la geometría y conserva el grosor, las proporciones de la cabeza, el degradado y la sombra. Las curvas conservan su control central y su curvatura relativa.
+- Los ajustes de extremos se pueden cancelar con Esc y deshacer/rehacer, sin incorporar dependencias.
+
+
+### Confirmación del recorte
+
+- El recorte por tiradores muestra iconos de aceptar y cancelar junto a la selección. **Enter** acepta y **Esc** cancela.
+- Arrastrar un tirador mantiene una vista previa hasta confirmar, sin aplicar el recorte al soltar. La selección con Ctrl + Alt también espera confirmación.
+- Los botones se recolocan dentro del visor y usan los mismos iconos y estados que la barra de herramientas.
+
+- Eliminado el temporizador de recorte automático de la selección con Ctrl + Alt. Guardar o convertir tampoco confirma un recorte pendiente.

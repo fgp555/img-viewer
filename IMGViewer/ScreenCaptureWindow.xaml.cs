@@ -12,11 +12,21 @@ public partial class ScreenCaptureWindow : Window
     private DesktopSnapshot snapshot;
     private Int32Rect monitor;
     private Point? dragStart;
+    private bool pointerFramePending;
+    private readonly System.Windows.Threading.DispatcherTimer pointerTimer=new(System.Windows.Threading.DispatcherPriority.Input)
+        {Interval=TimeSpan.FromMilliseconds(1000.0/60)};
+    private Point? previousPointer;
+    private readonly CaptureSelectionMetrics metrics=new();
+    internal event EventHandler? ManualSelectionStarted;
     private bool draggingRegion;
     private IReadOnlyDictionary<int, IReadOnlyList<Int32Rect>> regions;
     private List<Int32Rect> candidates = [];
     private int candidateIndex;
     private Int32Rect selectedArea;
+    private Int32Rect? renderedSelection;
+    private Size renderedSurface;
+    private string? dimensionsLabel;
+    private readonly TranslateTransform dimensionsPosition=new();
 
     internal BitmapSource? Result { get; private set; }
     internal Point CaptureOrigin { get; private set; }
@@ -27,13 +37,23 @@ public partial class ScreenCaptureWindow : Window
         this.regions = regions;
         monitor = snapshot.MonitorAt(DesktopSnapshot.CursorPosition());
         InitializeComponent();
+        pointerTimer.Tick+=RenderPointerFrame;
+        SelectionDimensions.RenderTransform=dimensionsPosition;
         FrozenDesktop.Source = snapshot.Bitmap;
         Loaded += (_, _) =>
         {
+            pointerFramePending=true;pointerTimer.Start();
             Activate();
             SelectionSurface.Focus();
             Keyboard.Focus(SelectionSurface);
         };
+    }
+
+    protected override void OnClosed(EventArgs e)
+    {
+        pointerTimer.Stop();pointerTimer.Tick-=RenderPointerFrame;
+        metrics.Finish(snapshot.Bitmap.PixelWidth,snapshot.Bitmap.PixelHeight,RenderCapability.Tier>>16);
+        base.OnClosed(e);
     }
 
     internal void UpdateDetectedAreas(DesktopSnapshot detectedSnapshot, IReadOnlyDictionary<int, IReadOnlyList<Int32Rect>> detectedRegions)
@@ -86,6 +106,7 @@ public partial class ScreenCaptureWindow : Window
 
     private void RefreshMonitorPreview()
     {
+        if(dragStart is not null)return;
         bool active = IsMonitorPreviewActive;
         string description = $"Capturar este monitor · {monitor.Width} × {monitor.Height}";
         MonitorPreviewLabel.Text = active ? description : "Pantalla completa";
@@ -93,7 +114,7 @@ public partial class ScreenCaptureWindow : Window
         System.Windows.Automation.AutomationProperties.SetName(Toolbar, description);
         if (active)
         {
-            HorizontalGuide.Visibility = VerticalGuide.Visibility = Visibility.Collapsed;
+            SelectionDrawing.SetPointer(null);
             ShowSelection(monitor);
         }
         else ShowSelection(selectedArea);
@@ -103,6 +124,7 @@ public partial class ScreenCaptureWindow : Window
     {
         // Neither pointer movement over the button nor late region detection may
         // replace the selection that will be restored after the monitor preview.
+        if (dragStart is not null) return;
         if (IsMonitorPreviewActive) { RefreshMonitorPreview(); return; }
         var next = new List<Int32Rect>();
         for (int i = 0; i < snapshot.Windows.Count; i++)
@@ -137,43 +159,38 @@ public partial class ScreenCaptureWindow : Window
     private void Selection_MouseLeave(object sender, MouseEventArgs e)
     {
         if (dragStart is not null) return;
-        HorizontalGuide.Visibility = VerticalGuide.Visibility = Visibility.Collapsed;
+        SelectionDrawing.SetPointer(null);
     }
 
-    private void UpdateGuides(Point point)
-    {
-        HorizontalGuide.X1 = 0;
-        HorizontalGuide.X2 = Surface.ActualWidth;
-        HorizontalGuide.Y1 = HorizontalGuide.Y2 = point.Y;
-        VerticalGuide.Y1 = 0;
-        VerticalGuide.Y2 = Surface.ActualHeight;
-        VerticalGuide.X1 = VerticalGuide.X2 = point.X;
-        HorizontalGuide.Visibility = VerticalGuide.Visibility = Visibility.Visible;
-    }
+    private void UpdateGuides(Point point)=>SelectionDrawing.SetPointer(point);
 
     private void ShowSelection(Int32Rect selected)
     {
-        var full = new RectangleGeometry(new Rect(0, 0, Surface.ActualWidth, Surface.ActualHeight));
-        if (selected.Width <= 0 || selected.Height <= 0)
+        if(dragStart is not null)SelectionDimensions.Visibility=Visibility.Collapsed;
+        var surfaceSize=new Size(Surface.ActualWidth,Surface.ActualHeight);
+        if(renderedSelection==selected && renderedSurface==surfaceSize)return;
+        renderedSelection=selected;renderedSurface=surfaceSize;
+        if(selected.Width<=0||selected.Height<=0)
         {
-            Dimmer.Data = full;
-            Outline.Data = null;
+            SelectionDrawing.SetSelection(Rect.Empty);
             SelectionDimensions.Visibility=Visibility.Collapsed;
             return;
         }
-
-        var highlight = new RectangleGeometry(ToView(selected));
-        Dimmer.Data = new CombinedGeometry(GeometryCombineMode.Exclude, full, highlight);
-        Outline.Data = highlight;
-        ShowSelectionDimensions(selected);
+        SelectionDrawing.SetSelection(ToView(selected));
+        if(dragStart is null)ShowSelectionDimensions(selected);
     }
 
     private void ShowSelectionDimensions(Int32Rect selected)
     {
-        SelectionDimensionsText.Text=$"{selected.Width} × {selected.Height} px";
+        if(dragStart is not null) { SelectionDimensions.Visibility=Visibility.Collapsed; return; }
+        string label=$"{selected.Width} × {selected.Height} px";
         SelectionDimensions.Visibility=Visibility.Visible;
-        SelectionDimensions.Measure(new Size(double.PositiveInfinity,double.PositiveInfinity));
-        Size size=SelectionDimensions.DesiredSize;
+        if(dimensionsLabel!=label)
+        {
+            dimensionsLabel=label;SelectionDimensionsText.Text=label;
+
+        }
+        Size size=new(160,28);
         Rect selection=ToView(selected);
         // Use the monitor containing the selection corner, including negative desktop coordinates.
         Rect screen=ToView(snapshot.MonitorAt(new Point(selected.X+selected.Width-1,selected.Y+selected.Height-1)));
@@ -183,7 +200,7 @@ public partial class ScreenCaptureWindow : Window
         if(y+size.Height>screen.Bottom-gap)y=selection.Bottom-size.Height-gap;
         x=Math.Clamp(x,screen.Left+gap,Math.Max(screen.Left+gap,screen.Right-size.Width-gap));
         y=Math.Clamp(y,screen.Top+gap,Math.Max(screen.Top+gap,screen.Bottom-size.Height-gap));
-        Canvas.SetLeft(SelectionDimensions,x);Canvas.SetTop(SelectionDimensions,y);
+        dimensionsPosition.X=x;dimensionsPosition.Y=y;
     }
     private void Selection_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
@@ -191,6 +208,10 @@ public partial class ScreenCaptureWindow : Window
         if (SelectionSurface.CaptureMouse())
         {
             dragStart = e.GetPosition(Surface);
+            SelectionDimensions.Visibility=Visibility.Collapsed;
+            ManualSelectionStarted?.Invoke(this,EventArgs.Empty);
+            metrics.StartDrag();
+            pointerFramePending=true;pointerTimer.Start();
             draggingRegion = false;
             e.Handled = true;
         }
@@ -198,29 +219,44 @@ public partial class ScreenCaptureWindow : Window
 
     private void Selection_MouseMove(object sender, MouseEventArgs e)
     {
-        Point point = e.GetPosition(Surface);
+        // Mouse messages can arrive faster than the display; never render their backlog.
+        pointerFramePending=true;
+        if(!pointerTimer.IsEnabled)pointerTimer.Start();
+    }
+
+    private Point CurrentPointerView()
+    {
+        Point pixel=DesktopSnapshot.CursorPosition();
+        return new Point((pixel.X-snapshot.Bounds.X)*Surface.ActualWidth/snapshot.Bounds.Width,
+            (pixel.Y-snapshot.Bounds.Y)*Surface.ActualHeight/snapshot.Bounds.Height);
+    }
+
+    private void RenderPointerFrame(object? sender,EventArgs e)
+    {
+        if(!IsVisible || !pointerFramePending || Surface.ActualWidth<=0 || Surface.ActualHeight<=0)
+        {pointerTimer.Stop();return;}
+        pointerFramePending=false;
+        Point point=CurrentPointerView();
+        if(previousPointer==point){pointerTimer.Stop();return;}
+        previousPointer=point;
+        metrics.Sample(dragStart is not null);
+        if(!SelectionSurface.IsMouseOver && dragStart is null)return;
         UpdateGuides(point);
-        Point screenPoint = ToScreenPixels(point);
-        if (dragStart is { } start)
+        if(dragStart is {} start)
         {
-            Vector movement = point - start;
-            draggingRegion |= Math.Abs(movement.X) >= SystemParameters.MinimumHorizontalDragDistance ||
-                              Math.Abs(movement.Y) >= SystemParameters.MinimumVerticalDragDistance;
-            if (draggingRegion)
+            Vector movement=point-start;
+            draggingRegion|=Math.Abs(movement.X)>=SystemParameters.MinimumHorizontalDragDistance ||
+                Math.Abs(movement.Y)>=SystemParameters.MinimumVerticalDragDistance;
+            if(draggingRegion)
             {
-                Toolbar.Visibility = Visibility.Hidden;
-                ShowSelection(RegionBetween(start, point));
-                return;
+                Toolbar.Visibility=Visibility.Hidden;
+                ShowSelection(RegionBetween(start,point));
             }
+            return;
         }
-
-        Int32Rect hoveredMonitor = snapshot.MonitorAt(screenPoint);
-        if (monitor != hoveredMonitor)
-        {
-            monitor = hoveredMonitor;
-            PlaceToolbar();
-        }
-
+        Point screenPoint=ToScreenPixels(point);
+        var hoveredMonitor=snapshot.MonitorAt(screenPoint);
+        if(monitor!=hoveredMonitor){monitor=hoveredMonitor;PlaceToolbar();}
         UpdateCandidates(screenPoint);
     }
 
@@ -242,8 +278,12 @@ public partial class ScreenCaptureWindow : Window
             return;
         }
 
-        Point point = e.GetPosition(Surface);
-        Int32Rect area = draggingRegion ? RegionBetween(start, point) : selectedArea;
+        Point point=CurrentPointerView();
+        Vector movement=point-start;
+        bool custom=draggingRegion || Math.Abs(movement.X)>=SystemParameters.MinimumHorizontalDragDistance ||
+            Math.Abs(movement.Y)>=SystemParameters.MinimumVerticalDragDistance;
+        Int32Rect area=custom?RegionBetween(start,point):selectedArea;
+        dragStart=null;draggingRegion=false;pointerFramePending=false;
         SelectionSurface.ReleaseMouseCapture();
         Complete(area);
         e.Handled = true;
@@ -251,6 +291,7 @@ public partial class ScreenCaptureWindow : Window
 
     private void Selection_LostMouseCapture(object sender, MouseEventArgs e)
     {
+        if(!ReferenceEquals(e.OriginalSource,SelectionSurface)||SelectionSurface.IsMouseCaptured)return;
         dragStart = null;
         draggingRegion = false;
         Toolbar.Visibility = Visibility.Visible;

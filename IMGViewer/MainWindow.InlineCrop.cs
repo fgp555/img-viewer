@@ -11,7 +11,6 @@ public partial class MainWindow
     private sealed record CropUndoState(BitmapSource Result, BitmapSource Before, BitmapSource? RotationBase, int Rotation, bool PixelEdit, StyledMarker[] Marks);
     private readonly Stack<CropUndoState> cropUndo = new();
     private bool preserveCropUndo;
-    private System.Windows.Threading.DispatcherTimer? cropCommitTimer;
     private bool CanUndoCrop => cropUndo.TryPeek(out var state) && ReferenceEquals(Photo.Source,state.Result);
     private void UndoCrop()
     {
@@ -23,17 +22,11 @@ public partial class MainWindow
         ResetPhotoView(); RefreshMarkerOverlay(); UpdateMetadataFooter(); UpdatePendingSaveIndicator(); RememberActiveCapture();
         StatusText.Text="Recorte deshecho.";
     }
-    private void ScheduleGestureCrop()
+    private void PreviewGestureCrop()
     {
         UpdateInlineCropAdorners();
-        inlineCropOutline?.BeginAnimation(OpacityProperty,new System.Windows.Media.Animation.DoubleAnimation(0.35,1,TimeSpan.FromMilliseconds(150)) {AutoReverse=true});
-        var source=inlineCropBitmap;
-        cropCommitTimer=new System.Windows.Threading.DispatcherTimer {Interval=TimeSpan.FromMilliseconds(300)};
-        cropCommitTimer.Tick+=(_,_)=>{
-            cropCommitTimer?.Stop(); cropCommitTimer=null;
-            if (ReferenceEquals(Photo.Source,source)) ApplyInlineCrop(); else CancelInlineCrop();
-        };
-        cropCommitTimer.Start();
+        StatusText.Text="Ajusta el recorte · Enter acepta · Esc cancela.";
+        Keyboard.Focus(this);
     }
     private BitmapSource? inlineCropBitmap;
     private Rect inlineCropBounds;
@@ -41,6 +34,7 @@ public partial class MainWindow
     private readonly List<Thumb> inlineCropHandles=[];
     private System.Windows.Shapes.Path? inlineCropMask;
     private Rectangle? inlineCropOutline;
+    private Border? inlineCropActions;
     private void CropButton_Click(object sender,RoutedEventArgs e)
     {
         if(inlineCropBitmap is null) EnableInlineCrop(); else CancelInlineCrop();
@@ -59,7 +53,7 @@ public partial class MainWindow
             InlineCropCanvas.Children.Add(inlineCropMask); InlineCropCanvas.Children.Add(inlineCropOutline);
             foreach(string edge in new[]{"nw","n","ne","e","se","s","sw","w"})
             {
-                var handle=new Thumb { Width=10,Height=10,Tag=edge,Cursor=edge is "n" or "s"?Cursors.SizeNS:edge is "w" or "e"?Cursors.SizeWE:edge is "nw" or "se"?Cursors.SizeNWSE:Cursors.SizeNESW, ToolTip="Arrastra para recortar · Se aplica al soltar · Esc cancela el arrastre", Focusable=true };
+                var handle=new Thumb { Width=10,Height=10,Tag=edge,Cursor=edge is "n" or "s"?Cursors.SizeNS:edge is "w" or "e"?Cursors.SizeWE:edge is "nw" or "se"?Cursors.SizeNWSE:Cursors.SizeNESW, ToolTip="Arrastra para recortar · Enter acepta · Esc cancela", Focusable=true };
                 var border=new FrameworkElementFactory(typeof(Border));
                 border.SetValue(Border.BackgroundProperty,Brushes.White); border.SetValue(Border.BorderBrushProperty,Brushes.Black); border.SetValue(Border.BorderThicknessProperty,new Thickness(1));
                 handle.Template=new ControlTemplate(typeof(Thumb)) { VisualTree=border };
@@ -69,6 +63,21 @@ public partial class MainWindow
                 handle.DragCompleted+=InlineCrop_DragCompleted;
                 InlineCropCanvas.Children.Add(handle); inlineCropHandles.Add(handle);
             }
+        }
+        if(inlineCropActions is null)
+        {
+            var buttons=new StackPanel {Orientation=Orientation.Horizontal};
+            Button Action(string glyph,string label,Action execute)
+            {
+                var button=new Button {Style=(Style)FindResource("FloatingButton"),Width=32,Height=32,ToolTip=label,
+                    Content=new TextBlock {Style=(Style)FindResource("FluentIcon"),Text=glyph,FontSize=16}};
+                System.Windows.Automation.AutomationProperties.SetName(button,label);
+                button.Click+=(_,_)=>execute();buttons.Children.Add(button);return button;
+            }
+            Action("\uE73E","Aceptar recorte · Enter",ApplyInlineCrop);
+            Action("\uE711","Cancelar recorte · Esc",CancelInlineCrop);
+            inlineCropActions=new Border {Background=new SolidColorBrush(Color.FromRgb(32,35,36)),BorderBrush=new SolidColorBrush(Color.FromRgb(62,62,62)),BorderThickness=new Thickness(1),CornerRadius=new CornerRadius(6),Padding=new Thickness(3),Child=buttons};
+            Panel.SetZIndex(inlineCropActions,10);InlineCropCanvas.Children.Add(inlineCropActions);
         }
         UpdateInlineCropAdorners();
     }
@@ -83,9 +92,8 @@ public partial class MainWindow
             return;
         }
         if(!inlineCropPending) return;
-        ApplyInlineCrop();
-        // Keep the grips available for another immediate adjustment.
-        if(inlineCropBitmap is null && !ReferenceEquals(Photo.Source,bitmap)) EnableInlineCrop();
+        UpdateInlineCropAdorners();
+        StatusText.Text="Ajusta el recorte · Enter acepta · Esc cancela.";
     }
 
     private Rect InlineCropViewBounds(Rect pixels)
@@ -124,6 +132,14 @@ public partial class MainWindow
         inlineCropMask.Data=new CombinedGeometry(GeometryCombineMode.Exclude,new RectangleGeometry(full),new RectangleGeometry(rect));
         Canvas.SetLeft(inlineCropOutline,rect.Left); Canvas.SetTop(inlineCropOutline,rect.Top);
         inlineCropOutline.Width=rect.Width; inlineCropOutline.Height=rect.Height;
+        if(inlineCropActions is not null)
+        {
+            const double width=72,height=40;
+            Canvas.SetLeft(inlineCropActions,Math.Clamp(rect.Right-width,0,Math.Max(0,PhotoViewport.ActualWidth-width)));
+            double y=rect.Bottom+10;
+            if(y+height>PhotoViewport.ActualHeight)y=rect.Top-height-10;
+            Canvas.SetTop(inlineCropActions,Math.Clamp(y,0,Math.Max(0,PhotoViewport.ActualHeight-height)));
+        }
         foreach(var handle in inlineCropHandles)
         {
             string edge=(string)handle.Tag;
@@ -144,7 +160,6 @@ public partial class MainWindow
 
     private void CancelInlineCrop()
     {
-        cropCommitTimer?.Stop(); cropCommitTimer=null;
         inlineCropOutline?.BeginAnimation(OpacityProperty,null);
         inlineCropBitmap=null; inlineCropPending=false;
         if(CropButton is not null) CropButton.ClearValue(BackgroundProperty);

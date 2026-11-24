@@ -91,9 +91,10 @@ public partial class MainWindow
         SelectAllImages.IsEnabled = gridPhotos.Length > 0 && !gridBatchInProgress;
         SelectAllImages.IsChecked = count == 0 ? false : count == gridPhotos.Length ? true : null;
     }
-    private void UndoWorkspace()
+    private void UndoWorkspaceCore()
     {
-        if(!IsFolderGridOpen && CanUndoPastedDelete)UndoPastedDelete();
+        if(!IsFolderGridOpen && CanUndoElementEdit)UndoElementEdit();
+        else if(!IsFolderGridOpen && CanUndoPastedDelete)UndoPastedDelete();
         else if(!IsFolderGridOpen && CanUndoPastedTransform)UndoPastedTransform();
         else if (!IsFolderGridOpen && markers.Count > 0) UndoMarker();
         else if (!IsFolderGridOpen && CanUndoCrop) UndoCrop();
@@ -107,6 +108,10 @@ public partial class MainWindow
             new("Archivos", "\uE8B7", "save", "Guardar", "Ctrl + S"),
             new("Archivos", "\uE8B7", "savecopy", "Guardar copia / convertir", "Ctrl + Shift + S"),
             new("Archivos", "\uE8B7", "copy", "Copiar", "Ctrl + C"),
+            new("Archivos", "\uE8B7", "redo", "Rehacer", "Ctrl + Y / Ctrl + Shift + Z"),
+            new("Archivos", "\uE8B7", "duplicate", "Duplicar elemento", "Ctrl + D"),
+            new("Archivos", "\uE8B7", "edittext", "Editar texto seleccionado", "Enter"),
+            new("Marcación", "\uE8B7", "ellipsetool", "Círculo y elipse", "E · Shift: círculo"),
             new("Archivos", "\uE8B7", "paste", "Pegar imagen", "Ctrl + V"),
             new("Archivos", "\uE8B7", "rename", "Renombrar", "F2"),
             new("Archivos", "\uE8B7", "delete", "Enviar a la Papelera", "Supr"),
@@ -121,11 +126,11 @@ public partial class MainWindow
             new("Navegación y zoom", "\uE71E", "scale100", "Tamaño 100%", "Alt + 2"),
             new("Navegación y zoom", "\uE71E", "scale150", "Tamaño 150%", "Alt + 3"),
             new("Navegación y zoom", "\uE71E", "cover", "Cubrir / ajustar", "Z"),
-            new("Navegación y zoom", "\uE71E", "fit", "Restablecer zoom", "Clic central con zoom"),
-            new("Navegación y zoom", "\uE71E", "pan", "Desplazar imagen ampliada", "Ctrl + arrastrar / arrastre central"),
+            new("Navegación y zoom", "\uE71E", "fit", "Restablecer zoom", "Botón Ajustar"),
+            new("Navegación y zoom", "\uE71E", "pan", "Desplazar imagen ampliada", "Arrastre izquierdo con zoom"),
             new("Navegación y zoom", "\uE71E", "grid", "Cuadrícula / imagen", "G"),
             new("Navegación y zoom", "\uE71E", "background", "Fondo sólido / cuadrícula", "T"),
-            new("Marcación y edición", "\uE70F", "movetool", "Mover ventana", "V / arrastrar"),
+            new("Marcación y edición", "\uE70F", "movetool", "Seleccionar y mover elementos", "V"),
             new("Marcación y edición", "\uE70F", "arrowtool", "Dibujar flecha", "Alt + arrastrar"),
             new("Marcación y edición", "\uE70F", "curvedarrowtool", "Dibujar flecha curva", "Ctrl + Shift + arrastrar"),
             new("Marcación y edición", "\uE70F", "rectangletool", "Dibujar rectángulo", "Shift + arrastrar"),
@@ -160,9 +165,12 @@ public partial class MainWindow
                 "previous" or "next" => currentIndex >= 0 && folderImages.Length > 1,
                 "save" or "savecopy" or "rotate" or "rotateback" or "scale50" or "scale100" or "scale150" or "zoomin" or "zoomout" or "cover" or "fit" or "pan" or "arrowtool" or "curvedarrowtool" or "rectangletool" or "freehandtool" or "texttool" or "blurtool" or "movetool" or "inlinecrop" or "crop" => image,
                 "normalmode" => zenMode,
+                "redo" => CanRedoEdit,
+                "duplicate" => HasSelectedEditableMarker,
+                "edittext" => HasSelectedEditableMarker&&markers[selectedPastedImage].Definition?.Kind==MarkerKind.Text,
                 "paste" => !IsFolderGridOpen,
                 "discard" => HasPendingChanges,
-                "undo" => markers.Count > 0 || CanUndoCrop || CanUndoPastedDelete || recycledPhotos.Count > 0,
+                "undo" => markers.Count > 0 || CanUndoCrop || CanUndoPastedDelete || CanUndoElementEdit || recycledPhotos.Count > 0,
                 _ => true };
         var dialog = new ShortcutsWindow(commands, action => Dispatcher.InvokeAsync(() => {
             Activate(); WorkspaceAction_Click(new Button { Tag = action }, new RoutedEventArgs());
